@@ -35,12 +35,15 @@ public sealed partial class ScheduleListItemViewModel : ObservableObject, ICompa
 
     // Helper classes
     private readonly ScheduleListItemInitializer initializer;
-    private readonly ScheduleListItemPropertyManager propertyManager;
     private readonly ScheduleListItemStateHandler stateHandler;
     private readonly ScheduleListItemSubtitleManager subtitleManager;
     private readonly ScheduleListItemBibleDisplayNameProvider bibleDisplayNameProvider;
+    private readonly IScheduleStateService scheduleStateService;
     private ScheduleListItemStateChangeApplier? stateChangeApplier;
-    private ScheduleListItemStateChangeApplier StateChangeApplier => stateChangeApplier ??= new(logger, applicationState, stateHandler, propertyManager);
+    private ScheduleListItemStateChangeApplier StateChangeApplier => stateChangeApplier ??= new(logger, applicationState, stateHandler, value => isEnabled = value);
+
+    private bool isEnabled;
+    private bool isInitializing;
 
     public ScheduleListItemViewModel(ScheduleListItemViewModelDeps d)
     {
@@ -50,8 +53,8 @@ public sealed partial class ScheduleListItemViewModel : ObservableObject, ICompa
         applicationState = d.ApplicationState;
         playbackState = d.PlaybackState;
         dispatcher = d.Dispatcher;
+        scheduleStateService = d.ScheduleStateService;
         initializer = new ScheduleListItemInitializer(logger, d.Mapper, applicationState);
-        propertyManager = new ScheduleListItemPropertyManager(logger, d.ScheduleStateService);
         stateHandler = new ScheduleListItemStateHandler(logger, d.Mapper, applicationState);
         subtitleManager = new ScheduleListItemSubtitleManager(logger, applicationState, playbackState);
         bibleDisplayNameProvider = new ScheduleListItemBibleDisplayNameProvider(applicationState, d.CategoryNameService);
@@ -108,7 +111,7 @@ public sealed partial class ScheduleListItemViewModel : ObservableObject, ICompa
     /// </summary>
     private void InitializeCommon(AlarmSchedule schedule, ScheduleStateItem? scheduleStateItem)
     {
-        ApplyScheduleFromPropertyManager(schedule);
+        ApplyScheduleProperties(schedule);
         RaiseCoreSchedulePropertyNotifications();
         DisconnectScheduleSubscriptions();
         ConnectScheduleSubscriptions(scheduleStateItem);
@@ -116,18 +119,17 @@ public sealed partial class ScheduleListItemViewModel : ObservableObject, ICompa
         RefreshSubTitleFromState(scheduleStateItem);
     }
 
-    private void ApplyScheduleFromPropertyManager(AlarmSchedule schedule)
+    private void ApplyScheduleProperties(AlarmSchedule schedule)
     {
-        propertyManager.IsInitializing = true;
+        isInitializing = true;
         try
         {
             Schedule = schedule;
-            var (isEnabled, _, _, _, _, _, _, _) = ScheduleListItemPropertyManager.GetPropertiesFromSchedule(schedule);
-            propertyManager.IsEnabled = isEnabled;
+            isEnabled = GetPropertiesFromSchedule(schedule).isEnabled;
         }
         finally
         {
-            propertyManager.IsInitializing = false;
+            isInitializing = false;
         }
     }
 
@@ -354,10 +356,10 @@ public sealed partial class ScheduleListItemViewModel : ObservableObject, ICompa
 
     public bool IsEnabled
     {
-        get => propertyManager.IsEnabled;
+        get => isEnabled;
         set
         {
-            if (propertyManager.IsEnabled != value)
+            if (isEnabled != value)
             {
                 if (value && Schedule?.DaysOfWeek == 0)
                 {
@@ -366,9 +368,9 @@ public sealed partial class ScheduleListItemViewModel : ObservableObject, ICompa
                     return;
                 }
 
-                propertyManager.IsEnabled = value;
+                isEnabled = value;
                 OnPropertyChanged();
-                if (!propertyManager.IsInitializing && Schedule != null)
+                if (!isInitializing && Schedule != null)
                 {
                     WeakReferenceMessenger.Default.Send(new ShowProgressBarMessage());
                     _ = HandleIsEnabledChanged(value);
@@ -379,10 +381,11 @@ public sealed partial class ScheduleListItemViewModel : ObservableObject, ICompa
 
     private async Task HandleIsEnabledChanged(bool newValue)
     {
-        await propertyManager.HandleIsEnabledChanged(
+        await HandleIsEnabledChangedAsync(
+            logger,
+            scheduleStateService,
             ScheduleId,
             newValue,
-            Schedule,
             () => OnPropertyChanged(nameof(This)),
             () => NotifyPropertiesChanged(),
             async (attemptedValue) => await RevertIsEnabledChange(attemptedValue));
@@ -392,7 +395,7 @@ public sealed partial class ScheduleListItemViewModel : ObservableObject, ICompa
     {
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            propertyManager.IsEnabled = !attemptedValue;
+            isEnabled = !attemptedValue;
             OnPropertyChanged(nameof(IsEnabled));
             OnPropertyChanged(nameof(This));
             
@@ -827,6 +830,62 @@ public sealed partial class ScheduleListItemViewModel : ObservableObject, ICompa
         OnPropertyChanged(nameof(This));
         OnPropertyChanged(nameof(IsEnabled));
     });
+
+    internal static (bool isEnabled, string name, string timeText, string hour, string minute, string meridianText, WeekDays daysOfWeek, bool musicEnabled) GetPropertiesFromSchedule(AlarmSchedule? schedule)
+    {
+        if (schedule == null)
+        {
+            return (false, string.Empty, string.Empty, "00", "00", "AM", 0, false);
+        }
+
+        return (
+            isEnabled: schedule.IsEnabled,
+            name: schedule.Name ?? string.Empty,
+            timeText: schedule.TimeText ?? string.Empty,
+            hour: schedule.MeridianHour.ToString("D2"),
+            minute: schedule.Minute.ToString("D2"),
+            meridianText: schedule.Meridian.ToString().ToUpperInvariant(),
+            daysOfWeek: schedule.DaysOfWeek,
+            musicEnabled: schedule.MusicEnabled
+        );
+    }
+
+    internal static async Task HandleIsEnabledChangedAsync(
+        ILogger logger,
+        IScheduleStateService scheduleStateService,
+        int scheduleId,
+        bool newValue,
+        Action notifyThisPropertyChanged,
+        Action notifyPropertiesChanged,
+        Func<bool, Task> revertChange)
+    {
+        try
+        {
+            notifyThisPropertyChanged();
+            var success = await scheduleStateService.UpdateScheduleEnabledStateAsync(scheduleId, newValue);
+
+            if (!success)
+            {
+                await revertChange(newValue);
+            }
+            else
+            {
+                notifyPropertiesChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "An error occurred while handling IsEnabled change for schedule {ScheduleId}", scheduleId);
+            try
+            {
+                await revertChange(newValue);
+            }
+            catch (Exception revertEx)
+            {
+                logger.Error(revertEx, "Error reverting IsEnabled change for schedule {ScheduleId}", scheduleId);
+            }
+        }
+    }
 
     public void Dispose()
     {

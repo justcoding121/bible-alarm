@@ -6,7 +6,7 @@ using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
-using Bible.Alarm.ViewModels.Music.MusicPublicationSelectionViewModelHelpers;
+using Bible.Alarm.ViewModels.Shared;
 using Fluxor;
 using Microsoft.Maui.ApplicationModel;
 
@@ -22,16 +22,31 @@ public sealed class MusicPublicationSelectionRefreshHandler
 
     private readonly IState<ApplicationState> state;
     private readonly MusicPublicationSelectionStateManager stateManager;
-    private readonly MusicPublicationSelectionPropertyManager propertyManager;
+    private readonly Func<System.Collections.ObjectModel.ObservableCollection<LanguageListViewItemModel>> getLanguages;
+    private readonly Func<LanguageListViewItemModel?> getCurrentLanguage;
+    private readonly Action<LanguageListViewItemModel?> setCurrentLanguage;
+    private readonly Action<Func<string?, Task>> setupLanguageSearchHandler;
+    private readonly Action<bool> setShowProgress;
+    private readonly Action<bool> setCanCancelFetch;
 
     public MusicPublicationSelectionRefreshHandler(
         IState<ApplicationState> state,
         MusicPublicationSelectionStateManager stateManager,
-        MusicPublicationSelectionPropertyManager propertyManager)
+        Func<System.Collections.ObjectModel.ObservableCollection<LanguageListViewItemModel>> getLanguages,
+        Func<LanguageListViewItemModel?> getCurrentLanguage,
+        Action<LanguageListViewItemModel?> setCurrentLanguage,
+        Action<Func<string?, Task>> setupLanguageSearchHandler,
+        Action<bool> setShowProgress,
+        Action<bool> setCanCancelFetch)
     {
         this.state = state;
         this.stateManager = stateManager;
-        this.propertyManager = propertyManager;
+        this.getLanguages = getLanguages;
+        this.getCurrentLanguage = getCurrentLanguage;
+        this.setCurrentLanguage = setCurrentLanguage;
+        this.setupLanguageSearchHandler = setupLanguageSearchHandler;
+        this.setShowProgress = setShowProgress;
+        this.setCanCancelFetch = setCanCancelFetch;
     }
 
     public async Task RefreshAsync(
@@ -56,10 +71,11 @@ public sealed class MusicPublicationSelectionRefreshHandler
 
             if (!snapshot.IsMelodyMusic)
             {
-                if (propertyManager.Languages == null || propertyManager.Languages.Count == 0)
+                var languages = getLanguages();
+                if (languages == null || languages.Count == 0)
                     await populateLanguages(null);
 
-                propertyManager.SetupLanguageSearchHandler(async (searchTerm) => await populateLanguages(searchTerm));
+                setupLanguageSearchHandler(async (searchTerm) => await populateLanguages(searchTerm));
             }
 
             string? languageCodeToUse = ResolveLanguageCodeToUse(
@@ -82,18 +98,18 @@ public sealed class MusicPublicationSelectionRefreshHandler
         catch (OperationCanceledException ex)
         {
             Serilog.Log.Debug(ex, AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.FetchCancelledByUser);
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
+            await MainThread.InvokeOnMainThreadAsync(() => setShowProgress(false));
         }
         catch (Exception ex) when (ex is HttpRequestException or SocketException or TaskCanceledException)
         {
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
+            await MainThread.InvokeOnMainThreadAsync(() => setShowProgress(false));
             throw new InvalidOperationException(
                 AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.FetchFailedNetworkError,
                 ex);
         }
         catch (Exception ex)
         {
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
+            await MainThread.InvokeOnMainThreadAsync(() => setShowProgress(false));
             throw new InvalidOperationException(
                 AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.FetchFailedDuringRefresh,
                 ex);
@@ -102,8 +118,8 @@ public sealed class MusicPublicationSelectionRefreshHandler
         {
             await MainThread.InvokeOnMainThreadAsync(() =>
             {
-                propertyManager.CanCancelFetch = false;
-                propertyManager.ShowProgress = false;
+                setCanCancelFetch(false);
+                setShowProgress(false);
                 DeviceDisplay.Current.KeepScreenOn = false;
             });
         }
@@ -113,7 +129,7 @@ public sealed class MusicPublicationSelectionRefreshHandler
     {
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            propertyManager.CanCancelFetch = true;
+            setCanCancelFetch(true);
             DeviceDisplay.Current.KeepScreenOn = true;
         });
     }
@@ -151,35 +167,38 @@ public sealed class MusicPublicationSelectionRefreshHandler
         string? scheduleLanguageCode,
         AlarmMusic? current)
     {
+        var languages = getLanguages();
+        var currentLanguage = getCurrentLanguage();
+
         if (!isMelodyMusic &&
-            propertyManager.CurrentLanguage == null &&
-            propertyManager.Languages != null &&
-            propertyManager.Languages.Count > 0)
+            currentLanguage == null &&
+            languages != null &&
+            languages.Count > 0)
         {
             var langCode = scheduleLanguageCode ?? newLanguageCode;
             var languageToSelect = !string.IsNullOrEmpty(langCode)
-                ? propertyManager.Languages.FirstOrDefault(l => string.Equals(l.Code, langCode, StringComparison.OrdinalIgnoreCase))
+                ? languages.FirstOrDefault(l => string.Equals(l.Code, langCode, StringComparison.OrdinalIgnoreCase))
                 : null;
 
             if (languageToSelect == null)
             {
-                languageToSelect = propertyManager.Languages.FirstOrDefault(l => string.Equals(l.Code, AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase));
-                if (languageToSelect == null && propertyManager.Languages.Count > 0)
+                languageToSelect = languages.FirstOrDefault(l => string.Equals(l.Code, AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase));
+                if (languageToSelect == null && languages.Count > 0)
                 {
-                    languageToSelect = propertyManager.Languages[0];
+                    languageToSelect = languages[0];
                 }
             }
 
             if (languageToSelect != null)
             {
-                propertyManager.CurrentLanguage = languageToSelect;
+                setCurrentLanguage(languageToSelect);
                 languageToSelect.IsSelected = true;
                 return languageToSelect.Code;
             }
         }
 
-        if (propertyManager.CurrentLanguage != null)
-            return propertyManager.CurrentLanguage.Code;
+        if (currentLanguage != null)
+            return currentLanguage.Code;
 
         if (current != null && !string.IsNullOrEmpty(current.LanguageCode))
             return current.LanguageCode;

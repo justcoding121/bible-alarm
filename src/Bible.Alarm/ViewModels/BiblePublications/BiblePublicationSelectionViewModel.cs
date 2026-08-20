@@ -30,8 +30,19 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
     // Services
     private readonly BiblePublicationSelectionStateHandler stateHandler;
     private readonly BiblePublicationSelectionDataProvider dataProvider;
-    private readonly BiblePublicationSelectionPropertyManager propertyManager;
-    private PropertyChangedEventHandler? propertyManagerPropertyChangedHandler;
+
+    private ObservableCollection<PublicationListViewItemModel>? publications;
+    private ObservableCollection<LanguageListViewItemModel>? languages;
+    private LanguageListViewItemModel? currentLanguage;
+    private bool isBusy = true;
+    private string languageSearchTerm = string.Empty;
+    private bool showProgress;
+    private double progressPercent;
+    private string progressText = "0%";
+    private bool canCancelFetch;
+    private bool hasFetchError;
+    private bool isCancelBusy;
+    private PropertyChangedEventHandler? languageSearchHandler;
 
     // Cancellation support for fetch operations
     private CancellationTokenSource? fetchCts;
@@ -57,8 +68,6 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
         stateHandler = new BiblePublicationSelectionStateHandler(state, dataProvider, deps.ScopeFactory);
         var languageContentService = serviceProvider.GetService<ILanguageContentService>();
         var commandHandler = new BiblePublicationSelectionCommandHandler(deps.MediaService, state, deps.Dispatcher, navigationService, deps.BiblePublicationService, languageContentService);
-        propertyManager = new BiblePublicationSelectionPropertyManager(state, dataProvider, stateHandler);
-        SetupPropertyManagerForwarding();
 
         // Initialize current from state if available (map DTO to entity)
         // Use CurrentSchedule as the source of truth
@@ -98,27 +107,27 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
         // Initialize commands
         SectionSelectionCommand = commandHandler.CreateSectionSelectionCommand(
             new SectionSelectionSelectors(
-                () => propertyManager.CurrentLanguage,
-                () => propertyManager.Publications,
+                () => CurrentLanguage,
+                () => Publications,
                 () => dataProvider.GetPublicationVMsMapping(),
                 () => stateHandler.Current),
             new SectionSelectionUiBindings(
-                isVisible => propertyManager.ShowProgress = isVisible,
-                progress => propertyManager.ProgressPercent = progress,
-                text => propertyManager.ProgressText = text,
-                busy => propertyManager.IsBusy = busy));
+                isVisible => ShowProgress = isVisible,
+                progress => ProgressPercent = progress,
+                text => ProgressText = text,
+                busy => IsBusy = busy));
 
         BackCommand = commandHandler.CreateBackCommand();
         CloseModalCommand = commandHandler.CreateCloseModalCommand();
 
         SelectLanguageCommand = commandHandler.CreateSelectLanguageCommand(
-            () => propertyManager.Languages,
+            () => Languages,
             () => dataProvider.GetPublicationVMsMapping(),
-            language => propertyManager.UpdateSelectedLanguage(language),
-            isVisible => propertyManager.ShowProgress = isVisible,
-            progress => propertyManager.ProgressPercent = progress,
-            text => propertyManager.ProgressText = text,
-            busy => propertyManager.IsBusy = busy);
+            UpdateSelectedLanguage,
+            isVisible => ShowProgress = isVisible,
+            progress => ProgressPercent = progress,
+            text => ProgressText = text,
+            busy => IsBusy = busy);
 
         // Cancel and retry fetch commands
         CancelFetchCommand = new AsyncRelayCommand(CancelFetchAsync);
@@ -129,36 +138,36 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
 
     private async Task CancelFetchAsync()
     {
-        propertyManager.IsCancelBusy = true;
+        IsCancelBusy = true;
         await Task.Delay(50);
 
         try
         {
             Serilog.Log.Information(AppConstants.Logging.BiblePublicationSelectionViewModelDiagnosticsLog.CancelFetchCommandUserCancelledFetch);
             fetchCts?.CancelAsync();
-            propertyManager.CanCancelFetch = false;
-            propertyManager.ShowProgress = false;
-            propertyManager.IsBusy = false;
+            CanCancelFetch = false;
+            ShowProgress = false;
+            IsBusy = false;
             DeviceDisplay.Current.KeepScreenOn = false;
             await navigationService.PopModalAsync();
         }
         finally
         {
-            propertyManager.IsCancelBusy = false;
+            IsCancelBusy = false;
         }
     }
 
     private async void OnBiblePublicationInitialized(object? o, EventArgs eventArgs)
     {
         await stateHandler.HandleBiblePublicationInitializedAsync(
-            busy => propertyManager.IsBusy = busy,
-            propertyManager.Languages,
+            busy => IsBusy = busy,
+            Languages,
             state.Value.CurrentSchedule?.BiblePublicationLanguageCode,
-            () => propertyManager.UpdateCurrentLanguageFromLanguages());
+            UpdateCurrentLanguageFromLanguages);
 
         // Set up property changed handler for language search
-        propertyManager.SetupPropertyChangedHandler(searchTerm =>
-            _ = dataProvider.PopulateLanguagesAsync(searchTerm, propertyManager.Languages));
+        SetupLanguageSearchHandler(searchTerm =>
+            _ = dataProvider.PopulateLanguagesAsync(searchTerm, Languages));
     }
 
     /// <summary>
@@ -170,10 +179,10 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
         try
         {
             // Populate languages for the language modal
-            await dataProvider.PopulateLanguagesAsync(null, propertyManager.Languages);
+            await dataProvider.PopulateLanguagesAsync(null, Languages);
 
             // Update CurrentLanguage after population so scroll-to-selected works
-            propertyManager.UpdateCurrentLanguageFromLanguages();
+            UpdateCurrentLanguageFromLanguages();
         }
         catch (Exception ex)
         {
@@ -207,7 +216,7 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
         // Cancel any previous fetch and create new cancellation token
         fetchCts?.CancelAsync();
         fetchCts = new CancellationTokenSource();
-        propertyManager.CanCancelFetch = true;
+        CanCancelFetch = true;
         // Do not set ShowProgress here - let the progress reporter control it only when a fetch is actually decided
         // (e.g. English pre-packaged pubs skip fetch and never show overlay)
 
@@ -220,43 +229,43 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
         {
             // Populate publications.
             await stateHandler.RefreshFromStateAsync(
-                busy => propertyManager.IsBusy = busy,
-                propertyManager.Publications,
+                busy => IsBusy = busy,
+                Publications,
                 progressReporter);
 
             // Set the selected publication after population so scroll-to-selected works
-            propertyManager.SetSelectedPublication();
+            SetSelectedPublication();
         }
         catch (OperationCanceledException ex)
         {
             // Fetch was cancelled - data saved so far is preserved
             Serilog.Log.Debug(ex, AppConstants.Logging.BiblePublicationSelectionViewModelDiagnosticsLog.FetchCancelledByUser);
             // Hide progress overlay when cancelled
-            propertyManager.ShowProgress = false;
+            ShowProgress = false;
         }
         catch (Exception ex) when (ex is HttpRequestException or System.Net.Sockets.SocketException or TaskCanceledException)
         {
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
+            await MainThread.InvokeOnMainThreadAsync(() => ShowProgress = false);
             throw new InvalidOperationException(
                 AppConstants.Logging.BiblePublicationSelectionViewModelDiagnosticsLog.FetchFailedNetworkError,
                 ex);
         }
         catch (Exception ex)
         {
-            await MainThread.InvokeOnMainThreadAsync(() => propertyManager.ShowProgress = false);
+            await MainThread.InvokeOnMainThreadAsync(() => ShowProgress = false);
             throw new InvalidOperationException(
                 AppConstants.Logging.BiblePublicationSelectionViewModelDiagnosticsLog.FetchFailedDuringRefresh,
                 ex);
         }
         finally
         {
-            propertyManager.CanCancelFetch = false;
+            CanCancelFetch = false;
             // Ensure progress overlay is hidden after operation completes
             // This handles cases where no fetch was needed (e.g., English language packaged with app)
             // and the progress tracker didn't call SetIsVisible(false)
-            if (propertyManager.ShowProgress)
+            if (ShowProgress)
             {
-                propertyManager.ShowProgress = false;
+                ShowProgress = false;
             }
             // Allow screen to turn off after download completes or fails
             DeviceDisplay.Current.KeepScreenOn = false;
@@ -266,26 +275,113 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
     private async void OnBiblePublicationChanged(object? sender, EventArgs e)
     {
         await stateHandler.HandleBiblePublicationChangedAsync(
-            busy => propertyManager.IsBusy = busy,
-            () => propertyManager.SetSelectedPublication(),
-            propertyManager.Publications);
+            busy => IsBusy = busy,
+            SetSelectedPublication,
+            Publications);
     }
 
-    // Properties delegated to property manager
-    public ObservableCollection<PublicationListViewItemModel> Publications => propertyManager.Publications;
-    public ObservableCollection<LanguageListViewItemModel> Languages => propertyManager.Languages;
-    public PublicationListViewItemModel? SelectedPublication { get => propertyManager.SelectedPublication; set => propertyManager.SelectedPublication = value; }
-    public LanguageListViewItemModel? CurrentLanguage { get => propertyManager.CurrentLanguage; set => propertyManager.CurrentLanguage = value; }
-    public bool IsBusy { get => propertyManager.IsBusy; set => propertyManager.IsBusy = value; }
-    public string PublicationCode { get => propertyManager.PublicationCode; set => propertyManager.PublicationCode = value; }
-    public string LanguageSearchTerm { get => propertyManager.LanguageSearchTerm; set => propertyManager.LanguageSearchTerm = value; }
-    public object? SelectedItem => propertyManager.SelectedItem;
-    public bool ShowProgress { get => propertyManager.ShowProgress; set => propertyManager.ShowProgress = value; }
-    public double ProgressPercent { get => propertyManager.ProgressPercent; set => propertyManager.ProgressPercent = value; }
-    public string ProgressText { get => propertyManager.ProgressText; set => propertyManager.ProgressText = value; }
-    public bool CanCancelFetch { get => propertyManager.CanCancelFetch; set => propertyManager.CanCancelFetch = value; }
-    public bool HasFetchError { get => propertyManager.HasFetchError; set => propertyManager.HasFetchError = value; }
-    public bool IsCancelBusy { get => propertyManager.IsCancelBusy; set => propertyManager.IsCancelBusy = value; }
+    public ObservableCollection<PublicationListViewItemModel> Publications
+    {
+        get => publications ??= [];
+        set => SetProperty(ref publications, value);
+    }
+
+    public ObservableCollection<LanguageListViewItemModel> Languages
+    {
+        get => languages ??= [];
+        set => SetProperty(ref languages, value);
+    }
+
+    public PublicationListViewItemModel? SelectedPublication { get; set; }
+
+    public LanguageListViewItemModel? CurrentLanguage
+    {
+        get => currentLanguage;
+        set => SetProperty(ref currentLanguage, value);
+    }
+
+    public bool IsBusy
+    {
+        get => isBusy;
+        set
+        {
+            if (SetProperty(ref isBusy, value))
+            {
+                OnPropertyChanged(nameof(ShowCancelButton));
+            }
+        }
+    }
+
+    public string PublicationCode
+    {
+        get => stateHandler.Current?.PublicationCode ?? "";
+        set
+        {
+            if (stateHandler.Current == null)
+            {
+                return;
+            }
+
+            stateHandler.Current.PublicationCode = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string LanguageSearchTerm
+    {
+        get => languageSearchTerm;
+        set => SetProperty(ref languageSearchTerm, value);
+    }
+
+    public object? SelectedItem => CurrentLanguage;
+
+    public bool ShowProgress
+    {
+        get => showProgress;
+        set
+        {
+            if (SetProperty(ref showProgress, value))
+            {
+                OnPropertyChanged(nameof(ShowCancelButton));
+            }
+        }
+    }
+
+    public double ProgressPercent
+    {
+        get => progressPercent;
+        set => SetProperty(ref progressPercent, value);
+    }
+
+    public string ProgressText
+    {
+        get => progressText;
+        set => SetProperty(ref progressText, value);
+    }
+
+    public bool CanCancelFetch
+    {
+        get => canCancelFetch;
+        set => SetProperty(ref canCancelFetch, value);
+    }
+
+    public bool HasFetchError
+    {
+        get => hasFetchError;
+        set
+        {
+            if (SetProperty(ref hasFetchError, value))
+            {
+                OnPropertyChanged(nameof(ShowCancelButton));
+            }
+        }
+    }
+
+    public bool IsCancelBusy
+    {
+        get => isCancelBusy;
+        set => SetProperty(ref isCancelBusy, value);
+    }
 
     /// <summary>Show cancel button in overlay during fetch or when busy loading.</summary>
     public bool ShowCancelButton => ShowProgress || IsBusy;
@@ -304,7 +400,93 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
         }
     }
 
+    private void UpdateCurrentLanguageFromLanguages()
+    {
+        if (Languages != null)
+        {
+            var selectedLanguages = Languages.Where(l => l.IsSelected).ToList();
+            var selectedLanguage = Languages.FirstOrDefault(l => l.IsSelected);
 
+            if (selectedLanguages.Count > 1)
+            {
+                Serilog.Log.Warning(AppConstants.Logging.BiblePublicationSelectionLanguageDiagnosticsLog.MultipleLanguagesSelectedCount,
+                    selectedLanguages.Count);
+            }
+
+            if (selectedLanguage != null)
+            {
+                CurrentLanguage = selectedLanguage;
+            }
+        }
+    }
+
+    private void SetupLanguageSearchHandler(Action<string?> populateLanguages)
+    {
+        if (languageSearchHandler != null)
+        {
+            PropertyChanged -= languageSearchHandler;
+        }
+
+        languageSearchHandler = (_, e) =>
+        {
+            if (string.Equals(e.PropertyName, nameof(LanguageSearchTerm), StringComparison.Ordinal))
+            {
+                populateLanguages(LanguageSearchTerm?.Trim());
+            }
+        };
+        PropertyChanged += languageSearchHandler;
+    }
+
+    private void UpdateSelectedLanguage(LanguageListViewItemModel language)
+    {
+        if (CurrentLanguage != null)
+        {
+            CurrentLanguage.IsSelected = false;
+        }
+
+        CurrentLanguage = language;
+        CurrentLanguage!.IsSelected = true;
+    }
+
+    private void SetSelectedPublication()
+    {
+        // Use CurrentSchedule as the source of truth for publication code
+        var stateValue = state.Value;
+        if (stateValue.CurrentSchedule == null)
+        {
+            return;
+        }
+
+        var publicationCode = stateValue.CurrentSchedule.BiblePublicationCode;
+        
+        // Clear ALL previous selections first to ensure only one publication is selected
+        var mapping = dataProvider.GetPublicationVMsMapping();
+        foreach (var pub in mapping.Values)
+        {
+            pub.IsSelected = false;
+        }
+        
+        // Also clear the previous SelectedPublication
+        if (SelectedPublication != null)
+        {
+            SelectedPublication.IsSelected = false;
+        }
+
+        if (string.IsNullOrEmpty(publicationCode))
+        {
+            SelectedPublication = null;
+            return;
+        }
+
+        if (!mapping.TryGetValue(publicationCode, out var publication))
+        {
+            SelectedPublication = null;
+            return;
+        }
+
+        SelectedPublication = publication;
+        SelectedPublication!.IsSelected = true;
+    }
 
     public void Receive(ListItemFetchProgressMessage message)
     {
@@ -313,13 +495,13 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
         {
             if (string.Equals(p.Context, "BibleLanguage", StringComparison.Ordinal))
             {
-                var lang = propertyManager.Languages?.FirstOrDefault(l => string.Equals(l.Code, p.ItemId, StringComparison.OrdinalIgnoreCase));
+                var lang = Languages?.FirstOrDefault(l => string.Equals(l.Code, p.ItemId, StringComparison.OrdinalIgnoreCase));
                 if (lang != null)
                     lang.DownloadProgress = p.Progress;
             }
             else if (string.Equals(p.Context, "BiblePublication", StringComparison.Ordinal))
             {
-                var pub = propertyManager.Publications?.FirstOrDefault(pr => string.Equals(pr.Code, p.ItemId, StringComparison.OrdinalIgnoreCase));
+                var pub = Publications?.FirstOrDefault(pr => string.Equals(pr.Code, p.ItemId, StringComparison.OrdinalIgnoreCase));
                 if (pub != null)
                     pub.DownloadProgress = p.Progress;
             }
@@ -335,10 +517,10 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
         {
             if (p.IsVisible)
             {
-                propertyManager.ProgressPercent = p.Progress;
-                propertyManager.ProgressText = p.ProgressText;
+                ProgressPercent = p.Progress;
+                ProgressText = p.ProgressText;
             }
-            propertyManager.ShowProgress = p.IsVisible;
+            ShowProgress = p.IsVisible;
         });
     }
 
@@ -357,68 +539,10 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
         // Dispose semaphore
         refreshSemaphore.Dispose();
 
-        // Clean up property manager
-        propertyManager.Cleanup();
-
-        if (propertyManagerPropertyChangedHandler != null)
+        if (languageSearchHandler != null)
         {
-            propertyManager.PropertyChanged -= propertyManagerPropertyChangedHandler;
-            propertyManagerPropertyChangedHandler = null;
+            PropertyChanged -= languageSearchHandler;
+            languageSearchHandler = null;
         }
-    }
-
-    private void SetupPropertyManagerForwarding()
-    {
-        // The view binds to THIS ViewModel (not the property manager).
-        // Forward property-manager changes so bindings update (busy overlay + modal progress indicator).
-        propertyManagerPropertyChangedHandler = (_, e) =>
-        {
-            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.IsBusy))
-            {
-                OnPropertyChanged(nameof(IsBusy));
-                OnPropertyChanged(nameof(ShowCancelButton));
-                return;
-            }
-
-            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.ShowProgress))
-            {
-                OnPropertyChanged(nameof(ShowProgress));
-                OnPropertyChanged(nameof(ShowCancelButton));
-                return;
-            }
-
-            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.ProgressPercent))
-            {
-                OnPropertyChanged(nameof(ProgressPercent));
-                return;
-            }
-
-            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.ProgressText))
-            {
-                OnPropertyChanged(nameof(ProgressText));
-                return;
-            }
-
-            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.CanCancelFetch))
-            {
-                OnPropertyChanged(nameof(CanCancelFetch));
-                return;
-            }
-
-            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.HasFetchError))
-            {
-                OnPropertyChanged(nameof(HasFetchError));
-                OnPropertyChanged(nameof(ShowCancelButton));
-                return;
-            }
-
-
-            if (e.PropertyName == nameof(BiblePublicationSelectionPropertyManager.IsCancelBusy))
-            {
-                OnPropertyChanged(nameof(IsCancelBusy));
-            }
-        };
-
-        propertyManager.PropertyChanged += propertyManagerPropertyChangedHandler;
     }
 }

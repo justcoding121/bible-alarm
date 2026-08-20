@@ -4,11 +4,11 @@ using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Tests.Support;
-using Bible.Alarm.ViewModels.ScheduleListItemViewModelHelpers;
+using Bible.Alarm.ViewModels;
 
 namespace Bible.Alarm.Tests;
 
-public sealed class ScheduleListItemPropertyManagerTests
+public sealed class ScheduleListItemViewModelPropertyTests
 {
     private sealed class FakeScheduleStateService(bool succeed, Exception? throwOnUpdate = null) : IScheduleStateService
     {
@@ -33,7 +33,7 @@ public sealed class ScheduleListItemPropertyManagerTests
     [Fact]
     public void GetPropertiesFromSchedule_returns_defaults_when_schedule_null()
     {
-        var tuple = ScheduleListItemPropertyManager.GetPropertiesFromSchedule(null);
+        var tuple = ScheduleListItemViewModel.GetPropertiesFromSchedule(null);
 
         Assert.False(tuple.isEnabled);
         Assert.Equal(string.Empty, tuple.name);
@@ -58,7 +58,7 @@ public sealed class ScheduleListItemPropertyManagerTests
             MusicEnabled = true,
         };
 
-        var tuple = ScheduleListItemPropertyManager.GetPropertiesFromSchedule(schedule);
+        var tuple = ScheduleListItemViewModel.GetPropertiesFromSchedule(schedule);
 
         Assert.True(tuple.isEnabled);
         Assert.Equal("Morning", tuple.name);
@@ -74,16 +74,16 @@ public sealed class ScheduleListItemPropertyManagerTests
     public async Task HandleIsEnabledChanged_calls_properties_when_update_succeeds()
     {
         var state = new FakeScheduleStateService(succeed: true);
-        var sut = new ScheduleListItemPropertyManager(TestLogging.CreateLogger(), state);
 
         var thisNotify = 0;
         var propsNotify = 0;
         var revertCalls = 0;
 
-        await sut.HandleIsEnabledChanged(
+        await ScheduleListItemViewModel.HandleIsEnabledChangedAsync(
+            TestLogging.CreateLogger(),
+            state,
             7,
             true,
-            schedule: null,
             notifyThisPropertyChanged: () => thisNotify++,
             notifyPropertiesChanged: () => propsNotify++,
             revertChange: _ =>
@@ -102,13 +102,13 @@ public sealed class ScheduleListItemPropertyManagerTests
     public async Task HandleIsEnabledChanged_reverts_when_update_fails()
     {
         var state = new FakeScheduleStateService(succeed: false);
-        var sut = new ScheduleListItemPropertyManager(TestLogging.CreateLogger(), state);
 
         var revertArg = false;
-        await sut.HandleIsEnabledChanged(
+        await ScheduleListItemViewModel.HandleIsEnabledChangedAsync(
+            TestLogging.CreateLogger(),
+            state,
             3,
             false,
-            schedule: null,
             notifyThisPropertyChanged: () => { },
             notifyPropertiesChanged: () => { },
             revertChange: async v =>
@@ -124,13 +124,13 @@ public sealed class ScheduleListItemPropertyManagerTests
     public async Task HandleIsEnabledChanged_reverts_when_update_throws()
     {
         var state = new FakeScheduleStateService(succeed: true, throwOnUpdate: new InvalidOperationException("db"));
-        var sut = new ScheduleListItemPropertyManager(TestLogging.CreateLogger(), state);
 
         var revertArg = false;
-        await sut.HandleIsEnabledChanged(
+        await ScheduleListItemViewModel.HandleIsEnabledChangedAsync(
+            TestLogging.CreateLogger(),
+            state,
             5,
             true,
-            schedule: null,
             notifyThisPropertyChanged: () => { },
             notifyPropertiesChanged: () => { },
             revertChange: v =>
@@ -146,12 +146,12 @@ public sealed class ScheduleListItemPropertyManagerTests
     public async Task HandleIsEnabledChanged_swallows_revert_failure_after_update_throws()
     {
         var state = new FakeScheduleStateService(succeed: true, throwOnUpdate: new InvalidOperationException("db"));
-        var sut = new ScheduleListItemPropertyManager(TestLogging.CreateLogger(), state);
 
-        await sut.HandleIsEnabledChanged(
+        await ScheduleListItemViewModel.HandleIsEnabledChangedAsync(
+            TestLogging.CreateLogger(),
+            state,
             5,
             true,
-            schedule: null,
             notifyThisPropertyChanged: () => { },
             notifyPropertiesChanged: () => { },
             revertChange: _ => throw new InvalidOperationException("revert"));

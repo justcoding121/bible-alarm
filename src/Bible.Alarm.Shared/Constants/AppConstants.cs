@@ -2851,11 +2851,11 @@ public static class AppConstants
                 "Error in TrackSelectionStateManager.HandleBiblePublicationChanged during track population";
         }
 
-        /// <summary>Bible publication list/language UI (<c>BiblePublicationSelectionPropertyManager</c>).</summary>
-        public static class BiblePublicationSelectionPropertyManagerDiagnosticsLog
+        /// <summary>Bible publication list/language UI diagnostics.</summary>
+        public static class BiblePublicationSelectionLanguageDiagnosticsLog
         {
             public const string MultipleLanguagesSelectedCount =
-                "[BibleSelectionPropertyManager] Multiple languages selected: {Count} languages";
+                "[BiblePublicationSelection] Multiple languages selected: {Count} languages";
         }
 
         /// <summary>Bible publication picker modal (<c>BiblePublicationSelectionViewModel</c>).</summary>

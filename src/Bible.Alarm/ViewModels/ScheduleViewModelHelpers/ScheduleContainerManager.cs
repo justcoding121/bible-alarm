@@ -28,37 +28,4 @@ public sealed class ScheduleContainerManager
     {
         await scheduleContainerService.InitializeContainersAsync(serviceProvider, setContainers);
     }
-
-    public static void DisposeContainers(SchedulePropertyManager propertyManager)
-    {
-        if (propertyManager.BibleSelectionContainerViewModel is IDisposable bibleDisposable)
-        {
-            bibleDisposable.Dispose();
-        }
-        propertyManager.BibleSelectionContainerViewModel = null;
-
-        if (propertyManager.MusicSelectionContainerViewModel is IDisposable musicDisposable)
-        {
-            musicDisposable.Dispose();
-        }
-        propertyManager.MusicSelectionContainerViewModel = null;
-
-        if (propertyManager.NumberOfTrackContainerViewModel is IDisposable tracksDisposable)
-        {
-            tracksDisposable.Dispose();
-        }
-        propertyManager.NumberOfTrackContainerViewModel = null;
-
-        if (propertyManager.ScheduleDetailsContainerViewModel is IDisposable detailsDisposable)
-        {
-            detailsDisposable.Dispose();
-        }
-        propertyManager.ScheduleDetailsContainerViewModel = null;
-
-        if (propertyManager.AlarmSettingsContainerViewModel is IDisposable alarmSettingsDisposable)
-        {
-            alarmSettingsDisposable.Dispose();
-        }
-        propertyManager.AlarmSettingsContainerViewModel = null;
-    }
 }

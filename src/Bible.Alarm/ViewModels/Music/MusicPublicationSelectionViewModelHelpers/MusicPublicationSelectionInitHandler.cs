@@ -18,25 +18,34 @@ public sealed class MusicPublicationSelectionInitHandler
     private readonly IMediaService mediaService;
     private readonly MusicPublicationSelectionStateManager stateManager;
     private readonly MusicPublicationSelectionDataProvider dataProvider;
-    private readonly MusicPublicationSelectionPropertyManager propertyManager;
+    private readonly Func<System.Collections.ObjectModel.ObservableCollection<LanguageListViewItemModel>> getLanguages;
+    private readonly Func<LanguageListViewItemModel?> getCurrentLanguage;
+    private readonly Action<LanguageListViewItemModel?> setCurrentLanguage;
+    private readonly Action<Func<string?, Task>> setupLanguageSearchHandler;
 
     public MusicPublicationSelectionInitHandler(
         IMediaService mediaService,
         MusicPublicationSelectionStateManager stateManager,
         MusicPublicationSelectionDataProvider dataProvider,
-        MusicPublicationSelectionPropertyManager propertyManager)
+        Func<System.Collections.ObjectModel.ObservableCollection<LanguageListViewItemModel>> getLanguages,
+        Func<LanguageListViewItemModel?> getCurrentLanguage,
+        Action<LanguageListViewItemModel?> setCurrentLanguage,
+        Action<Func<string?, Task>> setupLanguageSearchHandler)
     {
         this.mediaService = mediaService;
         this.stateManager = stateManager;
         this.dataProvider = dataProvider;
-        this.propertyManager = propertyManager;
+        this.getLanguages = getLanguages;
+        this.getCurrentLanguage = getCurrentLanguage;
+        this.setCurrentLanguage = setCurrentLanguage;
+        this.setupLanguageSearchHandler = setupLanguageSearchHandler;
     }
 
     public async Task InitializeInternalAsync(
         IState<ApplicationState> state,
         Func<string?, Task> populateLanguages,
         Func<string?, bool, IFetchProgress?, CancellationToken, Task> populateSongPublications,
-        Func<string?, Task> setupLanguageSearchHandler)
+        Func<string?, Task> setupLanguageSearchPopulate)
     {
         var current = stateManager.Current;
         if (current == null)
@@ -64,18 +73,19 @@ public sealed class MusicPublicationSelectionInitHandler
             current.LanguageCode = languageCode;
         }
 
-        if (propertyManager.Languages == null || propertyManager.Languages.Count == 0)
+        var languageList = getLanguages();
+        if (languageList == null || languageList.Count == 0)
         {
             await populateLanguages(null);
         }
 
         await populateSongPublications(languageCode, false, null, default);
-        propertyManager.SetupLanguageSearchHandler(setupLanguageSearchHandler);
+        setupLanguageSearchHandler(setupLanguageSearchPopulate);
     }
 
     public async Task PopulateLanguagesAsync(
         IState<ApplicationState> state,
-        Action<LanguageListViewItemModel?> setCurrentLanguage,
+        Action<LanguageListViewItemModel?> setCurrentLanguageCallback,
         string? searchTerm = null)
     {
         var currentSchedule = state.Value.CurrentSchedule;
@@ -85,8 +95,8 @@ public sealed class MusicPublicationSelectionInitHandler
 
         await dataProvider.PopulateLanguages(
             effectiveCurrent,
-            propertyManager.Languages,
-            setCurrentLanguage,
+            getLanguages(),
+            setCurrentLanguageCallback,
             searchTerm);
     }
 
@@ -106,10 +116,10 @@ public sealed class MusicPublicationSelectionInitHandler
 
             await dataProvider.PopulateLanguages(
                 tempCurrent,
-                propertyManager.Languages,
-                lang => propertyManager.CurrentLanguage = lang,
+                getLanguages(),
+                lang => setCurrentLanguage(lang),
                 null);
-            propertyManager.SetupLanguageSearchHandler(populateLanguages);
+            setupLanguageSearchHandler(populateLanguages);
         }
         catch (Exception ex)
         {
@@ -119,12 +129,13 @@ public sealed class MusicPublicationSelectionInitHandler
 
     public void UpdateSelectedLanguage(LanguageListViewItemModel language)
     {
-        if (propertyManager.CurrentLanguage != null)
+        var current = getCurrentLanguage();
+        if (current != null)
         {
-            propertyManager.CurrentLanguage.IsSelected = false;
+            current.IsSelected = false;
         }
 
-        propertyManager.CurrentLanguage = language;
-        propertyManager.CurrentLanguage!.IsSelected = true;
+        setCurrentLanguage(language);
+        language.IsSelected = true;
     }
 }

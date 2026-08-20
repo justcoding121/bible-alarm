@@ -32,10 +32,22 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
     private readonly MusicPublicationSelectionStateManager stateManager;
     private readonly MusicPublicationSelectionDataProvider dataProvider;
     private readonly MusicPublicationSelectionCommandHandler commandHandler;
-    private readonly MusicPublicationSelectionPropertyManager propertyManager;
     private readonly MusicPublicationSelectionRefreshHandler refreshHandler;
     private readonly MusicPublicationSelectionInitHandler initHandler;
-    private PropertyChangedEventHandler? propertyManagerPropertyChangedHandler;
+
+    private bool isBusy = true;
+    private ObservableCollection<PublicationListViewItemModel>? songPublications;
+    private ObservableCollection<LanguageListViewItemModel>? languages;
+    private LanguageListViewItemModel? currentLanguage;
+    private string languageSearchTerm = string.Empty;
+    private PublicationListViewItemModel? selectedSongPublication;
+    private PropertyChangedEventHandler? languageSearchHandler;
+    private bool showProgress;
+    private double progressPercent;
+    private string progressText = "0%";
+    private bool canCancelFetch;
+    private bool hasFetchError;
+    private bool isCancelBusy;
 
     // Cancellation support for fetch operations
     private CancellationTokenSource? fetchCts;
@@ -56,10 +68,23 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
         var languageContentService = serviceProvider.GetService<ILanguageContentService>();
         dataProvider = new MusicPublicationSelectionDataProvider(deps.MediaService, languageNameService, biblePublicationService, languageContentService, deps.ScopeFactory);
         commandHandler = new MusicPublicationSelectionCommandHandler(this.navigationService, state, deps.Dispatcher, deps.MediaService, languageNameService);
-        propertyManager = new MusicPublicationSelectionPropertyManager();
-        refreshHandler = new MusicPublicationSelectionRefreshHandler(state, stateManager, propertyManager);
-        initHandler = new MusicPublicationSelectionInitHandler(deps.MediaService, stateManager, dataProvider, propertyManager);
-        SetupPropertyManagerForwarding();
+        refreshHandler = new MusicPublicationSelectionRefreshHandler(
+            state,
+            stateManager,
+            () => Languages,
+            () => CurrentLanguage,
+            lang => CurrentLanguage = lang,
+            SetupLanguageSearchHandler,
+            visible => ShowProgress = visible,
+            canCancel => CanCancelFetch = canCancel);
+        initHandler = new MusicPublicationSelectionInitHandler(
+            deps.MediaService,
+            stateManager,
+            dataProvider,
+            () => Languages,
+            () => CurrentLanguage,
+            lang => CurrentLanguage = lang,
+            SetupLanguageSearchHandler);
 
         state.StateChanged += OnMusicInitialized;
         state.StateChanged += OnMusicChanged;
@@ -81,19 +106,19 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
             {
                 await commandHandler.HandleTrackSelectionAsync(new HandleMusicPublicationTrackSelectionArgs(
                     x,
-                    propertyManager.CurrentLanguage,
+                    CurrentLanguage,
                     dataProvider,
                     stateManager.Current,
                     new TrackSelectionProgressBindings(
-                        isVisible => propertyManager.ShowProgress = isVisible,
-                        progress => propertyManager.ProgressPercent = progress,
-                        text => propertyManager.ProgressText = text)));
+                        isVisible => ShowProgress = isVisible,
+                        progress => ProgressPercent = progress,
+                        text => ProgressText = text)));
             }
         });
 
         OpenModalCommand = new AsyncRelayCommand(async () =>
         {
-            propertyManager.IsBusy = true;
+            IsBusy = true;
             bool modalOpened = false;
 
             try
@@ -108,7 +133,7 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
                 await Task.Delay(50);
 
                 // Double-check that languages are populated before opening modal
-                if (propertyManager.Languages == null || propertyManager.Languages.Count == 0)
+                if (Languages == null || Languages.Count == 0)
                 {
                     await Task.Delay(100);
                     await PopulateLanguages();
@@ -121,7 +146,7 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
             finally
             {
                 if (!modalOpened)
-                    propertyManager.IsBusy = false;
+                    IsBusy = false;
             }
         });
 
@@ -143,12 +168,12 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
                     x,
                     dataProvider,
                     new HandleMusicLanguageSelectionUiCallbacks(
-                        lang => propertyManager.CurrentLanguage = lang,
+                        lang => CurrentLanguage = lang,
                         UpdateSelectedLanguage,
-                        isVisible => propertyManager.ShowProgress = isVisible,
-                        progress => propertyManager.ProgressPercent = progress,
-                        text => propertyManager.ProgressText = text,
-                        busy => propertyManager.IsBusy = busy));
+                        isVisible => ShowProgress = isVisible,
+                        progress => ProgressPercent = progress,
+                        text => ProgressText = text,
+                        busy => IsBusy = busy));
             }
         });
 
@@ -159,7 +184,7 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
     {
         stateManager.HandleMusicChanged(
             state,
-            busy => propertyManager.IsBusy = busy,
+            busy => IsBusy = busy,
             async (langCode) => await PopulateSongPublications(langCode),
             SetSelectedSongPublication);
     }
@@ -168,7 +193,7 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
     {
         stateManager.HandleMusicInitialized(
             state,
-            busy => propertyManager.IsBusy = busy,
+            busy => IsBusy = busy,
             Initialize);
     }
 
@@ -177,8 +202,8 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
         MusicPublicationSelectionDataProvider.SetSelectedSongPublication(
             stateManager.Current,
             dataProvider.SongPublicationVMsMapping,
-            propertyManager.SelectedSongPublication,
-            songPublication => propertyManager.SelectedSongPublication = songPublication);
+            SelectedSongPublication,
+            songPublication => SelectedSongPublication = songPublication);
     }
 
     public ICommand BackCommand { get; set; }
@@ -190,22 +215,22 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
 
     private async Task CancelFetchAsync()
     {
-        propertyManager.IsCancelBusy = true;
+        IsCancelBusy = true;
         await Task.Delay(50);
 
         try
         {
             Serilog.Log.Information(AppConstants.Logging.MusicPublicationSelectionViewModelDiagnosticsLog.CancelFetchCommandUserCancelledFetch);
             fetchCts?.CancelAsync();
-            propertyManager.CanCancelFetch = false;
-            propertyManager.ShowProgress = false;
-            propertyManager.IsBusy = false;
+            CanCancelFetch = false;
+            ShowProgress = false;
+            IsBusy = false;
             DeviceDisplay.Current.KeepScreenOn = false;
             await this.navigationService.PopModalAsync();
         }
         finally
         {
-            propertyManager.IsCancelBusy = false;
+            IsCancelBusy = false;
         }
     }
 
@@ -223,77 +248,94 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
 
     public bool IsBusy
     {
-        get => propertyManager.IsBusy;
-        set => propertyManager.IsBusy = value;
+        get => isBusy;
+        set
+        {
+            if (SetProperty(ref isBusy, value))
+            {
+                OnPropertyChanged(nameof(ShowCancelButton));
+            }
+        }
     }
 
     public ObservableCollection<PublicationListViewItemModel> SongPublications
     {
-        get => propertyManager.SongPublications;
-        set => propertyManager.SongPublications = value;
+        get => songPublications ??= [];
+        set => SetProperty(ref songPublications, value);
     }
 
     public ObservableCollection<LanguageListViewItemModel> Languages
     {
-        get => propertyManager.Languages;
-        set => propertyManager.Languages = value;
+        get => languages ??= [];
+        set => SetProperty(ref languages, value);
     }
 
     public LanguageListViewItemModel? CurrentLanguage
     {
-        get => propertyManager.CurrentLanguage;
-        set => propertyManager.CurrentLanguage = value;
+        get => currentLanguage;
+        set => SetProperty(ref currentLanguage, value);
     }
 
     public string LanguageSearchTerm
     {
-        get => propertyManager.LanguageSearchTerm;
-        set => propertyManager.LanguageSearchTerm = value;
+        get => languageSearchTerm;
+        set => SetProperty(ref languageSearchTerm, value);
     }
 
     public PublicationListViewItemModel? SelectedSongPublication
     {
-        get => propertyManager.SelectedSongPublication;
-        set => propertyManager.SelectedSongPublication = value;
+        get => selectedSongPublication;
+        set => SetProperty(ref selectedSongPublication, value);
     }
 
-    public object? SelectedItem => propertyManager.SelectedItem;
+    public object? SelectedItem => CurrentLanguage;
 
     public bool ShowProgress
     {
-        get => propertyManager.ShowProgress;
-        set => propertyManager.ShowProgress = value;
+        get => showProgress;
+        set
+        {
+            if (SetProperty(ref showProgress, value))
+            {
+                OnPropertyChanged(nameof(ShowCancelButton));
+            }
+        }
     }
 
     public double ProgressPercent
     {
-        get => propertyManager.ProgressPercent;
-        set => propertyManager.ProgressPercent = value;
+        get => progressPercent;
+        set => SetProperty(ref progressPercent, value);
     }
 
     public string ProgressText
     {
-        get => propertyManager.ProgressText;
-        set => propertyManager.ProgressText = value;
+        get => progressText;
+        set => SetProperty(ref progressText, value);
     }
 
     public bool CanCancelFetch
     {
-        get => propertyManager.CanCancelFetch;
-        set => propertyManager.CanCancelFetch = value;
+        get => canCancelFetch;
+        set => SetProperty(ref canCancelFetch, value);
     }
 
     public bool HasFetchError
     {
-        get => propertyManager.HasFetchError;
-        set => propertyManager.HasFetchError = value;
+        get => hasFetchError;
+        set
+        {
+            if (SetProperty(ref hasFetchError, value))
+            {
+                OnPropertyChanged(nameof(ShowCancelButton));
+            }
+        }
     }
-
 
     public bool IsCancelBusy
     {
-        get => propertyManager.IsCancelBusy;
-        set => propertyManager.IsCancelBusy = value;
+        get => isCancelBusy;
+        set => SetProperty(ref isCancelBusy, value);
     }
 
     /// <summary>Show cancel button in overlay during fetch or when busy loading.</summary>
@@ -321,7 +363,7 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
         initHandler.InitializeInternalAsync(state, PopulateLanguages, PopulateSongPublications, PopulateLanguages);
 
     private Task PopulateLanguages(string? searchTerm = null) =>
-        initHandler.PopulateLanguagesAsync(state, lang => propertyManager.CurrentLanguage = lang, searchTerm);
+        initHandler.PopulateLanguagesAsync(state, lang => CurrentLanguage = lang, searchTerm);
 
     /// <summary>
     /// Refreshes only the languages list for the language selection modal.
@@ -331,10 +373,6 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
         await initHandler.RefreshLanguagesAsync(state, PopulateLanguages);
     }
 
-    /// <summary>
-    /// Refreshes the ViewModel from the latest state when the modal appears.
-    /// This ensures languages are populated and current is initialized from CurrentSchedule.
-    /// </summary>
     /// <summary>
     /// Refreshes the ViewModel from the latest state when the modal appears.
     /// Uses a semaphore to ensure concurrent calls (from fire-and-forget Initialize and ModalScrollHelper) wait for each other.
@@ -370,8 +408,8 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
         await dataProvider.PopulateSongPublications(
             languageCode,
             stateManager.Current,
-            propertyManager.SongPublications,
-            songPublication => propertyManager.SelectedSongPublication = songPublication,
+            SongPublications,
+            songPublication => SelectedSongPublication = songPublication,
             downloadAll,
             progress,
             cancellationToken);
@@ -380,6 +418,32 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
     private void UpdateSelectedLanguage(LanguageListViewItemModel language) =>
         initHandler.UpdateSelectedLanguage(language);
 
+    private void SetupLanguageSearchHandler(Func<string?, Task> populateLanguages)
+    {
+        if (languageSearchHandler != null)
+        {
+            PropertyChanged -= languageSearchHandler;
+        }
+
+        languageSearchHandler = (_, e) =>
+        {
+            if (e.PropertyName == nameof(LanguageSearchTerm))
+            {
+                _ = populateLanguages(LanguageSearchTerm?.Trim());
+            }
+        };
+        PropertyChanged += languageSearchHandler;
+    }
+
+    private void RemoveLanguageSearchHandler()
+    {
+        if (languageSearchHandler != null)
+        {
+            PropertyChanged -= languageSearchHandler;
+            languageSearchHandler = null;
+        }
+    }
+
     public void Receive(ListItemFetchProgressMessage message)
     {
         var p = message.Value;
@@ -387,13 +451,13 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
         {
             if (string.Equals(p.Context, "MusicLanguage", StringComparison.Ordinal))
             {
-                var lang = propertyManager.Languages?.FirstOrDefault(l => string.Equals(l.Code, p.ItemId, StringComparison.OrdinalIgnoreCase));
+                var lang = Languages?.FirstOrDefault(l => string.Equals(l.Code, p.ItemId, StringComparison.OrdinalIgnoreCase));
                 if (lang != null)
                     lang.DownloadProgress = p.Progress;
             }
             else if (string.Equals(p.Context, "MusicPublication", StringComparison.Ordinal))
             {
-                var pub = propertyManager.SongPublications?.FirstOrDefault(pr => string.Equals(pr.Code, p.ItemId, StringComparison.OrdinalIgnoreCase));
+                var pub = SongPublications?.FirstOrDefault(pr => string.Equals(pr.Code, p.ItemId, StringComparison.OrdinalIgnoreCase));
                 if (pub != null)
                     pub.DownloadProgress = p.Progress;
             }
@@ -409,10 +473,10 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
         {
             if (p.IsVisible)
             {
-                propertyManager.ProgressPercent = p.Progress;
-                propertyManager.ProgressText = p.ProgressText;
+                ProgressPercent = p.Progress;
+                ProgressText = p.ProgressText;
             }
-            propertyManager.ShowProgress = p.IsVisible;
+            ShowProgress = p.IsVisible;
         });
     }
 
@@ -422,7 +486,7 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
         WeakReferenceMessenger.Default.Unregister<ListItemFetchProgressMessage>(this);
         state.StateChanged -= OnMusicInitialized;
         state.StateChanged -= OnMusicChanged;
-        propertyManager.RemoveLanguageSearchHandler();
+        RemoveLanguageSearchHandler();
 
         // Cancel any ongoing fetch
         fetchCts?.CancelAsync();
@@ -431,17 +495,5 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
         
         // Dispose semaphore
         refreshSemaphore.Dispose();
-
-        if (propertyManagerPropertyChangedHandler != null)
-        {
-            propertyManager.PropertyChanged -= propertyManagerPropertyChangedHandler;
-            propertyManagerPropertyChangedHandler = null;
-        }
-    }
-
-    private void SetupPropertyManagerForwarding()
-    {
-        propertyManagerPropertyChangedHandler = MusicPublicationSelectionPropertyForwarder.CreateHandler(OnPropertyChanged);
-        propertyManager.PropertyChanged += propertyManagerPropertyChangedHandler;
     }
 }

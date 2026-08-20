@@ -15,18 +15,18 @@ internal sealed class ScheduleListItemStateChangeApplier
     private readonly ILogger logger;
     private readonly IState<ApplicationState> applicationState;
     private readonly ScheduleListItemStateHandler stateHandler;
-    private readonly ScheduleListItemPropertyManager propertyManager;
+    private readonly Action<bool> setIsEnabled;
 
     public ScheduleListItemStateChangeApplier(
         ILogger logger,
         IState<ApplicationState> applicationState,
         ScheduleListItemStateHandler stateHandler,
-        ScheduleListItemPropertyManager propertyManager)
+        Action<bool> setIsEnabled)
     {
         this.logger = logger;
         this.applicationState = applicationState;
         this.stateHandler = stateHandler;
-        this.propertyManager = propertyManager;
+        this.setIsEnabled = setIsEnabled;
     }
 
     public void UpdateScheduleFromState(
@@ -39,7 +39,7 @@ internal sealed class ScheduleListItemStateChangeApplier
         var updatedSchedule = changeInfo.UpdatedSchedule;
         setSchedule(updatedSchedule);
         stateHandler.LastKnownSchedule = updatedSchedule;
-        propertyManager.IsEnabled = updatedSchedule.IsEnabled;
+        setIsEnabled(updatedSchedule.IsEnabled);
 
         // Refresh subtitle if ANY bible schedule property changed
         var subtitleChanged = changeInfo.AnyBibleSchedulePropertyChanged;
@@ -143,4 +143,3 @@ internal sealed class ScheduleListItemStateChangeApplier
         });
     }
 }
-

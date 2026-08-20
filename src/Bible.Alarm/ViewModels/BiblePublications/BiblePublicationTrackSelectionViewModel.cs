@@ -1,7 +1,6 @@
 #nullable enable
 using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Windows.Input;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -31,10 +30,11 @@ public sealed partial class BiblePublicationTrackSelectionViewModel : Observable
     private readonly TrackSelectionStateManager stateManager;
     private readonly TrackSelectionDataProvider dataProvider;
     private readonly TrackSelectionCommandHandler commandHandler;
-    private readonly TrackSelectionPropertyManager propertyManager;
-    private PropertyChangedEventHandler? propertyManagerPropertyChangedHandler;
     private readonly INavigationService navigationService;
+    private bool isBusy = true;
     private bool isCancelBusy;
+    private ObservableCollection<BiblePublicationTrackListViewItemModel>? tracks;
+    private BiblePublicationTrackListViewItemModel? selectedTrack;
 
     private readonly SemaphoreSlim @lock = new(1);
 
@@ -56,8 +56,6 @@ public sealed partial class BiblePublicationTrackSelectionViewModel : Observable
         stateManager = new TrackSelectionStateManager();
         dataProvider = new TrackSelectionDataProvider(this.mediaService, biblePublicationService);
         commandHandler = new TrackSelectionCommandHandler(this.logger, state, this.dispatcher, navigationService);
-        propertyManager = new TrackSelectionPropertyManager();
-        SetupPropertyManagerForwarding();
 
         BackCommand = new AsyncRelayCommand(async () =>
         {
@@ -74,9 +72,9 @@ public sealed partial class BiblePublicationTrackSelectionViewModel : Observable
         {
             if (x != null)
             {
-                propertyManager.SelectedTrack?.IsSelected = false;
-                propertyManager.SelectedTrack = x;
-                propertyManager.SelectedTrack.IsSelected = true;
+                SelectedTrack?.IsSelected = false;
+                SelectedTrack = x;
+                SelectedTrack.IsSelected = true;
                 await commandHandler.HandleSetTrackAsync(x);
             }
         });
@@ -85,26 +83,11 @@ public sealed partial class BiblePublicationTrackSelectionViewModel : Observable
         state.StateChanged += OnBiblePublicationChanged;
     }
 
-    private void SetupPropertyManagerForwarding()
-    {
-        // The view binds to THIS ViewModel (not the property manager).
-        // Forward property-manager changes so bindings update (especially IsBusy for busy overlay).
-        propertyManagerPropertyChangedHandler = (_, e) =>
-        {
-            if (e.PropertyName == nameof(TrackSelectionPropertyManager.IsBusy))
-            {
-                OnPropertyChanged(nameof(IsBusy));
-            }
-        };
-
-        propertyManager.PropertyChanged += propertyManagerPropertyChangedHandler;
-    }
-
     private void OnBiblePublicationChanged(object? sender, EventArgs e)
     {
         stateManager.HandleBiblePublicationChanged(
             state,
-            busy => propertyManager.IsBusy = busy,
+            busy => IsBusy = busy,
             async (lang, pub, sectionCode) => await Initialize(lang, pub, sectionCode),
             SetSelectedTrack);
     }
@@ -113,7 +96,7 @@ public sealed partial class BiblePublicationTrackSelectionViewModel : Observable
     {
         stateManager.HandleBiblePublicationInitialized(
             state,
-            busy => propertyManager.IsBusy = busy,
+            busy => IsBusy = busy,
             async (lang, pub, sectionCode) => await Initialize(lang, pub, sectionCode));
     }
 
@@ -149,7 +132,7 @@ public sealed partial class BiblePublicationTrackSelectionViewModel : Observable
         stateManager.UpdateFromStateForNonSectioned(state);
 
         // Ensure tracks are populated if not already initialized
-        if (!stateManager.InitComplete || propertyManager.Tracks == null || propertyManager.Tracks.Count == 0)
+        if (!stateManager.InitComplete || Tracks == null || Tracks.Count == 0)
         {
             stateManager.SetInitComplete(true);
             await Initialize(newLanguageCode, newPublicationCode, newSectionCode);
@@ -187,24 +170,24 @@ public sealed partial class BiblePublicationTrackSelectionViewModel : Observable
         }
     }
 
-    public object? SelectedItem => propertyManager.SelectedTrack;
+    public object? SelectedItem => SelectedTrack;
 
     public BiblePublicationTrackListViewItemModel? SelectedTrack
     {
-        get => propertyManager.SelectedTrack;
-        set => propertyManager.SelectedTrack = value;
+        get => selectedTrack;
+        set => SetProperty(ref selectedTrack, value);
     }
 
     public bool IsBusy
     {
-        get => propertyManager.IsBusy;
-        set => propertyManager.IsBusy = value;
+        get => isBusy;
+        set => SetProperty(ref isBusy, value);
     }
 
     public ObservableCollection<BiblePublicationTrackListViewItemModel> Tracks
     {
-        get => propertyManager.Tracks;
-        set => propertyManager.Tracks = value;
+        get => tracks ??= [];
+        set => SetProperty(ref tracks, value);
     }
 
     /// <summary>
@@ -231,29 +214,23 @@ public sealed partial class BiblePublicationTrackSelectionViewModel : Observable
             publicationCode,
             sectionCode,
             stateManager.Current,
-            propertyManager.Tracks,
-            track => propertyManager.SelectedTrack = track);
+            Tracks,
+            track => SelectedTrack = track);
     }
 
     private void SetSelectedTrack()
     {
         TrackSelectionDataProvider.SetSelectedTrack(
             stateManager.Current,
-            propertyManager.Tracks,
-            propertyManager.SelectedTrack,
-            track => propertyManager.SelectedTrack = track);
+            Tracks,
+            SelectedTrack,
+            track => SelectedTrack = track);
     }
 
     public void Dispose()
     {
         state.StateChanged -= OnBiblePublicationInitialized;
         state.StateChanged -= OnBiblePublicationChanged;
-
-        if (propertyManagerPropertyChangedHandler != null)
-        {
-            propertyManager.PropertyChanged -= propertyManagerPropertyChangedHandler;
-            propertyManagerPropertyChangedHandler = null;
-        }
 
         @lock.Dispose();
         GC.SuppressFinalize(this);

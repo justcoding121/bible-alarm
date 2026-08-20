@@ -25,10 +25,24 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
     private readonly IServiceProvider serviceProvider;
 
     // Helper classes
-    private readonly SchedulePropertyManager propertyManager;
     private readonly ScheduleContainerManager containerManager;
     private readonly ScheduleOverlayManager overlayManager;
     private readonly ScheduleOverlayTimeoutController overlayTimeoutController;
+
+    private BiblePublicationSelectionContainerViewModel? bibleSelectionContainerViewModel;
+    private MusicSelectionContainerViewModel? musicSelectionContainerViewModel;
+    private NumberOfTrackContainerViewModel? numberOfTrackContainerViewModel;
+    private ScheduleDetailsContainerViewModel? scheduleDetailsContainerViewModel;
+    private AlarmSettingsContainerViewModel? alarmSettingsContainerViewModel;
+
+    private bool isBusy;
+    private bool isNewSchedule;
+    private bool isExistingSchedule;
+    private bool isScrolledToBottom;
+    private bool isSchedulePageOverlayVisible = true;
+    private bool isCancelBusy;
+    private bool isSaveBusy;
+    private bool isDeleteBusy;
 
     // Track last category name to detect changes
     private string? lastCategoryName;
@@ -51,7 +65,6 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
         serviceProvider = deps.ServiceProvider;
 
         var stateManager = new ScheduleStateManager(deps.ScheduleInitializationService, dispatcher, logger);
-        propertyManager = new SchedulePropertyManager(state, logger);
         var commandExecutor = new ScheduleCommandExecutor(
             new ScheduleCommandExecutorCoreDeps(
                 deps.ScheduleCommandService,
@@ -62,19 +75,16 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
                 mapper,
                 logger),
             new ScheduleCommandExecutorUiHooks(
-                () => propertyManager?.MusicSelectionContainerViewModel,
-                () => propertyManager?.AlarmSettingsContainerViewModel,
-                () => propertyManager?.NumberOfTrackContainerViewModel,
+                () => MusicSelectionContainerViewModel,
+                () => AlarmSettingsContainerViewModel,
+                () => NumberOfTrackContainerViewModel,
                 SetIsSaving,
-                isBusy => propertyManager.IsCancelBusy = isBusy,
-                isBusy => propertyManager.IsSaveBusy = isBusy,
-                isBusy => propertyManager.IsDeleteBusy = isBusy));
+                busy => IsCancelBusy = busy,
+                busy => IsSaveBusy = busy,
+                busy => IsDeleteBusy = busy));
         containerManager = new ScheduleContainerManager(deps.ScheduleContainerService, serviceProvider);
         overlayManager = new ScheduleOverlayManager(this.dispatcher);
         overlayTimeoutController = new ScheduleOverlayTimeoutController(logger, state, this.dispatcher);
-
-        // Subscribe to property manager changes to forward property changes
-        propertyManager.PropertyChanged += OnPropertyManagerPropertyChanged;
 
         // Subscribe to state changes
         state.StateChanged += OnStateChanged;
@@ -91,12 +101,12 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
         // Initialize IsNewSchedule immediately from current state
         // This ensures the Delete button visibility is correct from the start
         var initialIsNew = initialSchedule == null || initialSchedule.Id <= 0;
-        propertyManager.IsNewSchedule = initialIsNew;
+        IsNewSchedule = initialIsNew;
 
         // Initialize state handling and commands
         stateManager.InitializeStateHandling(
             state,
-            () => propertyManager.IsBusy = true,
+            () => IsBusy = true,
             () => overlayManager.ShowSchedulePageOverlay());
         commandExecutor.InitializeCommands(out var cancelCmd, out var saveCmd, out var deleteCmd);
         CancelCommand = cancelCmd;
@@ -153,15 +163,15 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
         {
             // Dispose any existing containers first to ensure clean state
             // This is important when page/ViewModel is reused on device
-            ScheduleContainerManager.DisposeContainers(propertyManager);
+            DisposeContainers();
 
             await containerManager.InitializeContainerViewModelsAsync((bible, music, tracks, details, alarmSettings) =>
             {
-                propertyManager.BibleSelectionContainerViewModel = bible;
-                propertyManager.MusicSelectionContainerViewModel = music;
-                propertyManager.NumberOfTrackContainerViewModel = tracks;
-                propertyManager.ScheduleDetailsContainerViewModel = details;
-                propertyManager.AlarmSettingsContainerViewModel = alarmSettings;
+                BibleSelectionContainerViewModel = bible;
+                MusicSelectionContainerViewModel = music;
+                NumberOfTrackContainerViewModel = tracks;
+                ScheduleDetailsContainerViewModel = details;
+                AlarmSettingsContainerViewModel = alarmSettings;
             });
 
             hasInitializedContainersOnce = true;
@@ -182,20 +192,20 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
         MainThread.BeginInvokeOnMainThread(() =>
         {
             // Sync overlay visibility with state
-            propertyManager.IsSchedulePageOverlayVisible = stateValue.IsSchedulePageOverlayVisible;
+            IsSchedulePageOverlayVisible = stateValue.IsSchedulePageOverlayVisible;
 
             // Update IsNewSchedule based on CurrentSchedule ID
             // This determines if the delete button should be visible
             // Always set it (not just when changed) to ensure it's initialized correctly
             var currentSchedule = stateValue.CurrentSchedule;
             var isNew = currentSchedule == null || currentSchedule.Id <= 0;
-            propertyManager.IsNewSchedule = isNew;
+            IsNewSchedule = isNew;
 
             // Notify UI of property changes when CurrentSchedule changes
             // Note: NotifySchedulePropertiesChanged also marshals to UI thread, but since we're already
             // on UI thread here, it will execute immediately (MainThread.BeginInvokeOnMainThread checks
             // if already on main thread and executes synchronously if so)
-            propertyManager.NotifySchedulePropertiesChanged();
+            NotifySchedulePropertiesChanged();
             
             // Always notify IsMusicSelectionVisible when schedule changes, since it's computed from schedule state
             // Check if category changed to track for logging
@@ -243,26 +253,26 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
 
     public bool IsBusy
     {
-        get => propertyManager.IsBusy;
-        set => propertyManager.IsBusy = value;
+        get => isBusy;
+        set => SetProperty(ref isBusy, value);
     }
 
     public bool IsCancelBusy
     {
-        get => propertyManager.IsCancelBusy;
-        set => propertyManager.IsCancelBusy = value;
+        get => isCancelBusy;
+        set => SetProperty(ref isCancelBusy, value);
     }
 
     public bool IsSaveBusy
     {
-        get => propertyManager.IsSaveBusy;
-        set => propertyManager.IsSaveBusy = value;
+        get => isSaveBusy;
+        set => SetProperty(ref isSaveBusy, value);
     }
 
     public bool IsDeleteBusy
     {
-        get => propertyManager.IsDeleteBusy;
-        set => propertyManager.IsDeleteBusy = value;
+        get => isDeleteBusy;
+        set => SetProperty(ref isDeleteBusy, value);
     }
 
 
@@ -316,17 +326,25 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
 
     public bool IsNewSchedule
     {
-        get => propertyManager.IsNewSchedule;
-        set => propertyManager.IsNewSchedule = value;
+        get => isNewSchedule;
+        set
+        {
+            IsExistingSchedule = !value;
+            SetProperty(ref isNewSchedule, value);
+        }
     }
 
     public bool IsScrolledToBottom
     {
-        get => propertyManager.IsScrolledToBottom;
-        set => propertyManager.IsScrolledToBottom = value;
+        get => isScrolledToBottom;
+        set => SetProperty(ref isScrolledToBottom, value);
     }
 
-    public bool IsExistingSchedule => propertyManager.IsExistingSchedule;
+    public bool IsExistingSchedule
+    {
+        get => isExistingSchedule;
+        private set => SetProperty(ref isExistingSchedule, value);
+    }
 
     /// <summary>
     /// Determines if MusicSelectionContainer should be visible.
@@ -354,11 +372,35 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
     }
 
     // Container ViewModels - exposed for XAML binding
-    public BiblePublicationSelectionContainerViewModel? BibleSelectionContainerViewModel => propertyManager.BibleSelectionContainerViewModel;
-    public MusicSelectionContainerViewModel? MusicSelectionContainerViewModel => propertyManager.MusicSelectionContainerViewModel;
-    public NumberOfTrackContainerViewModel? NumberOfTrackContainerViewModel => propertyManager.NumberOfTrackContainerViewModel;
-    public ScheduleDetailsContainerViewModel? ScheduleDetailsContainerViewModel => propertyManager.ScheduleDetailsContainerViewModel;
-    public AlarmSettingsContainerViewModel? AlarmSettingsContainerViewModel => propertyManager.AlarmSettingsContainerViewModel;
+    public BiblePublicationSelectionContainerViewModel? BibleSelectionContainerViewModel
+    {
+        get => bibleSelectionContainerViewModel;
+        private set => SetProperty(ref bibleSelectionContainerViewModel, value);
+    }
+
+    public MusicSelectionContainerViewModel? MusicSelectionContainerViewModel
+    {
+        get => musicSelectionContainerViewModel;
+        private set => SetProperty(ref musicSelectionContainerViewModel, value);
+    }
+
+    public NumberOfTrackContainerViewModel? NumberOfTrackContainerViewModel
+    {
+        get => numberOfTrackContainerViewModel;
+        private set => SetProperty(ref numberOfTrackContainerViewModel, value);
+    }
+
+    public ScheduleDetailsContainerViewModel? ScheduleDetailsContainerViewModel
+    {
+        get => scheduleDetailsContainerViewModel;
+        private set => SetProperty(ref scheduleDetailsContainerViewModel, value);
+    }
+
+    public AlarmSettingsContainerViewModel? AlarmSettingsContainerViewModel
+    {
+        get => alarmSettingsContainerViewModel;
+        private set => SetProperty(ref alarmSettingsContainerViewModel, value);
+    }
 
     /// <summary>
     /// Hides the Home page overlay. Called when the Schedule page is fully rendered and visible.
@@ -370,7 +412,23 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
     /// This property is bound to the Schedule page overlay.
     /// Uses a cached value that's updated when state changes to ensure bindings work correctly.
     /// </summary>
-    public bool IsSchedulePageOverlayVisible => propertyManager.IsSchedulePageOverlayVisible;
+    public bool IsSchedulePageOverlayVisible
+    {
+        get => isSchedulePageOverlayVisible;
+        private set
+        {
+            // Prevent setting the same value repeatedly to avoid infinite loops
+            if (isSchedulePageOverlayVisible == value)
+            {
+                return;
+            }
+
+            if (SetProperty(ref isSchedulePageOverlayVisible, value))
+            {
+                logger.Debug("IsSchedulePageOverlayVisible: Property changed to {Value}", value);
+            }
+        }
+    }
 
     /// <summary>
     /// Hides the Schedule page overlay. Called when navigating back to Home page.
@@ -407,71 +465,65 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
         overlayTimeoutController.SetIsSaving(saving);
     }
 
-    [SuppressMessage("Microsoft.Performance", "CA1822:Mark members as static", Justification = "Instance method on ViewModel; Android-only body references instance propertyManager.")]
+    [SuppressMessage("Microsoft.Performance", "CA1822:Mark members as static", Justification = "Instance method on ViewModel; Android-only body references instance container properties.")]
     public void StopPermissionCheckTasks()
     {
 #if ANDROID
-        var pm = propertyManager;
-        pm.AlarmSettingsContainerViewModel?.StopPermissionCheckTaskIfRunning();
-        pm.NumberOfTrackContainerViewModel?.StopPermissionCheckTaskIfRunning();
+        AlarmSettingsContainerViewModel?.StopPermissionCheckTaskIfRunning();
+        NumberOfTrackContainerViewModel?.StopPermissionCheckTaskIfRunning();
 #endif
     }
 
-    private void OnPropertyManagerPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    private void NotifySchedulePropertiesChanged()
     {
-        if (e.PropertyName == nameof(SchedulePropertyManager.IsSchedulePageOverlayVisible))
+        MainThread.BeginInvokeOnMainThread(() =>
         {
-            OnPropertyChanged(nameof(IsSchedulePageOverlayVisible));
-        }
-        else if (e.PropertyName == nameof(SchedulePropertyManager.IsExistingSchedule))
+            OnPropertyChanged(nameof(Name));
+            OnPropertyChanged(nameof(IsEnabled));
+            OnPropertyChanged(nameof(DaysOfWeek));
+            OnPropertyChanged(nameof(Time));
+            OnPropertyChanged(nameof(MusicEnabled));
+        });
+    }
+
+    private void DisposeContainers()
+    {
+        if (BibleSelectionContainerViewModel is IDisposable bibleDisposable)
         {
-            OnPropertyChanged(nameof(IsExistingSchedule));
+            bibleDisposable.Dispose();
         }
-        else if (e.PropertyName == nameof(SchedulePropertyManager.IsNewSchedule))
+        BibleSelectionContainerViewModel = null;
+
+        if (MusicSelectionContainerViewModel is IDisposable musicDisposable)
         {
-            OnPropertyChanged(nameof(IsNewSchedule));
+            musicDisposable.Dispose();
         }
-        else if (e.PropertyName == nameof(SchedulePropertyManager.IsCancelBusy))
+        MusicSelectionContainerViewModel = null;
+
+        if (NumberOfTrackContainerViewModel is IDisposable tracksDisposable)
         {
-            OnPropertyChanged(nameof(IsCancelBusy));
+            tracksDisposable.Dispose();
         }
-        else if (e.PropertyName == nameof(SchedulePropertyManager.IsSaveBusy))
+        NumberOfTrackContainerViewModel = null;
+
+        if (ScheduleDetailsContainerViewModel is IDisposable detailsDisposable)
         {
-            OnPropertyChanged(nameof(IsSaveBusy));
+            detailsDisposable.Dispose();
         }
-        else if (e.PropertyName == nameof(SchedulePropertyManager.IsDeleteBusy))
+        ScheduleDetailsContainerViewModel = null;
+
+        if (AlarmSettingsContainerViewModel is IDisposable alarmSettingsDisposable)
         {
-            OnPropertyChanged(nameof(IsDeleteBusy));
+            alarmSettingsDisposable.Dispose();
         }
-        else if (e.PropertyName == nameof(SchedulePropertyManager.BibleSelectionContainerViewModel))
-        {
-            OnPropertyChanged(nameof(BibleSelectionContainerViewModel));
-        }
-        else if (e.PropertyName == nameof(SchedulePropertyManager.MusicSelectionContainerViewModel))
-        {
-            OnPropertyChanged(nameof(MusicSelectionContainerViewModel));
-        }
-        else if (e.PropertyName == nameof(SchedulePropertyManager.NumberOfTrackContainerViewModel))
-        {
-            OnPropertyChanged(nameof(NumberOfTrackContainerViewModel));
-        }
-        else if (e.PropertyName == nameof(SchedulePropertyManager.ScheduleDetailsContainerViewModel))
-        {
-            OnPropertyChanged(nameof(ScheduleDetailsContainerViewModel));
-        }
-        else if (e.PropertyName == nameof(SchedulePropertyManager.AlarmSettingsContainerViewModel))
-        {
-            OnPropertyChanged(nameof(AlarmSettingsContainerViewModel));
-        }
+        AlarmSettingsContainerViewModel = null;
     }
 
     public void Dispose()
     {
-        propertyManager.PropertyChanged -= OnPropertyManagerPropertyChanged;
         state.StateChanged -= OnStateChanged;
         overlayTimeoutController.Dispose();
-        ScheduleContainerManager.DisposeContainers(propertyManager);
+        DisposeContainers();
         overlayManager.Dispose();
     }
 }
-

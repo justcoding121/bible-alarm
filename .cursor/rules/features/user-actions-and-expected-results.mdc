@@ -73,7 +73,7 @@ Where:
 
 What happens:
 - Toggles `IsEnabled` locally
-- Kicks off background update via `ScheduleListItemPropertyManager.HandleIsEnabledChanged(...)`:
+- Kicks off background update via `ScheduleListItemViewModel.HandleIsEnabledChangedAsync(...)`:
   - persists change (Schedule DB)
   - schedules/reschedules OS notification via `IAlarmService` / `INotificationService`
   - on failure: reverts UI back to previous value

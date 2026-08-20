@@ -33,12 +33,16 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable, IReci
     private readonly HomeNavigationHelper navigationHelper;
     private readonly ProgressBarAnimator progressAnimator;
     private readonly ProgressBarManager progressBarManager;
-    private readonly PropertyManager propertyManager;
     private readonly HomeStateChangeHandler stateChangeHandler;
     private readonly BootstrapReadyManager bootstrapReadyManager;
     private readonly HomeViewModelNotificationPermissionHandler notificationPermissionHandler;
     private readonly HomeViewModelFloatingButtonHandler floatingButtonHandler;
     private readonly HomeViewModelFocusWarningHandler focusWarningHandler;
+
+    private ObservableHashSet<ScheduleListItemViewModel> schedules = [];
+    private bool isBusy = true;
+    private bool loaded;
+    private bool isAddBusy;
 
     public HomeViewModel(HomeViewModelDeps deps)
     {
@@ -57,7 +61,6 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable, IReci
         scheduleViewModelManager = new ScheduleViewModelManager(logger, serviceProvider, navigationHelper.TrackPlayClick);
         progressAnimator = new ProgressBarAnimator();
         progressBarManager = new ProgressBarManager(progressAnimator);
-        propertyManager = new PropertyManager();
         bootstrapReadyManager = new BootstrapReadyManager(logger);
         notificationPermissionHandler = new HomeViewModelNotificationPermissionHandler(logger, state);
         floatingButtonHandler = new HomeViewModelFloatingButtonHandler(logger, serviceProvider);
@@ -65,10 +68,6 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable, IReci
 
         progressBarManager.ProgressBarOpacityChanged += OnProgressBarOpacityChanged;
         progressBarManager.ProgressBarHiddenChanged += OnProgressBarHiddenChanged;
-        propertyManager.SchedulesChanged += OnSchedulesChanged;
-        propertyManager.IsBusyChanged += OnIsBusyChanged;
-        propertyManager.LoadedChanged += OnLoadedChanged;
-        propertyManager.IsAddBusyChanged += OnIsAddBusyChanged;
         bootstrapReadyManager.BootstrapReadyChanged += OnBootstrapReadyChanged;
 
         var commandHandler = new CommandHandler(
@@ -80,7 +79,7 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable, IReci
             async (x) => await navigationHelper.ShowOverlayAndNavigateAsync(x));
 
         AddScheduleCommand = commandHandler.CreateAddScheduleCommand(
-            (isBusy) => propertyManager.IsAddBusy = isBusy,
+            (busy) => IsAddBusy = busy,
             () => bootstrapReadyManager.IsBootstrapReady);
         ViewScheduleCommand = commandHandler.CreateViewScheduleCommand(
             () => progressBarManager.ShowTemporarily(),
@@ -94,17 +93,17 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable, IReci
         stateChangeHandler = new HomeStateChangeHandler(
             new HomeStateChangeHandlerDeps(logger, scheduleDataPreparer, scheduleViewModelManager),
             new HomeStateChangeHandlerCallbacks(
-                (isBusy) => propertyManager.IsBusy = isBusy,
-                () => propertyManager.IsBusy,
-                () => propertyManager.Schedules,
-                (schedules) => propertyManager.Schedules = schedules,
+                (busy) => IsBusy = busy,
+                () => IsBusy,
+                () => Schedules,
+                (s) => Schedules = s,
                 () =>
                 {
                     OnPropertyChanged(nameof(Schedules));
-                    progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count);
-                    bootstrapReadyManager.CheckSchedulesLoaded(propertyManager.Schedules);
+                    progressBarManager.UpdateVisibility(IsBusy, Schedules?.Count);
+                    bootstrapReadyManager.CheckSchedulesLoaded(Schedules);
                 },
-                () => progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count),
+                () => progressBarManager.UpdateVisibility(IsBusy, Schedules?.Count),
                 async () => await progressBarManager.FadeOutAsync(),
                 () => this.navigationService.IsPlaybackModalOnScreen() || playbackModalService.IsModalOpenOrPending));
 
@@ -115,7 +114,7 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable, IReci
         OnStateChanged(this, EventArgs.Empty);
 
         // Ensure progress bar visibility is updated on initial load
-        progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count);
+        progressBarManager.UpdateVisibility(IsBusy, Schedules?.Count);
 
         bootstrapReadyManager.StartTracking();
         bootstrapReadyManager.BootstrapReadyChanged += OnBootstrapReadyChangedWithNotificationUpdate;
@@ -133,20 +132,40 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable, IReci
 
     public ObservableHashSet<ScheduleListItemViewModel> Schedules
     {
-        get => propertyManager.Schedules;
-        set => propertyManager.Schedules = value;
+        get => schedules;
+        set
+        {
+            if (SetProperty(ref schedules, value))
+            {
+                progressBarManager.UpdateVisibility(IsBusy, schedules?.Count);
+                bootstrapReadyManager.CheckSchedulesLoaded(schedules);
+            }
+        }
     }
 
     public bool IsBusy
     {
-        get => propertyManager.IsBusy;
-        set => propertyManager.IsBusy = value;
+        get => isBusy;
+        set
+        {
+            if (SetProperty(ref isBusy, value))
+            {
+                Loaded = !isBusy;
+                progressBarManager.UpdateVisibility(isBusy, Schedules?.Count);
+            }
+        }
     }
 
     public bool Loaded
     {
-        get => propertyManager.Loaded;
-        set => propertyManager.Loaded = value;
+        get => loaded;
+        set
+        {
+            if (SetProperty(ref loaded, value))
+            {
+                bootstrapReadyManager.UpdateBootstrapReadyState();
+            }
+        }
     }
 
 
@@ -180,8 +199,8 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable, IReci
 
     public bool IsAddBusy
     {
-        get => propertyManager.IsAddBusy;
-        set => propertyManager.IsAddBusy = value;
+        get => isAddBusy;
+        set => SetProperty(ref isAddBusy, value);
     }
 
     /// <summary>
@@ -337,23 +356,6 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable, IReci
 
     private void OnProgressBarOpacityChanged(double _) => OnPropertyChanged(nameof(ProgressBarOpacity));
     private void OnProgressBarHiddenChanged() => OnPropertyChanged(nameof(IsProgressBarHidden));
-    private void OnSchedulesChanged()
-    {
-        OnPropertyChanged(nameof(Schedules));
-        progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count);
-        bootstrapReadyManager.CheckSchedulesLoaded(propertyManager.Schedules);
-    }
-    private void OnIsBusyChanged(bool _)
-    {
-        OnPropertyChanged(nameof(IsBusy));
-        progressBarManager.UpdateVisibility(propertyManager.IsBusy, propertyManager.Schedules?.Count);
-    }
-    private void OnLoadedChanged(bool _)
-    {
-        OnPropertyChanged(nameof(Loaded));
-        bootstrapReadyManager.UpdateBootstrapReadyState();
-    }
-    private void OnIsAddBusyChanged(bool _) => OnPropertyChanged(nameof(IsAddBusy));
     private void OnBootstrapReadyChanged(bool _) => OnPropertyChanged(nameof(IsBootstrapReady));
     private void OnBootstrapReadyChangedWithNotificationUpdate(bool isReady)
     {
@@ -450,10 +452,6 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable, IReci
 
         progressBarManager.ProgressBarOpacityChanged -= OnProgressBarOpacityChanged;
         progressBarManager.ProgressBarHiddenChanged -= OnProgressBarHiddenChanged;
-        propertyManager.SchedulesChanged -= OnSchedulesChanged;
-        propertyManager.IsBusyChanged -= OnIsBusyChanged;
-        propertyManager.LoadedChanged -= OnLoadedChanged;
-        propertyManager.IsAddBusyChanged -= OnIsAddBusyChanged;
         bootstrapReadyManager.BootstrapReadyChanged -= OnBootstrapReadyChanged;
         bootstrapReadyManager.BootstrapReadyChanged -= OnBootstrapReadyChangedWithNotificationUpdate;
 

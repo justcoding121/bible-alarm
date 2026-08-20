@@ -1,6 +1,5 @@
 #nullable enable
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
 using System.Windows.Input;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -25,10 +24,11 @@ public sealed partial class MusicTrackSelectionViewModel : ObservableObject, ILi
     private readonly MusicTrackStateManager stateManager;
     private readonly MusicTrackSelectionHandler selectionHandler;
     private readonly MusicTrackListManager listManager;
-    private readonly MusicTrackPropertyManager propertyManager;
-    private PropertyChangedEventHandler? propertyManagerPropertyChangedHandler;
     private readonly INavigationService navigationService;
+    private bool isBusy = true;
     private bool isCancelBusy;
+    private ObservableCollection<MusicTrackListViewItemModel> tracks = [];
+    private MusicTrackListViewItemModel? selectedTrack;
 
     public MusicTrackSelectionViewModel(
         ILogger logger,
@@ -44,8 +44,6 @@ public sealed partial class MusicTrackSelectionViewModel : ObservableObject, ILi
         stateManager = new MusicTrackStateManager();
         selectionHandler = new MusicTrackSelectionHandler(dispatcher, state, this.navigationService);
         listManager = new MusicTrackListManager(logger, mediaService);
-        propertyManager = new MusicTrackPropertyManager();
-        SetupPropertyManagerForwarding();
 
         stateManager.InitializeCurrent(state);
 
@@ -74,26 +72,11 @@ public sealed partial class MusicTrackSelectionViewModel : ObservableObject, ILi
             OnMusicInitialized(null, EventArgs.Empty);
     }
 
-    private void SetupPropertyManagerForwarding()
-    {
-        // The view binds to THIS ViewModel (not the property manager).
-        // Forward property-manager changes so bindings update (especially IsBusy for busy overlay).
-        propertyManagerPropertyChangedHandler = (_, e) =>
-        {
-            if (e.PropertyName == nameof(MusicTrackPropertyManager.IsBusy))
-            {
-                OnPropertyChanged(nameof(IsBusy));
-            }
-        };
-
-        propertyManager.PropertyChanged += propertyManagerPropertyChangedHandler;
-    }
-
     private void OnMusicChanged(object? sender, EventArgs e)
     {
         stateManager.HandleMusicChanged(
             state,
-            busy => propertyManager.IsBusy = busy,
+            busy => IsBusy = busy,
             async (lang, pub) => await Initialize(lang, pub),
             () => SetSelectedTrack());
     }
@@ -138,7 +121,7 @@ public sealed partial class MusicTrackSelectionViewModel : ObservableObject, ILi
         var isSectionedPub = !string.IsNullOrEmpty(pubCode) && PublicationTypeHelper.HasSectionStructure(pubCode);
         var sectionChanged = isSectionedPub && currentSectionCode != stateManager.LastLoadedSectionCode;
 
-        if (!stateManager.InitComplete || propertyManager.Tracks == null || propertyManager.Tracks.Count == 0 || sectionChanged)
+        if (!stateManager.InitComplete || Tracks == null || Tracks.Count == 0 || sectionChanged)
         {
             await Initialize(languageCode, pubCode);
             SetSelectedTrack();
@@ -153,7 +136,7 @@ public sealed partial class MusicTrackSelectionViewModel : ObservableObject, ILi
     {
         stateManager.HandleMusicInitialized(
             state,
-            busy => propertyManager.IsBusy = busy,
+            busy => IsBusy = busy,
             InitializeTracks,
             () => SetSelectedTrack());
     }
@@ -196,25 +179,41 @@ public sealed partial class MusicTrackSelectionViewModel : ObservableObject, ILi
         }
     }
 
-    public object? SelectedItem => propertyManager.SelectedTrack;
+    public object? SelectedItem => SelectedTrack;
 
     public bool IsBusy
     {
-        get => propertyManager.IsBusy;
-        set => propertyManager.IsBusy = value;
+        get => isBusy;
+        set => SetProperty(ref isBusy, value);
     }
 
-    public ObservableCollection<MusicTrackListViewItemModel> Tracks => propertyManager.Tracks;
+    public ObservableCollection<MusicTrackListViewItemModel> Tracks
+    {
+        get => tracks;
+        set => SetProperty(ref tracks, value);
+    }
 
     public MusicTrackListViewItemModel? SelectedTrack
     {
-        get => propertyManager.SelectedTrack;
-        set => propertyManager.SelectedTrack = value;
+        get => selectedTrack;
+        set
+        {
+            if (selectedTrack != null)
+            {
+                selectedTrack.IsSelected = false;
+                selectedTrack.Repeat = false;
+            }
+
+            if (SetProperty(ref selectedTrack, value) && value != null)
+            {
+                value.IsSelected = true;
+            }
+        }
     }
 
     private void SetSelectedTrack()
     {
-        MusicTrackListManager.SetSelectedTrack(stateManager.Current, propertyManager.Tracks, track => propertyManager.SetSelectedTrack(track));
+        MusicTrackListManager.SetSelectedTrack(stateManager.Current, Tracks, track => selectedTrack = track);
     }
 
     private async Task Initialize(string? languageCode, string publicationCode)
@@ -223,14 +222,14 @@ public sealed partial class MusicTrackSelectionViewModel : ObservableObject, ILi
         // not by languageCode (which can be set to "E" by the reducer for display purposes).
         var isMelodyMusic = await mediaService.IsPublicationWithoutLanguageAsync(publicationCode);
         var currentSectionCode = state.Value.CurrentSchedule?.MusicSectionCode;
-        await listManager.PopulateTracks(isMelodyMusic, languageCode, publicationCode, currentSectionCode, propertyManager.Tracks);
+        await listManager.PopulateTracks(isMelodyMusic, languageCode, publicationCode, currentSectionCode, Tracks);
         stateManager.SetLastLoadedSection(currentSectionCode);
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
-            var tracksSnapshot = propertyManager.Tracks.ToList();
+            var tracksSnapshot = Tracks.ToList();
             foreach (var track in tracksSnapshot)
-                listManager.SubscribeToTrackEvents(track, propertyManager.Tracks);
-            listManager.SetupCollectionChangedHandler(propertyManager.Tracks);
+                listManager.SubscribeToTrackEvents(track, Tracks);
+            listManager.SetupCollectionChangedHandler(Tracks);
         });
     }
 
@@ -238,12 +237,6 @@ public sealed partial class MusicTrackSelectionViewModel : ObservableObject, ILi
     {
         state.StateChanged -= OnMusicInitialized;
         state.StateChanged -= OnMusicChanged;
-
-        if (propertyManagerPropertyChangedHandler != null)
-        {
-            propertyManager.PropertyChanged -= propertyManagerPropertyChangedHandler;
-            propertyManagerPropertyChangedHandler = null;
-        }
 
         listManager.TeardownCollectionChangedHandler();
     }

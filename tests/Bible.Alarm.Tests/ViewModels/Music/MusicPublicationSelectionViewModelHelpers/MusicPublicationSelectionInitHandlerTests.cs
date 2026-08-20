@@ -46,12 +46,33 @@ public sealed class MusicPublicationSelectionInitHandlerTests
         public string? GetNameByLanguageCodeCached(string languageCode) => null;
     }
 
+    private static MusicPublicationSelectionInitHandler CreateHandler(
+        MusicPublicationSelectionStateManager stateManager,
+        System.Collections.ObjectModel.ObservableCollection<LanguageListViewItemModel> languages,
+        Action<LanguageListViewItemModel?>? setCurrentLanguage = null,
+        LanguageListViewItemModel? currentLanguage = null)
+    {
+        LanguageListViewItemModel? current = currentLanguage;
+        var dataProvider = new MusicPublicationSelectionDataProvider(new IdleCatalogMediaService(), new IdleLanguageNameService());
+        return new MusicPublicationSelectionInitHandler(
+            new IdleCatalogMediaService(),
+            stateManager,
+            dataProvider,
+            () => languages,
+            () => current,
+            lang =>
+            {
+                current = lang;
+                setCurrentLanguage?.Invoke(lang);
+            },
+            _ => { });
+    }
+
     [Fact]
     public async Task InitializeInternalAsync_returns_without_calling_populate_when_current_uninitialized()
     {
-        var propertyManager = new MusicPublicationSelectionPropertyManager();
-        var dataProvider = new MusicPublicationSelectionDataProvider(new IdleCatalogMediaService(), new IdleLanguageNameService());
-        var handler = new MusicPublicationSelectionInitHandler(new IdleCatalogMediaService(), new MusicPublicationSelectionStateManager(), dataProvider, propertyManager);
+        var languages = new System.Collections.ObjectModel.ObservableCollection<LanguageListViewItemModel>();
+        var handler = CreateHandler(new MusicPublicationSelectionStateManager(), languages);
 
         var langCalls = 0;
         var songCalls = 0;
@@ -79,9 +100,8 @@ public sealed class MusicPublicationSelectionInitHandlerTests
             }
         }));
 
-        var propertyManager = new MusicPublicationSelectionPropertyManager();
-        var dataProvider = new MusicPublicationSelectionDataProvider(new IdleCatalogMediaService(), new IdleLanguageNameService());
-        var handler = new MusicPublicationSelectionInitHandler(new IdleCatalogMediaService(), stateManager, dataProvider, propertyManager);
+        var languages = new System.Collections.ObjectModel.ObservableCollection<LanguageListViewItemModel>();
+        var handler = CreateHandler(stateManager, languages);
 
         var langCalls = 0;
         string? songArg = "unset";
@@ -111,9 +131,8 @@ public sealed class MusicPublicationSelectionInitHandlerTests
             }
         }));
 
-        var propertyManager = new MusicPublicationSelectionPropertyManager();
-        var dataProvider = new MusicPublicationSelectionDataProvider(new IdleCatalogMediaService(), new IdleLanguageNameService());
-        var handler = new MusicPublicationSelectionInitHandler(new IdleCatalogMediaService(), stateManager, dataProvider, propertyManager);
+        var languages = new System.Collections.ObjectModel.ObservableCollection<LanguageListViewItemModel>();
+        var handler = CreateHandler(stateManager, languages);
 
         var sequence = new List<string>();
 
@@ -129,9 +148,12 @@ public sealed class MusicPublicationSelectionInitHandlerTests
     [Fact]
     public void UpdateSelectedLanguage_clears_previous_selection_and_selects_new()
     {
-        var propertyManager = new MusicPublicationSelectionPropertyManager();
-        var dataProvider = new MusicPublicationSelectionDataProvider(new IdleCatalogMediaService(), new IdleLanguageNameService());
-        var handler = new MusicPublicationSelectionInitHandler(new IdleCatalogMediaService(), new MusicPublicationSelectionStateManager(), dataProvider, propertyManager);
+        var languages = new System.Collections.ObjectModel.ObservableCollection<LanguageListViewItemModel>();
+        LanguageListViewItemModel? current = null;
+        var handler = CreateHandler(
+            new MusicPublicationSelectionStateManager(),
+            languages,
+            lang => current = lang);
 
         var first = new LanguageListViewItemModel(new Language { LanguageCode = "E" }, "English") { IsSelected = true };
         var second = new LanguageListViewItemModel(new Language { LanguageCode = "S" }, "Spanish") { IsSelected = false };
@@ -141,6 +163,6 @@ public sealed class MusicPublicationSelectionInitHandlerTests
 
         Assert.False(first.IsSelected);
         Assert.True(second.IsSelected);
-        Assert.Same(second, propertyManager.CurrentLanguage);
+        Assert.Same(second, current);
     }
 }

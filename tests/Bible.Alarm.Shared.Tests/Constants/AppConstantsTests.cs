@@ -2681,7 +2681,7 @@ public sealed class AppConstantsTests
 
         Assert.Contains(
             "{Count}",
-            AppConstants.Logging.BiblePublicationSelectionPropertyManagerDiagnosticsLog.MultipleLanguagesSelectedCount);
+            AppConstants.Logging.BiblePublicationSelectionLanguageDiagnosticsLog.MultipleLanguagesSelectedCount);
 
         Assert.Equal(
             "BiblePublicationSelectionViewModel: Fetch failed with network error",
