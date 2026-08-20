@@ -93,9 +93,15 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
+          $csproj = Get-Content src/Bible.Alarm/Bible.Alarm.csproj -Raw
+          if ($csproj -notmatch '<ApplicationDisplayVersion>([\d.]+)</ApplicationDisplayVersion>') {
+            throw 'ApplicationDisplayVersion not found in Bible.Alarm.csproj'
+          }
+          $sonarVersion = $Matches[1]
           dotnet sonarscanner begin `
             /k:"justcoding121_bible-alarm" `
             /o:"justcoding121" `
+            /v:"$sonarVersion" `
             /d:sonar.host.url="https://sonarcloud.io" `
             /d:sonar.token="$env:SONAR_TOKEN" `
             /d:sonar.language="cs" `
@@ -228,7 +234,7 @@ jobs:
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@40fd30fb8d7440372e1316f5d1809ec01dcd3699 # v4.0.1
 
       - name: Install MAUI Android workload
         run: dotnet workload install maui-android --skip-manifest-update
@@ -267,7 +273,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm
 
       - name: Run tests on AVD
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         env:
           # Full suite normally finishes in a few minutes; 20 min is headroom for slow runners.
           # A hung test still waits the full budget — see ci-android-device-tests.sh heartbeat logs.
