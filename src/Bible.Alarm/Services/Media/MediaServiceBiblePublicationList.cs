@@ -43,7 +43,6 @@ internal static class MediaServiceBiblePublicationList
         var requireIsMusicForMusicCategory = options.RequireIsMusicForMusicCategory;
         var cancellationToken = options.CancellationToken;
 
-        // Step 1: Get all available publication codes from PublicationLanguages (discovery table)
         var availablePublicationCodes = await biblePublicationService.GetAvailablePublicationCodesAsync(
             languageCode, categoryName, requireIsMusicForMusicCategory, cancellationToken);
 
@@ -52,7 +51,6 @@ internal static class MediaServiceBiblePublicationList
             languageCode,
             categoryName ?? "all");
 
-        // Step 2: Get downloaded publications from BiblePublications table
         var downloadedPublications = await biblePublicationService.GetByLanguageCodeAsync(
             languageCode, categoryName, requireIsMusicForMusicCategory, cancellationToken);
 
@@ -68,7 +66,6 @@ internal static class MediaServiceBiblePublicationList
             categoryName ?? "all",
             publicationsWithoutLanguage.Count);
 
-        // Step 3: Merge - use downloaded publications where available, add non-language pubs, then placeholders for the rest
         var result = new Dictionary<string, BiblePublication>(downloadedPublications, StringComparer.OrdinalIgnoreCase);
 
         foreach (var pubWithoutLang in publicationsWithoutLanguage.Values.Where(p => !result.ContainsKey(p.PublicationCode)))

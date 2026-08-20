@@ -65,7 +65,6 @@ internal sealed class PublicationEnsurerAllSectionsEnsurer
                     return false;
                 }
 
-                // Get all available sections from SectionLanguages
                 // Use case-sensitive code for dramas when querying database
                 var availableSectionCodes = await db.SectionLanguages
                     .AsNoTracking()
@@ -77,13 +76,11 @@ internal sealed class PublicationEnsurerAllSectionsEnsurer
                     .Distinct()
                     .ToListAsync(cancellationToken);
 
-                // Get existing section codes (case-insensitive match vs SectionLanguages)
                 var existingSectionCodes = publication.Sections
                     .Where(s => !string.IsNullOrEmpty(s.SectionCode))
                     .Select(s => s.SectionCode!)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-                // Find missing sections
                 var missingSectionCodes = availableSectionCodes
                     .Where(sc => !existingSectionCodes.Contains(sc))
                     .ToList();

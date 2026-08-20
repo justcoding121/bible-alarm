@@ -42,7 +42,6 @@ public static class MauiAppHolder
                 return app;
             }
 
-            // Create new app instance
             logger.Information("MauiAppHolder.CreateAndStore - Creating new MauiApp instance");
             app = MauiProgram.CreateMauiApp();
             return app;

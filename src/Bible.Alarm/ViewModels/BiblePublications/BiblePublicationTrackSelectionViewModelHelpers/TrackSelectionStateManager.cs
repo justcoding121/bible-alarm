@@ -59,7 +59,6 @@ public sealed class TrackSelectionStateManager
         Log.Debug(AppConstants.Logging.TrackSelectionStateManagerDiagnosticsLog.HandleInitializedLanguagePublicationSection,
             newLanguageCode, newPublicationCode, newSectionCode ?? "(none)");
 
-        // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
         lastSectionCode = newSectionCode;
@@ -106,7 +105,6 @@ public sealed class TrackSelectionStateManager
             return;
         }
 
-        // Check if language, publication code, or section code changed
         var languageChanged = lastLanguageCode != newLanguageCode;
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
         var sectionCodeChanged = !string.Equals(lastSectionCode, newSectionCode, StringComparison.OrdinalIgnoreCase);
@@ -117,7 +115,6 @@ public sealed class TrackSelectionStateManager
             return;
         }
 
-        // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
         lastSectionCode = newSectionCode;
@@ -153,7 +150,6 @@ public sealed class TrackSelectionStateManager
         }
         else
         {
-            // Update selected track when state changes
             MainThread.BeginInvokeOnMainThread(setSelectedTrack);
         }
     }
@@ -177,7 +173,6 @@ public sealed class TrackSelectionStateManager
             return;
         }
 
-        // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
         lastSectionCode = newSectionCode;
@@ -217,7 +212,6 @@ public sealed class TrackSelectionStateManager
             return;
         }
 
-        // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
         lastSectionCode = newSectionCode;

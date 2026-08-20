@@ -83,7 +83,6 @@ sealed class MediaControlsService : Service
         ArgumentNullException.ThrowIfNull(notificationBuilder);
         ArgumentNullException.ThrowIfNull(NotificationManager);
 
-        // Ensure notification channel exists and is configured as silent
         CreateNotificationChannel(NotificationManager);
 
         var style = new MediaStyleNotificationHelper.MediaStyle(session);

@@ -13,14 +13,11 @@ public class ServiceCollectionExtensionsTests
     [Fact]
     public void AddVersionPatchingServices_ShouldRegisterAllServices()
     {
-        // Arrange
         var services = new ServiceCollection();
 
-        // Act
         services.AddVersionPatchingServices();
         var serviceProvider = services.BuildServiceProvider();
 
-        // Assert
         serviceProvider.GetService<IVersionService>().Should().NotBeNull();
         serviceProvider.GetService<IFileService>().Should().NotBeNull();
         serviceProvider.GetService<IVersionPatchingService>().Should().NotBeNull();
@@ -36,14 +33,11 @@ public class ServiceCollectionExtensionsTests
     [Fact]
     public void AddVersionPatchingServices_ShouldRegisterServicesAsSingletons()
     {
-        // Arrange
         var services = new ServiceCollection();
 
-        // Act
         services.AddVersionPatchingServices();
         var serviceProvider = services.BuildServiceProvider();
 
-        // Assert
         var versionService1 = serviceProvider.GetService<IVersionService>();
         var versionService2 = serviceProvider.GetService<IVersionService>();
         versionService1.Should().BeSameAs(versionService2);

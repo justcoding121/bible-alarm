@@ -48,7 +48,6 @@ internal sealed class MelodyMusicSeeder
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        // Get Music category
         var musicCategory = await db.Categories
             .FirstOrDefaultAsync(c => c.CategoryCode == "Music");
 

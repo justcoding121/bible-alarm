@@ -28,7 +28,6 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
     private readonly IState<ApplicationState> state;
     private readonly INavigationService navigationService;
 
-    // Helper classes
     private readonly MusicPublicationSelectionStateManager stateManager;
     private readonly MusicPublicationSelectionDataProvider dataProvider;
     private readonly MusicPublicationSelectionCommandHandler commandHandler;
@@ -60,7 +59,6 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
         state = deps.ApplicationState;
         navigationService = deps.NavigationService;
 
-        // Initialize helper classes
         stateManager = new MusicPublicationSelectionStateManager();
         var serviceProvider = deps.ServiceProvider;
         var languageNameService = serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageNameService>();

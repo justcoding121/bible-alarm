@@ -30,14 +30,11 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
         // Windows MediaPlayer works perfectly in headless mode for audio playback
         var mediaPlatform = MediaManager.CreatePlatformView();
 
-        // Return lightweight view for headless, or wrap MediaPlayerElement if UI exists
         if (mediaPlatform == null)
         {
-            // Headless mode - create lightweight MauiMediaElement without MediaPlayerElement
             return new MauiMediaElement();
         }
 
-        // UI mode - we have a MediaPlayerElement
         return new(mediaPlatform);
     }
 

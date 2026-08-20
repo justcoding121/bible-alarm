@@ -135,13 +135,11 @@ public partial class BibleSelectionContainer : ContentView
     {
         base.OnBindingContextChanged();
 
-        // Unsubscribe from old view model
         if (viewModel != null)
         {
             viewModel.PropertyChanged -= OnViewModelPropertyChanged;
         }
 
-        // Subscribe to new view model
         viewModel = BindingContext as BiblePublicationSelectionContainerViewModel;
 
         if (viewModel != null)

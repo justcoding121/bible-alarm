@@ -34,7 +34,6 @@ public static class AnimateUtils
         // Light gray for pressed state
         var pressedColor = ThemeColors.Animation.PressedBackground;
 
-        // Animate to pressed state
         view.Animate("touchPress", new Animation(v =>
         {
             if (view == null)
@@ -51,7 +50,6 @@ public static class AnimateUtils
         length: 100,
         finished: (_, _) =>
         {
-            // Animate back to original state
             if (view == null)
             {
                 return;

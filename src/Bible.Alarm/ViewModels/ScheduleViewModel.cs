@@ -24,7 +24,6 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
     private readonly IMapper mapper;
     private readonly IServiceProvider serviceProvider;
 
-    // Helper classes
     private readonly ScheduleContainerManager containerManager;
     private readonly ScheduleOverlayManager overlayManager;
     private readonly ScheduleOverlayTimeoutController overlayTimeoutController;
@@ -86,10 +85,8 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
         overlayManager = new ScheduleOverlayManager(this.dispatcher);
         overlayTimeoutController = new ScheduleOverlayTimeoutController(logger, state, this.dispatcher);
 
-        // Subscribe to state changes
         state.StateChanged += OnStateChanged;
 
-        // Initialize lastCategoryName from current state
         var initialSchedule = state.Value.CurrentSchedule;
         if (initialSchedule != null)
         {
@@ -98,12 +95,10 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
                 lastCategoryName ?? LogNullDisplayLabel);
         }
 
-        // Initialize IsNewSchedule immediately from current state
-        // This ensures the Delete button visibility is correct from the start
+        // Delete-button visibility must be correct before first render
         var initialIsNew = initialSchedule == null || initialSchedule.Id <= 0;
         IsNewSchedule = initialIsNew;
 
-        // Initialize state handling and commands
         stateManager.InitializeStateHandling(
             state,
             () => IsBusy = true,
@@ -113,7 +108,6 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
         SaveCommand = saveCmd;
         DeleteCommand = deleteCmd;
 
-        // Initialize containers asynchronously after page is visible
         _ = InitializeContainerViewModelsAsync();
 
 #if DEBUG
@@ -191,12 +185,9 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
         // are dispatched from Task.Run or other background operations (e.g., InitializeNewScheduleAsync)
         MainThread.BeginInvokeOnMainThread(() =>
         {
-            // Sync overlay visibility with state
             IsSchedulePageOverlayVisible = stateValue.IsSchedulePageOverlayVisible;
 
-            // Update IsNewSchedule based on CurrentSchedule ID
-            // This determines if the delete button should be visible
-            // Always set it (not just when changed) to ensure it's initialized correctly
+            // Always assign so Delete visibility is correct even when the ID did not change
             var currentSchedule = stateValue.CurrentSchedule;
             var isNew = currentSchedule == null || currentSchedule.Id <= 0;
             IsNewSchedule = isNew;
@@ -208,7 +199,6 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
             NotifySchedulePropertiesChanged();
             
             // Always notify IsMusicSelectionVisible when schedule changes, since it's computed from schedule state
-            // Check if category changed to track for logging
             var currentCategoryName = currentSchedule?.BiblePublicationCategoryName;
             var categoryChanged = currentCategoryName != lastCategoryName;
             
@@ -220,7 +210,6 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
             }
             else if (lastCategoryName == null && currentCategoryName != null)
             {
-                // Initialize lastCategoryName on first load
                 logger.Debug("ScheduleViewModel.OnStateChanged: Initializing lastCategoryName to '{Category}'",
                     currentCategoryName);
                 lastCategoryName = currentCategoryName;
@@ -230,7 +219,6 @@ public sealed partial class ScheduleViewModel : ObservableObject, IDisposable
             // This ensures the binding is updated even if the category name didn't change but other schedule properties did
             OnPropertyChanged(nameof(IsMusicSelectionVisible));
             
-            // Log the computed visibility value
             var isVisible = IsMusicSelectionVisible;
             if (categoryChanged || lastCategoryName == null)
             {

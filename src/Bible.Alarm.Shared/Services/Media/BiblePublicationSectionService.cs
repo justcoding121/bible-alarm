@@ -14,9 +14,6 @@ using Serilog;
 
 namespace Bible.Alarm.Shared.Services.Media;
 
-/// <summary>
-/// Service for accessing BiblePublicationSection database operations.
-/// </summary>
 public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFactory, ILogger logger) : IBiblePublicationSectionService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
@@ -59,7 +56,6 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
             using var scope = scopeFactory.CreateScope();
             var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-            // Load sections, then filter/order by SectionCode
             var sections = await dbContext.BiblePublications
                 .AsNoTracking()
                 .Include(x => x.Sections)

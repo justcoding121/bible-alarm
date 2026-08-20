@@ -94,7 +94,6 @@ public sealed class AlarmSchedule : IComparable, IEquatable<AlarmSchedule>
     [Required]
     public bool AlwaysPlayFromStart { get; set; } = false;
 
-    //state
     [Required]
     public PlayType CurrentPlayItem { get; set; }
 

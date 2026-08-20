@@ -135,7 +135,6 @@ public sealed class PlayerManager(ILogger logger)
     /// </summary>
     private void CreateAndAttachNewListener(IExoPlayer player)
     {
-        // Create and add new listener
         currentPlayer = player;
         exoPlayerListener = new ExoPlayerListener(logger);
 

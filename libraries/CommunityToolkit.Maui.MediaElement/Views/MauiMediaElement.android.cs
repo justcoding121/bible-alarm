@@ -48,7 +48,6 @@ public class MauiMediaElement : CoordinatorLayout
     /// <param name="context">The application's <see cref="Context"/>.</param>
     public MauiMediaElement(Context context) : base(context)
     {
-        // Headless mode - no PlayerView needed
         relativeLayout = null;
         playerView = null;
         defaultSystemUiVisibility = 0;
@@ -149,7 +148,6 @@ public class MauiMediaElement : CoordinatorLayout
 
     void OnFullscreenButtonClick(object? sender, PlayerView.FullscreenButtonClickEventArgs e)
     {
-        // Ensure there is a player view
         if (playerView is null || relativeLayout is null)
         {
             throw new InvalidOperationException("PlayerView and RelativeLayout cannot be null when the FullScreen button is tapped");

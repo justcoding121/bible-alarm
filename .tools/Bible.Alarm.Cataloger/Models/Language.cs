@@ -13,7 +13,4 @@ public class Language
     public string Direction { get; set; } = AppConstants.Media.TextDirectionLeftToRight;
 }
 
-/// <summary>
-/// Holds language information during cataloging
-/// </summary>
 public record LanguageInfo(string Name, string Direction = AppConstants.Media.TextDirectionLeftToRight);

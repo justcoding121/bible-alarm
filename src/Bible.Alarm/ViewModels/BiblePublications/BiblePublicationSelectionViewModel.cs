@@ -61,7 +61,6 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
         state = deps.ApplicationState;
         navigationService = deps.NavigationService;
 
-        // Initialize services
         var serviceProvider = deps.ServiceProvider;
         var languageNameService = serviceProvider.GetRequiredService<ILanguageNameService>();
         dataProvider = new BiblePublicationSelectionDataProvider(deps.MediaService, languageNameService, state, deps.Dispatcher);
@@ -69,15 +68,13 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
         var languageContentService = serviceProvider.GetService<ILanguageContentService>();
         var commandHandler = new BiblePublicationSelectionCommandHandler(deps.MediaService, state, deps.Dispatcher, navigationService, deps.BiblePublicationService, languageContentService);
 
-        // Initialize current from state if available (map DTO to entity)
-        // Use CurrentSchedule as the source of truth
+        // CurrentSchedule is the source of truth
         var currentState = state.Value;
         BiblePublicationSchedule? initialCurrent = null;
         string? initialLanguageCode = null;
         string? initialCategoryName = null;
         if (currentState.CurrentSchedule != null && !string.IsNullOrEmpty(currentState.CurrentSchedule.BiblePublicationCode))
         {
-            // Create a minimal BiblePublicationSchedule from CurrentSchedule
             var currentSchedule = currentState.CurrentSchedule;
             initialCurrent = new BiblePublicationSchedule
             {
@@ -97,14 +94,12 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
         }
         stateHandler.InitializeCurrent(initialCurrent, initialLanguageCode, initialCategoryName);
 
-        // Set up event handlers
         state.StateChanged += OnBiblePublicationInitialized;
         state.StateChanged += OnBiblePublicationChanged;
 
         WeakReferenceMessenger.Default.Register<ListItemFetchProgressMessage>(this);
         WeakReferenceMessenger.Default.Register<ModalOverlayFetchProgressMessage>(this);
 
-        // Initialize commands
         SectionSelectionCommand = commandHandler.CreateSectionSelectionCommand(
             new SectionSelectionSelectors(
                 () => CurrentLanguage,
@@ -165,7 +160,6 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
             state.Value.CurrentSchedule?.BiblePublicationLanguageCode,
             UpdateCurrentLanguageFromLanguages);
 
-        // Set up property changed handler for language search
         SetupLanguageSearchHandler(searchTerm =>
             _ = dataProvider.PopulateLanguagesAsync(searchTerm, Languages));
     }

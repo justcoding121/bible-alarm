@@ -26,7 +26,6 @@ public sealed partial class BiblePublicationTrackSelectionViewModel : Observable
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
 
-    // Helper classes
     private readonly TrackSelectionStateManager stateManager;
     private readonly TrackSelectionDataProvider dataProvider;
     private readonly TrackSelectionCommandHandler commandHandler;
@@ -52,7 +51,6 @@ public sealed partial class BiblePublicationTrackSelectionViewModel : Observable
         this.dispatcher = dispatcher;
         this.navigationService = navigationService;
 
-        // Initialize helper classes
         stateManager = new TrackSelectionStateManager();
         dataProvider = new TrackSelectionDataProvider(this.mediaService, biblePublicationService);
         commandHandler = new TrackSelectionCommandHandler(this.logger, state, this.dispatcher, navigationService);

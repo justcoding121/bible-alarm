@@ -24,7 +24,6 @@ public sealed partial class MusicSelectionContainerViewModel : ObservableObject,
     private readonly ILogger logger;
     private readonly IState<ApplicationState> state;
 
-    // Helper classes for modular functionality
     private readonly MusicDisplayTextProvider displayTextProvider;
     private readonly MusicEnabledHandler musicEnabledHandler;
     private readonly MusicStateTracker stateTracker;
@@ -122,7 +121,6 @@ public sealed partial class MusicSelectionContainerViewModel : ObservableObject,
             initialMusicEnabledOnPageLoad = initialMusicEnabled.Value;
         }
 
-        // Initialize state tracker
         stateTracker.InitializeFromSchedule(state.Value.CurrentSchedule);
     }
 
@@ -198,10 +196,9 @@ public sealed partial class MusicSelectionContainerViewModel : ObservableObject,
                 return;
             }
 
-            // Initialize if schedule ID changed (new schedule opened)
             if (currentSchedule != null && currentSchedule.Id != scheduleId)
             {
-                // Reset initial MusicEnabled tracking when a new schedule is opened
+                // Reset first-enable tracking when a different schedule is opened
                 initialMusicEnabledOnPageLoad = null;
                 stateInitializer.ResetReadyFlags();
                 InitializeFromState();
@@ -209,14 +206,12 @@ public sealed partial class MusicSelectionContainerViewModel : ObservableObject,
                 InitializeCommands();
             }
 
-            // Handle state changes using helper
             stateChangeHandler.HandleStateChanged(
                 scheduleId,
                 stateHolder,
                 (val) => ShouldScrollToBottom = val,
                 (propertyName) => OnPropertyChanged(propertyName));
 
-            // Update selectability flags when state changes
             _ = UpdateSelectabilityFlagsAsync();
         }
         finally

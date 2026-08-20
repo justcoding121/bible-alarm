@@ -186,7 +186,6 @@ public sealed partial class IosNotificationPermissionViewModel : ObservableObjec
                 return;
             }
 
-            // Get the Home page from navigation service
             var homePage = navigationService.GetCurrentHomePage();
             if (homePage?.BindingContext is HomeViewModel homeViewModel)
             {

@@ -36,15 +36,9 @@ public sealed class BiblePublication : TranslatedPublication
     [NotMapped]
     public int PrimaryCategoryId => BiblePublicationCategories.Count > 0 ? BiblePublicationCategories[0].CategoryId : 0;
 
-    /// <summary>
-    /// Optional foreign key to Language
-    /// </summary>
     [ForeignKey(nameof(Language))]
     public new int? LanguageId { get; set; }
 
-    /// <summary>
-    /// Optional navigation property to Language
-    /// </summary>
     public new Media.Language? Language { get; set; }
 
     /// <summary>
@@ -61,9 +55,6 @@ public sealed class BiblePublication : TranslatedPublication
     [Required]
     public List<BiblePublicationTrack> Tracks { get; set; } = [];
 
-    /// <summary>
-    /// Indicates if this publication is a video publication
-    /// </summary>
     [Required]
     public bool IsVideo { get; set; }
 

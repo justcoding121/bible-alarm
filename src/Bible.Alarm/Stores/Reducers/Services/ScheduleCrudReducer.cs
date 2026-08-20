@@ -113,7 +113,6 @@ public static class ScheduleCrudReducer
         Log.Warning(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnCreateScheduleFailure,
             action.Schedule.Id, action.Error);
 
-        // Remove the optimistically added schedule
         var newSchedules = new ObservableHashSet<ScheduleStateItem>();
         foreach (var scheduleItem in state.Schedules)
         {
@@ -142,7 +141,6 @@ public static class ScheduleCrudReducer
             var existingSchedule = state.Schedules.FirstOrDefault(s => s.Id == action.ScheduleId);
             if (existingSchedule == null)
             {
-                // Create new collection with the restored schedule
                 var newSchedules = new ObservableHashSet<ScheduleStateItem>();
                 foreach (var scheduleItem in state.Schedules)
                 {
@@ -210,7 +208,6 @@ public static class ScheduleCrudReducer
                 newSchedules.Add(scheduleItem);
             }
         }
-        // Add the DTO (already transformed by Effect)
         if (action.Schedule != null)
         {
             newSchedules.Add(action.Schedule);
@@ -249,10 +246,8 @@ public static class ScheduleCrudReducer
             {
                 if (scheduleItem.Id == action.Schedule.Id)
                 {
-                    // Create new schedule item with updated properties (immutable update)
                     var oldMusicEnabled = scheduleItem.MusicEnabled;
                     var sourceSchedule = action.Schedule.DeepClone();
-                    // Use the cloned schedule directly
                     updatedScheduleItem = sourceSchedule;
 
                     Log.Debug(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleSuccessExistingItem,
@@ -278,7 +273,6 @@ public static class ScheduleCrudReducer
                 }
                 else
                 {
-                    // Keep existing schedule unchanged
                     newSchedules.Add(scheduleItem);
                 }
             }

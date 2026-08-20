@@ -47,7 +47,6 @@ public class AndroidPlatformBootstrapService : IPlatformBootstrapService
             {
                 logger.Information("Initializing Android platform services");
 
-                // Create notification channel for alarms
                 CreateNotificationChannel();
 
                 // Schedule background jobs

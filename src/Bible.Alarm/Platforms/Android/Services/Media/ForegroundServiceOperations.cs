@@ -80,7 +80,6 @@ internal static class ForegroundServiceOperations
             // Ensure notification channel exists
             ForegroundNotificationHelper.CreateNotificationChannel(service);
 
-            // Create notification with MediaSession attached
             var notification = ForegroundNotificationHelper.CreateNotification(service, mediaSession, isAlarmNotification);
 
             // Start foreground service with sticky notification

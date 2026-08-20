@@ -116,7 +116,6 @@ public class UrlConstructionService : IUrlConstructionService
             query = query.Where(t => t.Section == null);
         }
 
-        // Query by TrackCode (string)
         query = query.Where(t => t.TrackCode == normalizedTrackCode);
 
         var track = await query.FirstOrDefaultAsync();

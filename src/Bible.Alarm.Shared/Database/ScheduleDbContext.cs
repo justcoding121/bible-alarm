@@ -50,7 +50,6 @@ public class ScheduleDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure BiblePublicationSchedule relationship (for Bible reading schedules)
         // This is the one-to-one relationship where CategoryId is null (Bible schedules)
         modelBuilder.Entity<BiblePublicationSchedule>()
             .HasOne(bps => bps.AlarmSchedule)

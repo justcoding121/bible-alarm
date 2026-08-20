@@ -85,10 +85,8 @@ public class EventHandlerManager
             // Signal that media is ready
             getMediaOpenedCompletionSource()?.TrySetResult(true);
 
-            // Update duration when track opens (track change)
             positionTracker.UpdateDuration(getDuration());
 
-            // Handle metadata
             if (sender is MediaElement mediaElement)
             {
                 await metadataHandler.HandleMediaOpenedAsync(currentTrack, mediaElement);

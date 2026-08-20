@@ -11,9 +11,6 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 
-/// <summary>
-/// Handles success action effects for schedule operations.
-/// </summary>
 public static class ScheduleSuccessHandler
 {
     public static Task HandleUpdateScheduleSuccess(UpdateScheduleSuccessAction action, IDispatcher dispatcher)
@@ -29,9 +26,7 @@ public static class ScheduleSuccessHandler
 
             // ScheduleList disk caching removed. No post-success cache refresh.
 
-            // Dispatch SetCarPlayScreenAction to refresh Android Auto metadata
-            // This will trigger DefaultCarScreenEffect to fetch metadata and update MediaSession
-            // MediaSessionEffect will check if playback is active and skip if needed
+            // Refresh Android Auto metadata via DefaultCarScreenEffect; MediaSessionEffect skips if playback is active.
             dispatcher.Dispatch(new SetCarPlayScreenAction());
 
             Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleUpdateScheduleSuccessDispatchedSetCarPlayScreenForSchedule, action.Schedule?.Id);
@@ -60,7 +55,6 @@ public static class ScheduleSuccessHandler
             {
                 Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleSuccessDeletedWasLastPlayedRefreshingMetadata, action.ScheduleId);
 
-                // Get default schedule service to refresh metadata
                 var defaultScheduleService = ServiceProviderManager.GetService<IDefaultScheduleService>();
                 if (defaultScheduleService != null)
                 {

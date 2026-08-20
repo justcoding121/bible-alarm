@@ -22,10 +22,8 @@ public static class AppBuilderExtensions
     /// <returns><see cref="MauiAppBuilder"/> initialized for <see cref="MediaElement"/>.</returns>
     public static MauiAppBuilder UseMauiCommunityToolkitMediaElement(this MauiAppBuilder builder, Action<MediaElementOptions>? options = null)
     {
-        // Update the default MediaElementOptions for MediaElement if Action is not null
         options?.Invoke(new MediaElementOptions(builder));
 
-        // Perform Handler configuration
         builder.ConfigureMauiHandlers(h =>
         {
             h.AddHandler<MediaElement, MediaElementHandler>();

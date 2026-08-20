@@ -9,7 +9,6 @@ public static class ThemeColors
     private const string HexB0B0B0 = "#B0B0B0";
     private const string Hex404040 = "#404040";
 
-    // Background Colors
     public static class Background
     {
         public static Color Dark => Color.FromArgb("#121212");
@@ -50,7 +49,6 @@ public static class ThemeColors
         public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
     }
 
-    // Text Colors
     public static class TextPrimary
     {
         public static Color Dark => Colors.White;
@@ -75,7 +73,6 @@ public static class ThemeColors
         public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
     }
 
-    // UI Element Colors
     public static class Divider
     {
         public static Color Dark => Color.FromArgb(Hex404040);
@@ -92,7 +89,6 @@ public static class ThemeColors
         public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
     }
 
-    // Primary/Accent Colors
     public static class PrimaryText
     {
         public static Color Dark => Color.FromArgb("#9370DB");
@@ -111,7 +107,6 @@ public static class ThemeColors
     // Day/Calendar Colors (used in converters) - Theme-aware
     public static class Day
     {
-        // Text colors
         public static class EnabledText
         {
             public static Color Dark => Colors.White;
@@ -128,7 +123,6 @@ public static class ThemeColors
             public static Color Get(AppTheme theme) => theme == AppTheme.Dark ? Dark : Light;
         }
 
-        // Background colors
         public static class EnabledBackground
         {
             // Schedule enabled + Day enabled: Primary color (prominent)
@@ -165,14 +159,12 @@ public static class ThemeColors
 
     }
 
-    // Animation/Interaction Colors
     public static class Animation
     {
         public static Color PressedBackground => Color.FromArgb("#E0E0E0");
         public static Color Shadow => Color.FromArgb("#40000000");
     }
 
-    // Bootstrap/Splash Colors
     public static class Bootstrap
     {
         public static Color DarkBackground => Color.FromArgb("#1A1A1A");
@@ -191,9 +183,6 @@ public static class ThemeColors
         }
     }
 
-    /// <summary>
-    /// Helper method to get the current theme
-    /// </summary>
     public static AppTheme GetCurrentTheme() => Application.Current?.RequestedTheme ?? AppTheme.Light;
 }
 

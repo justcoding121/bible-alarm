@@ -40,10 +40,8 @@ public class FluxorBootstrapService : IFluxorBootstrapService
             return;
         }
 
-        // Initialize store asynchronously
         await store.InitializeAsync();
 
-        // Set the static store reference
         ReduxContainer.Store = store;
 
         // Log registered effects for debugging

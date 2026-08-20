@@ -25,13 +25,12 @@ public class AndroidVersionPatcherTests
 
     [Fact]
     public void PlatformName_ShouldReturnAndroid() =>
-        // Act & Assert
         patcher.PlatformName.Should().Be("Android");
 
     [Fact]
     public async Task PatchVersionAsync_WithValidManifest_ShouldUpdateVersion()
     {
-        // Arrange - Android patcher uses csproj (ApplicationVersion / ApplicationDisplayVersion), not AndroidManifest.xml
+        // Android patcher uses csproj (ApplicationVersion / ApplicationDisplayVersion), not AndroidManifest.xml
         var csprojPath = testPathService.GetCsprojPath();
         var oldVersionCode = "1";
         var oldVersionName = "1.2";
@@ -51,10 +50,8 @@ public class AndroidVersionPatcherTests
         versionServiceMock.Setup(x => x.IncrementVersion(oldVersionName)).Returns(newVersionName);
         fileServiceMock.Setup(x => x.WriteFileAsync(csprojPath, It.IsAny<string>())).Returns(Task.CompletedTask);
 
-        // Act
         await patcher.PatchVersionAsync();
 
-        // Assert
         versionServiceMock.Verify(x => x.IncrementVersionCode(oldVersionCode), Times.Once);
         versionServiceMock.Verify(x => x.IncrementVersion(oldVersionName), Times.Once);
         fileServiceMock.Verify(x => x.WriteFileAsync(csprojPath, It.Is<string>(s => s.Contains(newVersionCode) && s.Contains(newVersionName))), Times.Once);
@@ -63,14 +60,11 @@ public class AndroidVersionPatcherTests
     [Fact]
     public async Task PatchVersionAsync_WithNonExistentFile_ShouldNotProcess()
     {
-        // Arrange
         var filePath = testPathService.GetAndroidManifestPath();
         fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(false);
 
-        // Act
         await patcher.PatchVersionAsync();
 
-        // Assert
         fileServiceMock.Verify(x => x.ReadFileAsync(It.IsAny<string>()), Times.Never);
         versionServiceMock.Verify(x => x.IncrementVersionCode(It.IsAny<string>()), Times.Never);
         versionServiceMock.Verify(x => x.IncrementVersion(It.IsAny<string>()), Times.Never);
@@ -80,17 +74,14 @@ public class AndroidVersionPatcherTests
     [Fact]
     public async Task PatchVersionAsync_WithInvalidXml_ShouldNotProcess()
     {
-        // Arrange
         var filePath = testPathService.GetAndroidManifestPath();
         var invalidXml = "<invalid-xml>";
 
         fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(true);
         fileServiceMock.Setup(x => x.ReadFileAsync(filePath)).ReturnsAsync(invalidXml);
 
-        // Act
         await patcher.PatchVersionAsync();
 
-        // Assert
         versionServiceMock.Verify(x => x.IncrementVersionCode(It.IsAny<string>()), Times.Never);
         versionServiceMock.Verify(x => x.IncrementVersion(It.IsAny<string>()), Times.Never);
         fileServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
@@ -99,16 +90,13 @@ public class AndroidVersionPatcherTests
     [Fact]
     public async Task PatchVersionAsync_WithMissingManifestNode_ShouldNotProcess()
     {
-        // Arrange
         var filePath = testPathService.GetAndroidManifestPath();
-        var manifestXml = @"<?xml version=""1.0"" encoding=""utf-8""?><root></root>"; // Missing manifest node
+        var manifestXml = @"<?xml version=""1.0"" encoding=""utf-8""?><root></root>";
         fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(true);
         fileServiceMock.Setup(x => x.ReadFileAsync(filePath)).ReturnsAsync(manifestXml);
 
-        // Act
         await patcher.PatchVersionAsync();
 
-        // Assert
         versionServiceMock.Verify(x => x.IncrementVersionCode(It.IsAny<string>()), Times.Never);
         versionServiceMock.Verify(x => x.IncrementVersion(It.IsAny<string>()), Times.Never);
         fileServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
@@ -117,16 +105,13 @@ public class AndroidVersionPatcherTests
     [Fact]
     public async Task PatchVersionAsync_WithMissingVersionAttributes_ShouldNotProcess()
     {
-        // Arrange
         var filePath = testPathService.GetAndroidManifestPath();
-        var manifestXml = @"<?xml version=""1.0"" encoding=""utf-8""?><manifest></manifest>"; // Missing version attributes
+        var manifestXml = @"<?xml version=""1.0"" encoding=""utf-8""?><manifest></manifest>";
         fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(true);
         fileServiceMock.Setup(x => x.ReadFileAsync(filePath)).ReturnsAsync(manifestXml);
 
-        // Act
         await patcher.PatchVersionAsync();
 
-        // Assert
         versionServiceMock.Verify(x => x.IncrementVersionCode(It.IsAny<string>()), Times.Never);
         versionServiceMock.Verify(x => x.IncrementVersion(It.IsAny<string>()), Times.Never);
         fileServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);

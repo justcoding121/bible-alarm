@@ -15,9 +15,6 @@ using Serilog;
 
 namespace Bible.Alarm.Cataloger.Seeders;
 
-/// <summary>
-/// Helper class for test mode seeding operations.
-/// </summary>
 internal sealed class TestModeSeeder
 {
     private readonly ILogger logger;
@@ -45,7 +42,6 @@ internal sealed class TestModeSeeder
         logger.Debug("=== Seeding test languages ({Languages}) for all discovered publications ===",
             string.Join(", ", testLanguages));
 
-        // Get all discovered publication codes from PublicationLanguages
         var publicationCodes = dataStore.PublicationLanguages.Keys.ToList();
 
         // Note: "iam" (Kingdom Melodies) is not included here because it doesn't support ad-hoc fetching
@@ -67,8 +63,6 @@ internal sealed class TestModeSeeder
             {
                 logger.Debug("Seeding {LanguageCode} for publication: {PublicationCode}", languageCode, publicationCode);
 
-                // Use EnsurePublicationExistsAsync to seed the publication for this language
-                // This will fetch the publication if it doesn't exist
                 var success = await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode);
 
                 if (success)

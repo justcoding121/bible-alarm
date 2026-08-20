@@ -4,9 +4,6 @@ using System.Threading;
 
 namespace Bible.Alarm.Shared.Services.Media.Interfaces;
 
-/// <summary>
-/// Interface for tracking fetch progress with percentage updates and cancellation support.
-/// </summary>
 public interface IFetchProgress
 {
     /// <summary>
@@ -19,9 +16,6 @@ public interface IFetchProgress
     /// </summary>
     void UpdateProgressText(string text);
 
-    /// <summary>
-    /// Sets whether the progress indicator should be visible.
-    /// </summary>
     void SetIsVisible(bool isVisible);
 
     /// <summary>

@@ -187,7 +187,6 @@ public sealed partial class BatteryOptimizationViewModel : ObservableObject, IDi
                 return;
             }
 
-            // Get the Home page from navigation service
             var homePage = navigationService.GetCurrentHomePage();
             if (homePage?.BindingContext is HomeViewModel homeViewModel)
             {

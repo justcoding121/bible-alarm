@@ -188,7 +188,6 @@ internal static class WindowsMediaManagerSourceUpdater
             var displayProps = playbackItem.GetDisplayProperties();
             displayProps.Type = MediaPlaybackType.Music; // Important for media-style display
 
-            // Set metadata from MediaElement properties
             if (!string.IsNullOrWhiteSpace(mediaElement.MetadataTitle))
             {
                 displayProps.MusicProperties.Title = mediaElement.MetadataTitle;
@@ -199,19 +198,16 @@ internal static class WindowsMediaManagerSourceUpdater
                 displayProps.MusicProperties.Artist = mediaElement.MetadataArtist;
             }
 
-            // Set artwork if available
             if (!string.IsNullOrWhiteSpace(mediaElement.MetadataArtworkUrl))
             {
                 try
                 {
                     if (Uri.TryCreate(mediaElement.MetadataArtworkUrl, UriKind.Absolute, out var artworkUri))
                     {
-                        // For HTTP/HTTPS URIs
                         displayProps.Thumbnail = RandomAccessStreamReference.CreateFromUri(artworkUri);
                     }
                     else if (System.IO.File.Exists(mediaElement.MetadataArtworkUrl))
                     {
-                        // For local file paths
                         var storageFile = await StorageFile.GetFileFromPathAsync(mediaElement.MetadataArtworkUrl);
                         displayProps.Thumbnail = RandomAccessStreamReference.CreateFromFile(storageFile);
                     }

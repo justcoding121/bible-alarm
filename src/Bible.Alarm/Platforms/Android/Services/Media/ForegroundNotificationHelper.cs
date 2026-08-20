@@ -125,7 +125,6 @@ internal static class ForegroundNotificationHelper
     {
         var context = service.ApplicationContext ?? Application.Context ?? throw new InvalidOperationException("Context cannot be null");
 
-        // Create pending intent for notification tap
         var packageName = context.PackageName ?? throw new InvalidOperationException("PackageName cannot be null");
         var packageManager = context.PackageManager ?? throw new InvalidOperationException("PackageManager cannot be null");
         var launchIntent = packageManager.GetLaunchIntentForPackage(packageName)
@@ -171,7 +170,6 @@ internal static class ForegroundNotificationHelper
             }
         }
 
-        // Create notification builder - context is guaranteed non-null at this point
         // Split the fluent API chain to avoid compiler warnings
         var builder = new NotificationCompat.Builder(context!, ForegroundChannelId);
         builder.SetSmallIcon(ResourceConstant.Drawable.exo_icon_circular_play);
@@ -194,7 +192,6 @@ internal static class ForegroundNotificationHelper
             builder.SetDefaults(0); // No default sounds, lights, or vibrations
         }
 
-        // Create play action button that triggers MediaSession.OnPlay()
         var playIntent = AndroidX.Media.Session.MediaButtonReceiver.BuildMediaButtonPendingIntent(
             context!,
             PlaybackStateCompat.ActionPlay);

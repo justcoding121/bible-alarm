@@ -302,14 +302,12 @@ public static class ModalScrollHelper
         var tcs = new TaskCompletionSource<bool>();
         var startTime = Environment.TickCount;
 
-        // Register cancellation
         using var registration = cancellationToken.Register(() => tcs.TrySetCanceled());
 
         EventHandler? sizeChangedHandler = null;
 
         sizeChangedHandler = (sender, args) =>
         {
-            // Check if items are actually ready
             var isReady = collectionView.Height > 0 && 
                           collectionView.Handler != null &&
                           collectionView.ItemsSource is System.Collections.ICollection col && 
@@ -322,7 +320,6 @@ public static class ModalScrollHelper
             }
         };
 
-        // Subscribe to SizeChanged
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             collectionView.SizeChanged += sizeChangedHandler;
@@ -356,11 +353,9 @@ public static class ModalScrollHelper
             }
         }, cancellationToken);
 
-        // Set up a timeout
         var timeoutTask = Task.Delay(MaxRenderWaitMs, cancellationToken);
         await Task.WhenAny(tcs.Task, timeoutTask, pollTask);
 
-        // Cleanup handler
         await MainThread.InvokeOnMainThreadAsync(() =>
         {
             collectionView.SizeChanged -= sizeChangedHandler;

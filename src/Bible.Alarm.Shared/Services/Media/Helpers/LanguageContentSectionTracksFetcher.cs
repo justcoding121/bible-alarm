@@ -49,7 +49,6 @@ internal sealed class LanguageContentSectionTracksFetcher
 
             var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPublicationCode) ?? publicationCode;
 
-            // Get the publication for this language
             var publication = await db.BiblePublications
                 .Include(bp => bp.Language)
                 .Include(bp => bp.BiblePublicationCategories)
@@ -77,12 +76,10 @@ internal sealed class LanguageContentSectionTracksFetcher
 
             if (section == null)
             {
-                // Try to find by SectionCode as fallback - need to check sections that belong to this publication
                 var allSections = await db.BiblePublicationSections
                     .Where(s => s.BiblePublicationId == publication.Id)
                     .ToListAsync(cancellationToken);
 
-                // Find section by SectionCode
                 section = allSections.FirstOrDefault(s =>
                     s.SectionCode.Equals(normalizedSectionCode, StringComparison.OrdinalIgnoreCase));
             }
@@ -94,7 +91,6 @@ internal sealed class LanguageContentSectionTracksFetcher
                 return false;
             }
 
-            // Check if language is available for this section
             // Use case-sensitive code for dramas when querying database
             var isAvailable = await db.SectionLanguages
                 .Include(sl => sl.Language)

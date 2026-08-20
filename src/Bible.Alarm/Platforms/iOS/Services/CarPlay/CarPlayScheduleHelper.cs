@@ -27,7 +27,7 @@ public static class CarPlayScheduleHelper
     {
         try
         {
-            // Get state from service provider - schedules are already loaded during bootstrap
+            // Schedules are already loaded during bootstrap
             var state = ServiceProviderManager.GetService<IState<ApplicationState>>();
 
             if (state?.Value?.Schedules != null && state.Value.Schedules.Count > 0)

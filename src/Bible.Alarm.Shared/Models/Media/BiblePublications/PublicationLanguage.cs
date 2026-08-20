@@ -31,9 +31,6 @@ public sealed class PublicationLanguage
     [ForeignKey(nameof(Language))]
     public int? LanguageId { get; set; }
 
-    /// <summary>
-    /// Navigation property to Language (nullable for publications without language)
-    /// </summary>
     public Media.Language? Language { get; set; }
 
     /// <summary>
@@ -42,16 +39,10 @@ public sealed class PublicationLanguage
     /// </summary>
     public CatalogType? CatalogType { get; set; }
 
-    /// <summary>
-    /// Foreign key to Category
-    /// </summary>
     [Required]
     [ForeignKey(nameof(Category))]
     public int CategoryId { get; set; }
 
-    /// <summary>
-    /// Navigation property to Category
-    /// </summary>
     [Required]
     public Media.Category Category { get; set; } = null!;
 
@@ -61,8 +52,5 @@ public sealed class PublicationLanguage
     /// </summary>
     public bool IsMusic { get; set; }
 
-    /// <summary>
-    /// Navigation property to SectionLanguages (sections available in this language for this publication)
-    /// </summary>
     public List<SectionLanguage> SectionLanguages { get; set; } = [];
 }

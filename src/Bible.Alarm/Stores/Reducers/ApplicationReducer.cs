@@ -27,8 +27,7 @@ public static class ApplicationReducer
     }
 
     /// <summary>
-    /// Optimistic reducer: Handle CreateScheduleAction - immediately add to store for fast UI feedback.
-    /// Following Fluxor best practices: Optimistic updates for responsive UX.
+    /// Optimistic add so the UI updates before the DB write completes.
     /// </summary>
     [ReducerMethod]
     public static ApplicationState OnCreateSchedule(ApplicationState state, CreateScheduleAction action)
@@ -37,12 +36,8 @@ public static class ApplicationReducer
     }
 
     /// <summary>
-    /// Optimistic reducer: Handle UpdateScheduleFromViewModelAction - immediately update in store for fast UI feedback.
-    /// Following Fluxor best practices: Optimistic updates for responsive UX.
-    /// 
-    /// IMPORTANT: When shouldSave is false, only update CurrentSchedule, not the Schedules collection.
+    /// When shouldSave is false, only update CurrentSchedule, not the Schedules collection.
     /// This prevents Android Auto from detecting unsaved changes (like typing in the name field).
-    /// The Schedules collection should only be updated when changes are saved (shouldSave: true).
     /// </summary>
     [ReducerMethod]
     public static ApplicationState OnUpdateScheduleFromViewModel(ApplicationState state, UpdateScheduleFromViewModelAction action)
@@ -131,8 +126,7 @@ public static class ApplicationReducer
     // All state updates now create new instances to maintain immutability.
 
     /// <summary>
-    /// Optimistic reducer: Handle DeleteScheduleAction - immediately remove from store for fast UI feedback.
-    /// Following Fluxor best practices: Optimistic updates for responsive UX.
+    /// Optimistic remove so the UI updates before the DB write completes.
     /// </summary>
     [ReducerMethod]
     public static ApplicationState OnDeleteSchedule(ApplicationState state, DeleteScheduleAction action)
@@ -197,8 +191,7 @@ public static class ApplicationReducer
     }
 
     /// <summary>
-    /// Failure reducer: Handle CreateScheduleFailureAction - rollback optimistic update.
-    /// Following Fluxor best practices: Rollback optimistic changes on failure.
+    /// Rolls back the optimistic create.
     /// </summary>
     [ReducerMethod]
     public static ApplicationState OnCreateScheduleFailure(ApplicationState state, CreateScheduleFailureAction action)
@@ -207,9 +200,7 @@ public static class ApplicationReducer
     }
 
     /// <summary>
-    /// Failure reducer: Handle UpdateScheduleFailureAction - rollback optimistic update.
-    /// Following Fluxor best practices: Rollback optimistic changes on failure.
-    /// Note: This is a simplified rollback - in a production app, you might want to store the previous state.
+    /// Update failures keep the optimistic state so the user can retry.
     /// </summary>
     [ReducerMethod]
     public static ApplicationState OnUpdateScheduleFailure(ApplicationState state, UpdateScheduleFailureAction action)
@@ -217,15 +208,11 @@ public static class ApplicationReducer
         Log.Warning(AppConstants.Logging.ApplicationReducerDiagnosticsLog.OnUpdateScheduleFailure,
             action.Schedule?.Id, action.Error);
 
-        // For update failures, we could reload from server or keep the optimistic update
-        // For now, we'll keep the optimistic update and let the user retry
-        // In a production app, you might want to dispatch a reload action
         return state;
     }
 
     /// <summary>
-    /// Failure reducer: Handle DeleteScheduleFailureAction - rollback optimistic update by re-adding the schedule.
-    /// Following Fluxor best practices: Rollback optimistic changes on failure.
+    /// Rolls back the optimistic delete by re-adding the schedule.
     /// </summary>
     [ReducerMethod]
     public static ApplicationState OnDeleteScheduleFailure(ApplicationState state, DeleteScheduleFailureAction action)
@@ -234,8 +221,7 @@ public static class ApplicationReducer
     }
 
     /// <summary>
-    /// Success reducer: Handle CreateScheduleSuccessAction - replace optimistic update with confirmed data.
-    /// Following Fluxor best practices: Confirm optimistic updates with server data.
+    /// Replaces the optimistic create with the confirmed schedule.
     /// </summary>
     [ReducerMethod]
     public static ApplicationState OnCreateScheduleSuccess(ApplicationState state, CreateScheduleSuccessAction action)
@@ -244,9 +230,7 @@ public static class ApplicationReducer
     }
 
     /// <summary>
-    /// Pure reducer: Handle AddScheduleSuccessAction with DTO (no mapping, no side effects).
-    /// Following Fluxor best practices: Effects handle transformation, Reducers are pure.
-    /// This is kept for backward compatibility with old AddScheduleAction flow.
+    /// Kept for backward compatibility with the old AddScheduleAction flow.
     /// </summary>
     [ReducerMethod]
     public static ApplicationState OnAddScheduleSuccess(ApplicationState state, AddScheduleSuccessAction action)
@@ -254,20 +238,12 @@ public static class ApplicationReducer
         return ScheduleCrudReducer.OnAddScheduleSuccess(state, action);
     }
 
-    /// <summary>
-    /// Pure reducer: Handle RemoveScheduleSuccessAction (no mapping, no side effects).
-    /// Following Fluxor best practices: Effects handle transformation, Reducers are pure.
-    /// </summary>
     [ReducerMethod]
     public static ApplicationState OnRemoveScheduleSuccess(ApplicationState state, RemoveScheduleSuccessAction action)
     {
         return ScheduleCrudReducer.OnRemoveScheduleSuccess(state, action);
     }
 
-    /// <summary>
-    /// Pure reducer: Handle UpdateScheduleSuccessAction with DTO (no mapping, no side effects).
-    /// Following Fluxor best practices: Effects handle transformation, Reducers are pure.
-    /// </summary>
     [ReducerMethod]
     public static ApplicationState OnUpdateScheduleSuccess(ApplicationState state, UpdateScheduleSuccessAction action)
     {
@@ -292,15 +268,13 @@ public static class ApplicationReducer
             isHomePageOverlayVisible: state.IsHomePageOverlayVisible,
             isSchedulePageOverlayVisible: overlayVisible,
             containerReadiness: Models.ContainerReadiness.NotReady,
-            // Clear pending load now that schedule is loaded
             pendingScheduleLoad: null);
     }
 
     [ReducerMethod]
     public static ApplicationState OnViewExistingSchedule(ApplicationState state, ViewExistingScheduleAction action)
     {
-        // Set pending schedule load - ScheduleStateManager will load from DB on background thread
-        // Don't set CurrentSchedule yet - it will be set after DB load completes
+        // Don't set CurrentSchedule yet — ScheduleStateManager loads it from DB on a background thread
         return new ApplicationState(
             schedules: state.Schedules,
             currentSchedule: null, // Will be set after DB load

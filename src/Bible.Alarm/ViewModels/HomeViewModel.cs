@@ -28,7 +28,6 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable, IReci
     private readonly IState<PlaybackState> playbackState;
     private readonly INavigationService navigationService;
 
-    // Helper classes
     private readonly ScheduleViewModelManager scheduleViewModelManager;
     private readonly HomeNavigationHelper navigationHelper;
     private readonly ProgressBarAnimator progressAnimator;
@@ -54,7 +53,6 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable, IReci
         navigationService = deps.NavigationService;
         var mapper = deps.Mapper;
 
-        // Initialize helper classes
         var scheduleDataPreparer = new ScheduleDataPreparer(mapper);
         var playbackModalService = serviceProvider.GetRequiredService<IPlaybackModalService>();
         navigationHelper = new HomeNavigationHelper(logger, dispatcher, navigationService, playbackModalService, playbackState, serviceProvider, mapper);
@@ -89,7 +87,6 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable, IReci
         OpenFocusSettingsCommand = commandHandler.CreateOpenFocusSettingsCommand(
             () => { IsFocusWarningVisible = false; });
 
-        // Initialize state change handler
         stateChangeHandler = new HomeStateChangeHandler(
             new HomeStateChangeHandlerDeps(logger, scheduleDataPreparer, scheduleViewModelManager),
             new HomeStateChangeHandlerCallbacks(
@@ -119,7 +116,6 @@ public sealed partial class HomeViewModel : ObservableObject, IDisposable, IReci
         bootstrapReadyManager.StartTracking();
         bootstrapReadyManager.BootstrapReadyChanged += OnBootstrapReadyChangedWithNotificationUpdate;
 
-        // Register for progress bar messages
         WeakReferenceMessenger.Default.Register<ShowProgressBarMessage>(this);
         WeakReferenceMessenger.Default.Register<HideProgressBarMessage>(this);
 

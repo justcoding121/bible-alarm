@@ -112,8 +112,7 @@ public class BootstrapOrchestrator : IBootstrapOrchestrator
                     // UI is already showing (via early InitializedMessage), so user sees loading state
                     await scheduleBootstrapService.InitializeAsync();
 
-                    // Initialize platform-specific services (notification channels, background jobs)
-                    // This runs after core bootstrap to ensure platform setup regardless of entry point
+                    // After core bootstrap so platform setup runs for every entry point
                     await platformBootstrapService.InitializeAsync();
                 });
                 MarkServicesVerified();

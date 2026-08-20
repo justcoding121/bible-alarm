@@ -16,9 +16,6 @@ using Serilog;
 
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
 
-/// <summary>
-/// Helper class for fetching mediator (MediatorSectioned) publications.
-/// </summary>
 internal sealed class MediatorFetcher
 {
     private readonly ILogger logger;
@@ -62,7 +59,6 @@ internal sealed class MediatorFetcher
         logger.Information("MediatorFetcher: Fetched {TrackCount} tracks for publication {PublicationCode} in language {LanguageCode}",
             tracks.Count, normalizedPublicationCode, normalizedLanguageCode);
 
-        // Get language and category
         var language = await db.Languages
             .FirstOrDefaultAsync(l => l.LanguageCode == normalizedLanguageCode, cancellationToken);
         
@@ -79,7 +75,6 @@ internal sealed class MediatorFetcher
             return false;
         }
 
-        // Build and save publication
         var publicationCodeForDb = publicationBuilder.GetPublicationCodeForDb(normalizedPublicationCode);
         return await publicationBuilder.BuildAndSavePublicationAsync(new BuildMediatorPublicationRequest(
             db, publicationCodeForDb, localizedPubName, language, tracks, cancellationToken));
@@ -115,7 +110,6 @@ internal sealed class MediatorFetcher
         logger.Information("MediatorFetcher: Fetched {TrackCount} tracks for publication {PublicationCode} in language {LanguageCode}",
             tracks.Count, normalizedPublicationCode, normalizedLanguageCode);
 
-        // Build and save publication
         var publicationCodeForDb = publicationBuilder.GetPublicationCodeForDb(normalizedPublicationCode);
         return await publicationBuilder.BuildAndSavePublicationAsync(new BuildMediatorPublicationRequest(
             db, publicationCodeForDb, localizedPubName, language, tracks, cancellationToken));

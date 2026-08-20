@@ -21,7 +21,7 @@ partial class MediaManager : IDisposable
 {
     Metadata? metadata;
     SystemMediaTransportControls? systemMediaControls;
-    WindowsMediaElement? headlessMediaPlayer; // For headless mode (audio-only)
+    WindowsMediaElement? headlessMediaPlayer;
 
     /// <summary>
     /// Gets the underlying MediaPlayer, whether from Player (UI mode) or headlessMediaPlayer (headless mode).
@@ -73,7 +73,7 @@ partial class MediaManager : IDisposable
                 OnPlaybackSessionSeekCompleted));
 
         Player = null; // No MediaPlayerElement in headless mode
-        headlessMediaPlayer = mediaPlayer; // Store the MediaPlayer directly for headless mode
+        headlessMediaPlayer = mediaPlayer;
         systemMediaControls = smtc;
         return null;
     }
@@ -215,7 +215,6 @@ partial class MediaManager : IDisposable
         }
         if (!ParentWindow.Exists)
         {
-            // Parent window is null, so we can't update the position
             // This is a workaround for a bug where the timer keeps running after the window is closed
             return;
         }
@@ -236,7 +235,6 @@ partial class MediaManager : IDisposable
             return;
         }
 
-        // If currently muted, ignore
         if (MediaElement.ShouldMute)
         {
             return;
@@ -335,7 +333,6 @@ partial class MediaManager : IDisposable
                     mediaPlayer.PlaybackSession.SeekCompleted -= OnPlaybackSessionSeekCompleted;
                 }
 
-                // Dispose headless MediaPlayer if in headless mode
                 if (headlessMediaPlayer is not null)
                 {
                     mediaPlayer.Pause();
@@ -471,7 +468,6 @@ partial class MediaManager : IDisposable
 
         MediaElement?.CurrentStateChanged(newState);
 
-        // Update SMTC playback status to sync with actual playback state
         if (systemMediaControls is not null)
         {
             var smtcStatus = sender.PlaybackState switch

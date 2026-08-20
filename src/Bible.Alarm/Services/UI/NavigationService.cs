@@ -27,7 +27,6 @@ public sealed partial class NavigationService(
 {
     private readonly CancellationTokenSource cancellationTokenSource = new();
 
-    // Helper classes
     private readonly NavigationInstanceManager navigationManager = new(logger);
     private readonly HomeNavigationHandler homeHandler = new(logger, serviceProvider);
     private readonly ModalNavigationHandler modalHandler = new(logger, serviceProvider);

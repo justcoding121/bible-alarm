@@ -13,7 +13,6 @@ public class ProgramTests
     [Fact]
     public void Main_WithValidServices_ShouldExecuteSuccessfully()
     {
-        // Arrange
         var services = new ServiceCollection();
         var versionPatchingServiceMock = new Mock<IVersionPatchingService>();
 
@@ -23,7 +22,6 @@ public class ProgramTests
         services.AddSingleton(versionPatchingServiceMock.Object);
         var serviceProvider = services.BuildServiceProvider();
 
-        // Act & Assert
         var action = async () =>
         {
             var versionPatchingService = serviceProvider.GetRequiredService<IVersionPatchingService>();
@@ -36,7 +34,6 @@ public class ProgramTests
     [Fact]
     public void Main_WithServiceFailure_ShouldThrowException()
     {
-        // Arrange
         var services = new ServiceCollection();
         var versionPatchingServiceMock = new Mock<IVersionPatchingService>();
 
@@ -46,7 +43,6 @@ public class ProgramTests
         services.AddSingleton(versionPatchingServiceMock.Object);
         var serviceProvider = services.BuildServiceProvider();
 
-        // Act & Assert
         var action = async () =>
         {
             var versionPatchingService = serviceProvider.GetRequiredService<IVersionPatchingService>();

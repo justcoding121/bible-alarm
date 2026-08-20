@@ -56,7 +56,6 @@ internal class MusicCataloger : BaseCataloger
             Logger.Information("Found {Count} language(s) for Vocal Music publication: {PublicationCode}", 
                 languageEntries.Count, publicationCode);
 
-            // Filter out sign languages
             languageEntries = await signLanguageChecker.FilterSignLanguagesAsync(languageEntries);
 
             if (languageEntries.Count == 0)
@@ -65,7 +64,6 @@ internal class MusicCataloger : BaseCataloger
                 continue;
             }
 
-            // Save discovered languages for on-demand fetching (excluding English)
             // The alllangs=1 response already lists only available languages, so no verification needed
             await SaveDiscoveredNonEnglishPublicationLanguagesAsync(publicationCode, languageEntries);
 
@@ -199,7 +197,6 @@ internal class MusicCataloger : BaseCataloger
         {
             if (languageCodeToPublications.ContainsKey(languageCode))
             {
-                // Only add if not already present (prevent duplicates)
                 if (!languageCodeToPublications[languageCode].Contains(publicationCode))
                 {
                     languageCodeToPublications[languageCode].Add(publicationCode);
@@ -419,7 +416,6 @@ internal class MusicCataloger : BaseCataloger
             return (trackCode, null, null);
         }
 
-        // Extract localized publication name from pubName field
         string? localizedPubName = null;
         string? discName = null;
         if (root.TryGetProperty(AppConstants.Media.PubMediaJson.PubName, out var pubNameElement))

@@ -100,7 +100,6 @@ public sealed partial class MusicSectionSelectionViewModel : ObservableObject, I
             }
         });
 
-        // Initialize helper
         stateChangeHandler = new MusicSectionSelectionStateChangeHandler(
             logger,
             new MusicSectionSelectionStateChangeHandler.Callbacks(
@@ -339,7 +338,6 @@ public sealed partial class MusicSectionSelectionViewModel : ObservableObject, I
             SelectedSection.IsSelected = false;
         }
 
-        // Find the section matching the current section code
         var sectionCode = currentSchedule.MusicSectionCode;
         if (string.IsNullOrEmpty(sectionCode))
         {

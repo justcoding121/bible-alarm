@@ -61,7 +61,6 @@ public sealed partial class CategoryListViewItemModel : ObservableObject, ICompa
     {
         get
         {
-            // Return empty string if progress is not set (< 0), otherwise return percentage
             if (downloadProgress < 0.0)
             {
                 return string.Empty;

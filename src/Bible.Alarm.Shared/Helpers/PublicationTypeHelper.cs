@@ -69,7 +69,6 @@ public static class PublicationTypeHelper
             return false;
         }
 
-        // Check if it's a music publication (vocal or melody, but not "iam" which we already handled)
         var isMusic = JwSourceHelper.VocalMusicPublicationCodes.Contains(publicationCode) ||
                       JwSourceHelper.MelodyMusicPublicationCodes.Contains(publicationCode);
 
@@ -78,7 +77,6 @@ public static class PublicationTypeHelper
             return false; // Music publications (except "iam") have flat tracks
         }
 
-        // Default to Bible structure (has sections)
         return true;
     }
 
@@ -176,19 +174,16 @@ public static class PublicationTypeHelper
             return CatalogType.Flat;
         }
 
-        // All Mediator-based publications use Mediator API
         if (JwSourceHelper.AllMediatorPublicationCodes.Contains(publicationCode))
         {
             return CatalogType.MediatorSectioned;
         }
 
-        // Bible and iam (Kingdom Melodies) have sections
         if (HasSectionStructure(publicationCode))
         {
             return CatalogType.Sectioned;
         }
 
-        // Music and Video are flat
         return CatalogType.Flat;
     }
 }

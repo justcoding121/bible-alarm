@@ -36,11 +36,9 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
         
         base.ConnectHandler(platformView);
         
-        // Ensure underline and native background are removed
         platformView.BackgroundTintList = ColorStateList.ValueOf(Color.Transparent);
         platformView.SetBackgroundColor(Color.Transparent);
         
-        // Get FontService to listen for font size changes
         var fontService = MauiContext?.Services?.GetService<IFontService>();
         if (fontService is INotifyPropertyChanged notifier)
         {
@@ -66,14 +64,12 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
         platformView.Click -= OnPlatformViewClick;
         platformView.Touch -= OnPlatformViewTouch;
         
-        // Unsubscribe from font size changes
         if (fontServiceNotifier != null)
         {
             fontServiceNotifier.PropertyChanged -= OnFontSizeChanged;
             fontServiceNotifier = null;
         }
         
-        // Clear dialog reference
         currentDialog = null;
         
         base.DisconnectHandler(platformView);
@@ -87,7 +83,6 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
             VirtualView != null && 
             PlatformView?.Context != null)
         {
-            // Show dialog immediately on touch down
             ShowTimePickerDialog();
             e.Handled = true;
         }
@@ -104,13 +99,10 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
         var context = PlatformView.Context;
         var currentTime = VirtualView.Time ?? TimeSpan.Zero;
         
-        // Get font size from FontService (scaled with system font size)
         var fontSize = FontServiceHelper.TitleFontSize;
         
-        // Determine 12/24 hour format based on VirtualView.Format
         var is24Hour = !VirtualView.Format.Contains("tt", StringComparison.OrdinalIgnoreCase);
         
-        // Create TimePickerDialog - Android will automatically use the theme from MainTheme
         // MainTheme specifies android:timePickerDialogTheme which switches between light/dark automatically
         var dialog = new TimePickerDialog(
             context,
@@ -120,7 +112,6 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
                 {
                     VirtualView.Time = new TimeSpan(args.HourOfDay, args.Minute, 0);
                 }
-                // Clear dialog reference when dismissed
                 currentDialog = null;
             },
             currentTime.Hours,
@@ -146,7 +137,6 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
 
     private void OnFontSizeChanged(object? sender, PropertyChangedEventArgs e)
     {
-        // Update dialog buttons and AM/PM if dialog is currently open and font size changed
         if (currentDialog != null && (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName == nameof(IFontService.TitleFontSize)))
         {
             var fontSize = FontServiceHelper.TitleFontSize;
@@ -162,7 +152,6 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
 
     private static void ApplyDialogFontSizesDelayed(TimePickerDialog dialog, double fontSize)
     {
-        // Try immediately
         ApplyDialogFontSizes(dialog, fontSize);
         
         // Also try after a short delay to ensure dialog is fully rendered
@@ -185,7 +174,6 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
     {
         try
         {
-            // Apply font size to dialog buttons
             var positiveButton = dialog.GetButton(-1); // DialogButtonType.Positive
             var negativeButton = dialog.GetButton(-2); // DialogButtonType.Negative
             
@@ -199,7 +187,6 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
                 negativeButton.SetTextSize(ComplexUnitType.Sp, (float)fontSize);
             }
             
-            // Apply font size to AM/PM text in TimePicker
             ApplyAmPmFontSize(dialog, fontSize);
         }
         catch (Exception)

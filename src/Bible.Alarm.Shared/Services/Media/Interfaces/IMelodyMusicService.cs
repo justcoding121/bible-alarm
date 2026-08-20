@@ -7,9 +7,6 @@ using Bible.Alarm.Shared.Models.Media.Music;
 
 namespace Bible.Alarm.Shared.Services.Media.Interfaces;
 
-/// <summary>
-/// Service for accessing MelodyMusic database operations.
-/// </summary>
 public interface IMelodyMusicService : IDisposable
 {
     /// <summary>
@@ -17,9 +14,6 @@ public interface IMelodyMusicService : IDisposable
     /// </summary>
     Task<MelodyMusic?> GetByCodeWithTracksAsync(string publicationCode, CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Gets all MelodyMusic releases.
-    /// </summary>
     Task<Dictionary<string, MelodyMusic>> GetAllAsync(CancellationToken cancellationToken = default);
 
     /// <summary>

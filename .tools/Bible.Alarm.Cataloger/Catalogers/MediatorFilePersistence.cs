@@ -33,7 +33,6 @@ internal static class MediatorFilePersistence
             Directory.CreateDirectory(publicationDir);
         }
 
-        // Save sections.json with section codes and names
         // Use section name from GETPUBMEDIALINKS if available, otherwise fall back to section code
         var sections = tracksBySection.Select((kvp, index) => new
         {
@@ -50,7 +49,6 @@ internal static class MediatorFilePersistence
         }));
         File.WriteAllText($"{publicationDir}/{AppConstants.ApiEndpoints.MediaIndexSectionsFileName}", sectionsJson);
 
-        // Save tracks for each section
         foreach (var sectionEntry in tracksBySection)
         {
             var sectionCode = sectionEntry.Key;

@@ -45,7 +45,6 @@ internal static class MediatorCategoryLanguageExtractor
                     var langCode = lang.GetString();
                     if (!string.IsNullOrEmpty(langCode))
                     {
-                        // Normalize to uppercase for consistent storage
                         languages.Add(langCode.ToUpperInvariant());
                     }
                 }
@@ -76,7 +75,6 @@ internal static class MediatorCategoryLanguageExtractor
                 return languageInfoMap;
             }
 
-            // Try to get language info from category.language if available
             if (category.TryGetProperty(AppConstants.Media.PubMediaJson.Language, out var languageElement))
             {
                 var direction = AppConstants.Media.TextDirectionLeftToRight;

@@ -62,21 +62,18 @@ internal static class CollectionViewScrollPositionHelper
 
         try
         {
-            // Get the ItemsSource to determine item position
             var itemsSource = collectionView.ItemsSource;
             if (itemsSource == null)
             {
                 return requestedPosition;
             }
 
-            // Convert to enumerable to find index
             var itemsList = itemsSource as IList ?? itemsSource.Cast<object>().ToList();
             if (itemsList.Count == 0)
             {
                 return requestedPosition;
             }
 
-            // Find the index of the item
             int itemIndex = FindItemIndex(itemsList, item);
 
             if (itemIndex == -1)

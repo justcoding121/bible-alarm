@@ -89,16 +89,13 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
     {
         this.accessibilityFontScaleService = accessibilityFontScaleService;
 
-        // Listen for screen size/orientation changes
         if (!SkipDeviceDisplaySubscriptionForTests)
         {
             DeviceDisplay.MainDisplayInfoChanged += OnDisplayInfoChanged;
         }
 
-        // Listen for OS accessibility font scale changes
         accessibilityFontScaleService.FontScaleChanged += OnFontScaleChanged;
 
-        // Initial calculation
         Recalculate();
     }
 
@@ -193,7 +190,6 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         alarmMeridianFontSize = BaseAlarmMeridianSize * FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(BaseAlarmMeridianSize, accessibilityScale);
         alarmBellIconFontSize = BaseAlarmBellIconSize * FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(BaseAlarmBellIconSize, accessibilityScale);
 
-        // Icon font sizes
         const double BaseIconSmallSize = 14.0;
         const double BaseIconStandardSize = 20.0;
         const double BaseIconLargeSize = 28.0;
@@ -215,7 +211,6 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         iconStandardContainerSize = BaseIconStandardContainerSize * iconStandardProgressiveScale;
         iconLargeContainerSize = BaseIconLargeContainerSize * iconLargeProgressiveScale;
 
-        // Content widths scale conservatively
         double contentWidthProgressiveScale = FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(14.0, accessibilityScale);
         contentWidthSmall = 200.0 * contentWidthProgressiveScale;
         contentWidthMedium = 240.0 * contentWidthProgressiveScale;
@@ -249,7 +244,6 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         largeFontSize = BaseLargeSize * FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(BaseLargeSize, accessibilityScale);
         titleFontSize = BaseTitleSize * FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(BaseTitleSize, accessibilityScale);
 
-        // Icon font sizes
         const double BaseIconSmallSize = 14.0;
         const double BaseIconStandardSize = 20.0;
         const double BaseIconLargeSize = 28.0;
@@ -271,7 +265,6 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         iconStandardContainerSize = BaseIconStandardContainerSize * iconStandardProgressiveScale;
         iconLargeContainerSize = BaseIconLargeContainerSize * iconLargeProgressiveScale;
 
-        // Content widths scale conservatively
         double contentWidthProgressiveScale = FontServiceSizingHelpers.CalculateProgressiveAccessibilityScale(14.0, accessibilityScale);
         contentWidthSmall = 200.0 * contentWidthProgressiveScale;
         contentWidthMedium = 240.0 * contentWidthProgressiveScale;
@@ -314,13 +307,12 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         double density = mainDisplayInfo.Density;
         double widthDp = DensityIndependentPixels.WidthPixelsToDp(mainDisplayInfo.Width, density);
 
-        // Get the OS accessibility font scale (1.0 = normal, >1.0 = larger for accessibility)
+        // 1.0 = normal OS text size; >1.0 means the user enlarged text for accessibility
         double accessibilityScale = accessibilityFontScaleService.FontScale;
 
         var platform = CurrentPlatform;
         var deviceIdiom = CurrentIdiom;
         
-        // Determine device size category and multiplier
         var deviceSizeCategory = FontServiceSizingHelpers.GetDeviceSizeCategory(widthDp, deviceIdiom);
         double deviceSizeMultiplier = FontServiceSizingHelpers.GetDeviceSizeMultiplier(deviceSizeCategory, platform);
         
@@ -334,7 +326,6 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
 
     private void SetStandardFontSizes(double accessibilityScale, DevicePlatform platform, double deviceSizeMultiplier)
     {
-        // Get platform-specific defaults based on industry standards
         PlatformFontDefaults defaults = RuntimePlatformFontDefaultsResolver.Resolve(platform);
 
         // Apply device size multiplier to base sizes (tablets/desktop get larger fonts)
@@ -346,7 +337,6 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
         double BaseLargeSize = defaults.LargeSize * deviceSizeMultiplier;
         double BaseTitleSize = defaults.TitleSize * deviceSizeMultiplier;
 
-        // Icon font sizes (for Font Awesome icons etc.)
         const double BaseIconSmallSize = 14.0;
         const double BaseIconStandardSize = 20.0;
         const double BaseIconLargeSize = 28.0;
@@ -409,7 +399,6 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
 
     internal void SetAlarmFontSizes(double accessibilityScale, double widthDp, DevicePlatform platform, double deviceSizeMultiplier)
     {
-        // Get platform-specific alarm font defaults per industry standards
         PlatformFontDefaults defaults = RuntimePlatformFontDefaultsResolver.Resolve(platform);
 
         // Apply device size multiplier - no reduction for alarm time (should be prominent)
@@ -441,7 +430,7 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
     }
 
     private void RaiseAllPropertiesChanged() =>
-        // Notify that all properties changed - forces all bindings to re-evaluate
+        // Empty property name forces all bindings to re-evaluate
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(string.Empty));
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -453,13 +442,11 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
             return;
         }
 
-        // Unsubscribe from display info changes
         if (!SkipDeviceDisplaySubscriptionForTests)
         {
             DeviceDisplay.MainDisplayInfoChanged -= OnDisplayInfoChanged;
         }
 
-        // Unsubscribe from accessibility font scale changes
         accessibilityFontScaleService.FontScaleChanged -= OnFontScaleChanged;
     }
 
@@ -491,7 +478,6 @@ public sealed partial class FontService : IFontService, INotifyPropertyChanged
     {
         var mainDisplayInfo = CurrentMainDisplayInfo;
 
-        // Handle invalid display info
         double density = mainDisplayInfo.Density;
 
         return FontBodyPointsDensityScaler.ScalePointsWithDensityClamp(baseSizeInPoints, density, maxDensityMultiplier: 2.0);

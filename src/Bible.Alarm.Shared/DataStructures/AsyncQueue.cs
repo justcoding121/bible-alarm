@@ -10,10 +10,8 @@ namespace Bible.Alarm.Shared.DataStructures;
 /// </summary>
 public sealed class AsyncQueue<T> : IDisposable
 {
-    //data queue.
     private readonly Queue<T> queue = new();
 
-    //consumer task queue and lock.
     private readonly Queue<TaskCompletionSource<T>> consumerQueue = new();
     private readonly SemaphoreSlim consumerQueueLock = new(1);
     private bool disposed;
@@ -118,7 +116,6 @@ public sealed class AsyncQueue<T> : IDisposable
             return;
         }
 
-        // Cancel all pending consumers
         while (consumerQueue.Count > 0)
         {
             var consumer = consumerQueue.Dequeue();

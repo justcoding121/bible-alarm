@@ -47,21 +47,17 @@ public class MediaDbContext : DbContext
             .HasForeignKey<TrackUrl>(tu => tu.BiblePublicationTrackId)
             .IsRequired(false);
 
-        // Language relationship is already optional (LanguageId is nullable)
-
         // Ensure Language.LanguageCode has a unique index (also defined via [Index] attribute on model)
         modelBuilder.Entity<Language>()
             .HasIndex(l => l.LanguageCode)
             .IsUnique();
 
-        // LanguageNameByLanguage: LanguageId + DisplayLanguageCode unique
         modelBuilder.Entity<LanguageNameByLanguage>()
             .HasOne(lnl => lnl.Language)
             .WithMany(l => l.NamesByDisplayLanguage)
             .HasForeignKey(lnl => lnl.LanguageId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // BiblePublicationCategory: many-to-many junction, composite PK
         modelBuilder.Entity<BiblePublicationCategory>()
             .HasKey(bpc => new { bpc.BiblePublicationId, bpc.CategoryId });
 
@@ -77,7 +73,6 @@ public class MediaDbContext : DbContext
             .HasForeignKey(bpc => bpc.CategoryId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Configure PublicationLanguage relationships
         // Language relationship is optional (LanguageId can be null for publications without language, e.g., instrumental music)
         modelBuilder.Entity<PublicationLanguage>()
             .HasOne(pl => pl.Language)
@@ -86,7 +81,6 @@ public class MediaDbContext : DbContext
             .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Configure SectionLanguage relationships
         // Language relationship is optional (LanguageId can be null for sections of publications without language)
         modelBuilder.Entity<SectionLanguage>()
             .HasOne(sl => sl.Language)
@@ -97,7 +91,6 @@ public class MediaDbContext : DbContext
 
         // SectionLanguage has a required relationship to PublicationLanguage
         // If a section language exists, the publication language must exist
-        // Each publication can have many sections
         modelBuilder.Entity<SectionLanguage>()
             .HasOne(sl => sl.PublicationLanguage)
             .WithMany(pl => pl.SectionLanguages)

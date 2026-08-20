@@ -61,14 +61,11 @@ public class MusicSectionSelectionStateChangeHandler
         var newPublicationCode = currentSchedule.MusicPublicationCode;
         var newSectionCode = currentSchedule.MusicSectionCode;
 
-        // Check if publication code changed (need to repopulate sections)
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
         var needsRepopulation = publicationCodeChanged;
 
-        // If no changes detected and we're already initialized, skip
         if (!needsRepopulation && getInitComplete())
         {
-            // Only update selected section if section code changed
             var sectionCodeChanged = lastSectionCode != newSectionCode;
             if (sectionCodeChanged)
             {
@@ -80,13 +77,11 @@ public class MusicSectionSelectionStateChangeHandler
             return;
         }
 
-        // Update tracking variables
         lastPublicationCode = newPublicationCode;
         lastSectionCode = newSectionCode;
         setLastPublicationCode(newPublicationCode);
         setLastSectionCode(newSectionCode);
 
-        // If publication code changed, repopulate sections
         if (needsRepopulation && getInitComplete())
         {
             Task.Run(async () =>

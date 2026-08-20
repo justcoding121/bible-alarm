@@ -50,7 +50,6 @@ internal sealed class LanguageContentPublicationTracksFetcher
             var lowerCode = publicationCode.ToLowerInvariant();
             var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(lowerCode) ?? publicationCode;
 
-            // Get PublicationLanguage to determine catalog type and category
             // CatalogType is sufficient to determine if ad-hoc fetching is possible
             // Use case-sensitive code for dramas when querying database
             var publicationLanguage = await db.PublicationLanguages
@@ -95,7 +94,6 @@ internal sealed class LanguageContentPublicationTracksFetcher
                 return false;
             }
 
-            // Use CatalogType from PublicationLanguage to determine fetching method
             var category = publicationLanguage.Category;
             var categoryCode = category.CategoryCode;
             var isVideo = PublicationTypeHelper.IsVideo(lowerCode);
@@ -106,7 +104,6 @@ internal sealed class LanguageContentPublicationTracksFetcher
             switch (catalogType)
             {
                 case Models.Enums.CatalogType.MediatorSectioned:
-                    // Drama publications use Mediator API
                     return await mediatorFetcher.FetchMediatorPublicationTracksAsync(
                         db, publicationCodeForDb, normalizedLanguageCode, englishPublication, cancellationToken);
 

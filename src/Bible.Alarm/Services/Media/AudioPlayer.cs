@@ -23,7 +23,6 @@ public sealed partial class AudioPlayer : IAudioPlayer
     // MediaElement instance - populated in PrepareAsync
     private MediaElement? mediaElement;
 
-    // Helper classes
     private readonly AudioPlayerStateManager stateManager;
     private readonly AudioPlayerMetadataHandler metadataHandler;
     private readonly EventHandlerManager eventHandlerManager;
@@ -78,7 +77,6 @@ public sealed partial class AudioPlayer : IAudioPlayer
     {
         this.logger = logger;
 
-        // Initialize helper classes
         stateManager = new AudioPlayerStateManager(logger, dispatcher);
 
         bufferingWatchdog = new BufferingWatchdog(

@@ -79,7 +79,6 @@ public class RestartReceiver : BroadcastReceiver
 
         try
         {
-            // Initialize DI container for background service
             MauiAppHolder.CreateAndStore();
             // Run bootstrapper after CreateAndStore for background launch
             MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);

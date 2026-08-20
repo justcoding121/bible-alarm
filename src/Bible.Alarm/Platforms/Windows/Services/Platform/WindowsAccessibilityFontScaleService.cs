@@ -21,7 +21,6 @@ public sealed partial class WindowsAccessibilityFontScaleService : IAccessibilit
     {
         uiSettings = new UISettings();
 
-        // Get initial font scale
         currentFontScale = GetSystemFontScale();
 
         // Listen for text scale factor changes

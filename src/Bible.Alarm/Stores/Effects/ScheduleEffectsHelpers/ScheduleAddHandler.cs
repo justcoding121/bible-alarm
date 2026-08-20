@@ -10,9 +10,6 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 
-/// <summary>
-/// Handles AddScheduleAction effect logic.
-/// </summary>
 public class ScheduleAddHandler
 {
     private readonly IMapper mapper;
@@ -37,13 +34,11 @@ public class ScheduleAddHandler
                 return;
             }
 
-            // Transform DB entity to State DTO (following Fluxor best practices)
             var scheduleStateItem = mapper.Map<ScheduleStateItem>(action.Schedule);
 
             // Populate display names from media index (single-schedule hydration).
             await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, action.Schedule);
 
-            // Dispatch success action with DTO (reducer will handle this)
             dispatcher.Dispatch(new AddScheduleSuccessAction(scheduleStateItem));
 
             Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleAddScheduleDispatchedAddScheduleSuccessAction,

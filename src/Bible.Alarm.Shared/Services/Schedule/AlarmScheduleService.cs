@@ -13,10 +13,6 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Shared.Services.Schedule;
 
-/// <summary>
-/// Service for interacting with alarm schedule-related database operations.
-/// Abstracts database access from other services.
-/// </summary>
 public sealed class AlarmScheduleService(IServiceScopeFactory scopeFactory) : IAlarmScheduleService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));

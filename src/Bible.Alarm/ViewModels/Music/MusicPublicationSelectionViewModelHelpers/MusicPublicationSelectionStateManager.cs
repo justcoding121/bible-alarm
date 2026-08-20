@@ -64,7 +64,6 @@ public sealed class MusicPublicationSelectionStateManager
         // Allow initialization with or without language code
         // For melody music, language code is null; for vocal music, it's required
 
-        // Update tracking variables
         lastLanguageCode = newLanguageCode;
 
         // Update current from CurrentSchedule (single source of truth — non-null after guard above)
@@ -102,7 +101,6 @@ public sealed class MusicPublicationSelectionStateManager
         var currentSchedule = stateValue.CurrentSchedule;
         var newLanguageCode = currentSchedule.MusicLanguageCode;
 
-        // Check if language code changed
         var languageCodeChanged = lastLanguageCode != newLanguageCode;
         var needsRepopulation = languageCodeChanged;
 
@@ -111,7 +109,6 @@ public sealed class MusicPublicationSelectionStateManager
             return;
         }
 
-        // Update tracking variables
         lastLanguageCode = newLanguageCode;
 
         // Non-null CurrentSchedule ensured above
@@ -144,7 +141,6 @@ public sealed class MusicPublicationSelectionStateManager
         }
         else
         {
-            // Update selected song section when state changes
             MainThread.BeginInvokeOnMainThread(setSelectedSongPublication);
         }
     }

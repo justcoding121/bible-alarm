@@ -35,12 +35,10 @@ internal static class CollectionViewScrollExecutor
         {
             if (itemOrIndex is int index)
             {
-                // Index-based scrolling
                 collectionView.ScrollTo(index, position: position, animate: animated);
             }
             else
             {
-                // Item-based scrolling
                 collectionView.ScrollTo(itemOrIndex, position: position, animate: animated);
             }
         });

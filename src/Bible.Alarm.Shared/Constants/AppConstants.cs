@@ -107,14 +107,8 @@ public static class AppConstants
         public const string MediaIndexFolderVocals = "Vocals";
     }
 
-    /// <summary>
-    /// Database configuration constants
-    /// </summary>
     public static class Database
     {
-        /// <summary>
-        /// Schedule database filename
-        /// </summary>
         public const string ScheduleDatabaseFileName = "schedule.db";
 
         /// <summary>Legacy Schedule SQLite filename superseded by <see cref="ScheduleDatabaseFileName"/>.</summary>
@@ -123,9 +117,6 @@ public static class AppConstants
         /// <summary>Legacy Schedule SQLite filename superseded by <see cref="ScheduleDatabaseFileName"/>.</summary>
         public const string ScheduleDatabaseLegacyBibleAlarm2FileName = "bibleAlarm2.db";
 
-        /// <summary>
-        /// Media index database filename
-        /// </summary>
         public const string MediaIndexDatabaseFileName = "mediaIndex.db";
 
         /// <summary>Suffix inserted before the extension when renaming the prior media index DB during upgrade (<c>_old</c> → <c>mediaIndex_old.db</c>).</summary>
@@ -148,30 +139,15 @@ public static class AppConstants
             SqliteJournalFileSuffix,
         ];
 
-        /// <summary>
-        /// SQLite connection string format for schedule database
-        /// </summary>
         public const string ScheduleDatabaseConnectionStringFormat = "Filename={0}";
 
-        /// <summary>
-        /// SQLite connection string format for media index database
-        /// </summary>
         public const string MediaIndexDatabaseConnectionStringFormat = "Filename={0}";
     }
 
-    /// <summary>
-    /// File system path constants
-    /// </summary>
     public static class FilePaths
     {
-        /// <summary>
-        /// Media cache root directory name
-        /// </summary>
         public const string MediaCacheDirectoryName = "MediaCache";
 
-        /// <summary>
-        /// Logs directory name
-        /// </summary>
         public const string LogsDirectoryName = "logs";
 
         /// <summary>Windows identity folder under local app data (<c>Bible.Alarm</c>); Serilog fallback and WinUI exe name for <c>Process.GetProcessesByName</c>.</summary>
@@ -191,9 +167,6 @@ public static class AppConstants
         /// </summary>
         public const string LogFileNamePattern = "bible-alarm-";
 
-        /// <summary>
-        /// Media index zip file name
-        /// </summary>
         public const string MediaIndexZipFileName = "index.zip";
 
         /// <summary>Catalog index layout: folder between index root and category folders (<c>media</c>).</summary>
@@ -208,9 +181,6 @@ public static class AppConstants
         /// <summary>Cataloger: default failed-list filename under temp when no path is passed.</summary>
         public const string CatalogerTempFailedListFallbackFileName = "bible_alarm_last_run_failed.txt";
 
-        /// <summary>
-        /// Temporary extraction directory name
-        /// </summary>
         public const string TempExtractionDirectoryName = "tmp";
 
         /// <summary>
@@ -250,40 +220,24 @@ public static class AppConstants
         public const string FontAwesomeBrandsAlias = "FontAwesomeBrands";
     }
 
-    /// <summary>
-    /// Application settings and configuration constants
-    /// </summary>
     public static class AppSettings
     {
-        /// <summary>
-        /// Application name for logging
-        /// </summary>
         public const string ApplicationName = "Bible-Alarm";
 
         /// <summary>Human-readable app title (lock screen, CarPlay, notifications, MAUI Android <c>Label</c>).</summary>
         public const string ApplicationDisplayName = "Bible Alarm";
     }
 
-    /// <summary>
-    /// Cache and download configuration constants
-    /// </summary>
     public static class CacheSettings
     {
         /// <summary>
         /// Media index update check interval in days (weekly = 7 days)
         /// The cataloger runs weekly on Sundays, so we check weekly to match the update frequency
         /// </summary>
-        // Weekly
         public const int MediaIndexUpdateCheckDays = 7;
 
-        /// <summary>
-        /// Download retry attempts
-        /// </summary>
         public const int DownloadRetryAttempts = 3;
 
-        /// <summary>
-        /// File exists check retry attempts
-        /// </summary>
         public const int FileExistsCheckRetryAttempts = 3;
 
         /// <summary>
@@ -5441,24 +5395,12 @@ public static class AppConstants
         public const string TextDirectionRightToLeft = "rtl";
     }
 
-    /// <summary>
-    /// Platform-specific configuration constants
-    /// </summary>
     public static class Platform
     {
-        /// <summary>
-        /// Android platform identifier
-        /// </summary>
         public const string Android = "Android";
 
-        /// <summary>
-        /// iOS platform identifier
-        /// </summary>
         public const string IOs = "iOS";
 
-        /// <summary>
-        /// Windows platform identifier
-        /// </summary>
         public const string Windows = "Windows";
     }
 

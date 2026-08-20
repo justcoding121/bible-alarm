@@ -340,11 +340,9 @@ public sealed partial class WindowSetupService(IServiceProvider serviceProvider,
     {
         try
         {
-            // Get OS accessibility font scale factor
             var accessibilityService = serviceProvider.GetService<IAccessibilityFontScaleService>();
             double fontScale = accessibilityService?.FontScale ?? 1.0;
 
-            // Get screen dimensions
             var displayInfo = DeviceDisplay.MainDisplayInfo;
             double screenWidth = displayInfo.Width / displayInfo.Density;
             double screenHeight = displayInfo.Height / displayInfo.Density;
@@ -367,15 +365,12 @@ public sealed partial class WindowSetupService(IServiceProvider serviceProvider,
             
             double contentBasedMinWidth = Math.Max(homePageWidth, Math.Max(scheduleDetailsWidth, alarmModalWidth));
             
-            // Use the larger of base width or content-based minimum
             double effectiveMinWidth = Math.Max(BaseWidth, contentBasedMinWidth);
             double effectiveMinHeight = effectiveMinWidth * (BaseHeight / BaseWidth);
 
-            // Scale target dimensions by accessibility factor
             double scaledWidth = BaseWidth * fontScale;
             double scaledHeight = BaseHeight * fontScale;
 
-            // Use the larger of scaled size or effective minimum
             scaledWidth = Math.Max(scaledWidth, effectiveMinWidth);
             scaledHeight = Math.Max(scaledHeight, effectiveMinHeight);
 
@@ -396,7 +391,6 @@ public sealed partial class WindowSetupService(IServiceProvider serviceProvider,
                 scaledHeight = scaledWidth * (BaseHeight / BaseWidth);
             }
 
-            // Final dimensions
             double width = scaledWidth;
             double height = scaledHeight;
 

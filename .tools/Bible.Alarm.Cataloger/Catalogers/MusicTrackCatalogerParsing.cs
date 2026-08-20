@@ -111,7 +111,7 @@ internal static class MusicTrackCatalogParsing
             Title = title,
             Url = url,
             DownloadCode = publicationDownloadCode,
-            OriginalTrackCode = track // Store the original track number from API (within the disc)
+            OriginalTrackCode = track
         };
     }
 }

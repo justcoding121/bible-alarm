@@ -528,11 +528,9 @@ public sealed partial class PlaybackModal : BaseContentPage, IDisposable
             return;
         }
 
-        // Stop any existing timer
         seekDebounceTimer?.Stop();
         seekDebounceTimer?.Dispose();
 
-        // Store the value we want to seek to
         pendingSeekValue = e.NewValue;
 
         // If user is not yet marked as interacting, mark them now
@@ -548,7 +546,6 @@ public sealed partial class PlaybackModal : BaseContentPage, IDisposable
         // This gives immediate visual feedback while dragging
         ViewModel.SetProgressDirectly(e.NewValue);
 
-        // Set up debounce timer - seek when user stops interacting
         seekDebounceTimer = new System.Timers.Timer(SeekDebounceDelayMs);
         seekDebounceTimer.Elapsed += OnSeekDebounceTimerElapsed;
         seekDebounceTimer.AutoReset = false;
@@ -619,7 +616,6 @@ public sealed partial class PlaybackModal : BaseContentPage, IDisposable
             return;
         }
 
-        // Stop any timer-based detection
         seekDebounceTimer?.Stop();
         seekDebounceTimer?.Dispose();
         seekDebounceTimer = null;
@@ -635,7 +631,6 @@ public sealed partial class PlaybackModal : BaseContentPage, IDisposable
             return;
         }
 
-        // Stop any timer-based detection
         seekDebounceTimer?.Stop();
         seekDebounceTimer?.Dispose();
         seekDebounceTimer = null;

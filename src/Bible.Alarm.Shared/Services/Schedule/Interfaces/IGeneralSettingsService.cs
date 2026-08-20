@@ -6,10 +6,6 @@ using Bible.Alarm.Shared.Models.Schedule;
 
 namespace Bible.Alarm.Shared.Services.Schedule.Interfaces;
 
-/// <summary>
-/// Service for interacting with GeneralSettings database operations.
-/// Abstracts database access from other services.
-/// </summary>
 public interface IGeneralSettingsService : IDisposable
 {
     Task<GeneralSettings?> GetGeneralSettingAsync(string key, CancellationToken cancellationToken = default);

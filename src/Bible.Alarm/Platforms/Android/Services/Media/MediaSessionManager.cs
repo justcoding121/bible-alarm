@@ -19,7 +19,6 @@ public sealed class MediaSessionManager : IMediaSessionManager
     private MediaSessionCompat? mediaSession;
     private static readonly ILogger logger = Log.ForContext<MediaSessionManager>();
 
-    // Helper classes - initialized in constructor
     private readonly MediaSessionInitializer initializer;
     private readonly MetadataManager metadataManager;
 
@@ -32,7 +31,6 @@ public sealed class MediaSessionManager : IMediaSessionManager
     {
         ArgumentNullException.ThrowIfNull(serviceProvider);
 
-        // Initialize helper classes after serviceProvider is set
         initializer = new MediaSessionInitializer(logger, serviceProvider);
         metadataManager = new MetadataManager(logger, serviceProvider);
     }
@@ -45,11 +43,10 @@ public sealed class MediaSessionManager : IMediaSessionManager
     /// </summary>
     public MediaSessionCompat GetOrCreate(bool isConnect = false)
     {
-        // Get or create MediaSession from the global helper (thread-safe, prevents duplicates)
+        // Global helper is thread-safe and prevents duplicate sessions
         if (mediaSession == null)
         {
             mediaSession = MediaSessionHelper.Create();
-            // Set callback after getting the session (requires IServiceProvider)
             initializer.SetMediaSessionCallback(mediaSession);
         }
 

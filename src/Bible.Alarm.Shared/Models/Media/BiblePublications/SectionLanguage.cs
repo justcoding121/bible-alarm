@@ -36,21 +36,12 @@ public sealed class SectionLanguage
     [ForeignKey(nameof(Language))]
     public int? LanguageId { get; set; }
 
-    /// <summary>
-    /// Navigation property to Language (nullable for sections of publications without language)
-    /// </summary>
     public Media.Language? Language { get; set; }
 
-    /// <summary>
-    /// Foreign key to PublicationLanguage (relates this section language to the publication language)
-    /// </summary>
     [Required]
     [ForeignKey(nameof(PublicationLanguage))]
     public int PublicationLanguageId { get; set; }
 
-    /// <summary>
-    /// Navigation property to PublicationLanguage
-    /// </summary>
     [Required]
     public PublicationLanguage PublicationLanguage { get; set; } = null!;
 }

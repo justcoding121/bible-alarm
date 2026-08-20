@@ -11,10 +11,6 @@ using Serilog;
 
 namespace Bible.Alarm.Shared.Services.Schedule;
 
-/// <summary>
-/// Service for interacting with GeneralSettings database operations.
-/// Abstracts database access from other services.
-/// </summary>
 public sealed class GeneralSettingsService(IServiceScopeFactory scopeFactory, ILogger logger) : IGeneralSettingsService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));

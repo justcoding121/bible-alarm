@@ -55,7 +55,6 @@ internal sealed class LookupDataLoader
         var melodyTracksFlatTasks = CreateMelodyTracksFlatTasks(keys);
         var melodyTracksBySectionTasks = CreateMelodyTracksBySectionTasks(keys);
 
-        // Load melody releases for publication names
         var melodyReleasesTask = mediaService != null && keys.MelodyPublicationCodes.Count > 0
             ? mediaService.GetMelodyMusicReleases()
             : Task.FromResult<Dictionary<string, MelodyMusic>>(new Dictionary<string, MelodyMusic>(StringComparer.OrdinalIgnoreCase));

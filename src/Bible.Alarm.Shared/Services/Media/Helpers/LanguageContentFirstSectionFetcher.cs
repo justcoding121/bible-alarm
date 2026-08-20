@@ -52,7 +52,6 @@ internal sealed class LanguageContentFirstSectionFetcher
 
             var publicationCodeForDb = PublicationLanguageFetchLookupNormalizer.ResolvePublicationCodeForDatabaseLookup(publicationCode);
 
-            // Get PublicationLanguage to determine category
             var publicationLanguage = await db.PublicationLanguages
                 .AsNoTracking()
                 .Include(pl => pl.Language)
@@ -69,7 +68,6 @@ internal sealed class LanguageContentFirstSectionFetcher
                 return false;
             }
 
-            // Get English publication as template
             var englishPublication = await db.BiblePublications
                 .Include(bp => bp.Language)
                 .Include(bp => bp.BiblePublicationCategories)
@@ -88,7 +86,6 @@ internal sealed class LanguageContentFirstSectionFetcher
                 return false;
             }
 
-            // Check if publication already exists and if first section exists
             var existingPublication = await db.BiblePublications
                 .Include(bp => bp.Language)
                 .Include(bp => bp.Sections)
@@ -100,7 +97,6 @@ internal sealed class LanguageContentFirstSectionFetcher
 
             if (existingPublication != null)
             {
-                // Check if first section already exists
                 var firstSectionExists = existingPublication.Sections
                     .Any(s => s.SectionCode.Equals(firstSectionCode, StringComparison.OrdinalIgnoreCase));
 
@@ -122,7 +118,6 @@ internal sealed class LanguageContentFirstSectionFetcher
 
             await NetworkExceptionHelper.ThrowIfNoInternetAsync(internetConnectivityChecker);
 
-            // Fetch only the first section - pass only firstSectionCode to section fetcher
             var sectionCodes = new List<string> { firstSectionCode };
             return await sectionFetcher.FetchPublicationSectionsAsync(new FetchPublicationSectionsRequest
             {

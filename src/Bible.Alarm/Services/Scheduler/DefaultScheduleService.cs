@@ -65,7 +65,6 @@ public sealed partial class DefaultScheduleService(
             };
         }
 
-        // Get track metadata for the schedule
         var metadata = await GetTrackMetadataForScheduleAsync(scheduleId.Value);
 
         // Save metadata to Preferences before returning (all platforms)

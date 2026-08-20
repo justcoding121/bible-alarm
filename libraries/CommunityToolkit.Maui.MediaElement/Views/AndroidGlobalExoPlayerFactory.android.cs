@@ -56,7 +56,7 @@ internal static class AndroidGlobalExoPlayerFactory
         player.AddListener(listener);
 
         // Headless audio-only config (critical for no surface/view)
-        player.SetVideoSurfaceView(null); // No surface ever
+        player.SetVideoSurfaceView(null);
 
         Serilog.Log.Information("MediaManager", $"MediaManager: ExoPlayer created headlessly. Type: {player.GetType().FullName}");
 

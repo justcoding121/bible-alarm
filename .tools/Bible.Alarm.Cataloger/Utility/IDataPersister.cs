@@ -12,7 +12,6 @@ namespace Bible.Alarm.Cataloger.Utility;
 /// </summary>
 internal interface IDataPersister
 {
-    // Bible Publications
     Task SaveBiblePublicationSections(
         string languageCode,
         string publicationCode,
@@ -20,7 +19,6 @@ internal interface IDataPersister
         Dictionary<int, BiblePublicationSection> sections,
         Dictionary<int, Dictionary<int, BiblePublicationTrack>> sectionCodeTrackMap);
 
-    // Mediator publications (dramas, series, children, music video, etc.)
     Task SaveMediatorPublication(
         string languageCode,
         string publicationCode,
@@ -28,7 +26,6 @@ internal interface IDataPersister
         Dictionary<string, List<MediatorTrack>> tracksBySection,
         Dictionary<string, string> sectionNames);
 
-    // Music Publications
     Task SaveMusicTracks(
         string publicationCode,
         string? languageCode,
@@ -40,20 +37,17 @@ internal interface IDataPersister
         Dictionary<string, List<MusicTrack>> discTracksMap,
         Dictionary<string, string> discNamesMap);
 
-    // Video Publications
     Task SaveVideoEpisodes(
         string languageCode,
         string publicationCode,
         string publicationName,
         List<VideoEpisode> episodes);
 
-    // Language discovery
     Task SaveLanguageDiscovery(
         string languageCode,
         string publicationCode,
         Dictionary<string, string> languageCodeToNameMapping);
 
-    // Save discovered languages for publications and sections
     Task SavePublicationLanguages(
         string publicationCode,
         Dictionary<string, LanguageInfo> discoveredLanguages);

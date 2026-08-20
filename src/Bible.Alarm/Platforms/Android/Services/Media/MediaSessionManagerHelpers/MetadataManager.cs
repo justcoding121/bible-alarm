@@ -49,11 +49,9 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
         {
             if (scheduleId.HasValue)
             {
-                // Set MediaId if no existing metadata and scheduleId is provided
                 builder?.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
             }
 
-            // Load artwork from URL if provided and no existing metadata
             if (builder != null)
             {
                 TryLoadArtworkFromUrl(builder, artworkUrl);
@@ -71,7 +69,6 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
         }
         else if (scheduleId.HasValue)
         {
-            // Set MediaId if provided and not already present
             builder?.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
         }
     }

@@ -159,8 +159,7 @@ public class ScheduleViewModelManager
             {
                 logger.Debug(AppConstants.Logging.ScheduleViewModelManagerDiagnosticsLog.UpdatingExistingViewModelDaysOfWeek,
                     scheduleId, scheduleItem.DaysOfWeek);
-                // Update the view model with latest state
-                // Note: SetScheduleId may fail if schedule is not in state yet (timing issue),
+                // SetScheduleId may fail if schedule is not in state yet (timing issue),
                 // but OnApplicationStateChanged will handle the update when state is ready
                 try
                 {

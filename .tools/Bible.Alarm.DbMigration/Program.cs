@@ -346,7 +346,6 @@ static class Program
 
     static async Task GenerateEmptyScheduleDatabase(string[] args)
     {
-        // Default output path: Resources folder in the main project
         // Resolve to absolute path to avoid issues with relative paths
         var outputPath = args.Length > 1
             ? Path.GetFullPath(args[1])
@@ -355,7 +354,6 @@ static class Program
         Console.WriteLine($"Generating empty Schedule database with all migrations applied...");
         Console.WriteLine($"Output path: {outputPath}");
 
-        // Ensure output directory exists
         var outputDirectory = Path.GetDirectoryName(outputPath);
         if (!string.IsNullOrEmpty(outputDirectory) && !Directory.Exists(outputDirectory))
         {
@@ -363,7 +361,6 @@ static class Program
             Console.WriteLine($"Created output directory: {outputDirectory}");
         }
 
-        // Delete existing database if it exists (and any WAL/SHM files)
         if (File.Exists(outputPath))
         {
             try
@@ -379,13 +376,11 @@ static class Program
             }
         }
 
-        // Also clean up any WAL/SHM files
         var walPath = outputPath + AppConstants.Database.SqliteWalFileSuffix;
         var shmPath = outputPath + AppConstants.Database.SqliteShmFileSuffix;
         TryDeleteFileBestEffort(walPath);
         TryDeleteFileBestEffort(shmPath);
 
-        // Create temporary database with all migrations applied
         var tempDbPath = Path.Combine(Path.GetTempPath(), $"temp_{Guid.NewGuid()}_{AppConstants.Database.ScheduleDatabaseFileName}");
         try
         {
@@ -399,16 +394,13 @@ static class Program
 
             using (var tempContext = new ScheduleDbContext(tempOptionsBuilder.Options))
             {
-                // Apply all migrations to create the database with latest schema
                 Console.WriteLine("Applying all migrations...");
 
-                // Get all available migrations
                 var migrationsAssembly = tempContext.Database.GetMigrations();
                 Console.WriteLine($"Found {migrationsAssembly.Count()} migrations in assembly");
 
                 await tempContext.Database.MigrateAsync();
 
-                // Verify all migrations are applied
                 var appliedMigrations = await tempContext.Database.GetAppliedMigrationsAsync();
                 var pendingMigrations = await tempContext.Database.GetPendingMigrationsAsync();
 
@@ -450,13 +442,11 @@ static class Program
                 }
             }
 
-            // Copy the empty database (with schema but no data) to output location
             // After checkpointing, all changes should be in the main database file
             File.Copy(tempDbPath, outputPath, overwrite: true);
             Console.WriteLine($"✓ Successfully generated empty Schedule database at: {outputPath}");
             Console.WriteLine($"  File size: {new FileInfo(outputPath).Length} bytes");
 
-            // Verify the copied database has migrations applied
             var verifyConnectionString = string.Format(
                 AppConstants.Database.ScheduleDatabaseConnectionStringFormat,
                 outputPath);
@@ -475,7 +465,6 @@ static class Program
         }
         finally
         {
-            // Clean up temporary database
             if (File.Exists(tempDbPath))
             {
                 try

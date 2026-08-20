@@ -58,7 +58,6 @@ public partial class MediaManager : IDisposable
 
     void InitializePlayerProperties()
     {
-        // Pre-initialize Volume and Muted properties to the player object
         if (Player is null)
         {
             return;

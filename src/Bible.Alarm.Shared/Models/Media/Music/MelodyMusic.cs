@@ -14,7 +14,6 @@ public class MelodyMusic
 {
     public BiblePublication Publication { get; set; } = null!;
 
-    // Expose BiblePublication properties for convenience
     public int Id => Publication.Id;
     public string Code => Publication.PublicationCode;
     public string Name => Publication.Name;

@@ -25,13 +25,11 @@ public class IosVersionPatcherTests
 
     [Fact]
     public void PlatformName_ShouldReturnIOS() =>
-        // Act & Assert
         patcher.PlatformName.Should().Be("iOS");
 
     [Fact]
     public async Task PatchVersionAsync_WithValidPlist_ShouldUpdateVersion()
     {
-        // Arrange
         var filePath = testPathService.GetIosInfoPlistPath();
         var oldVersion = "1.2";
         var newVersion = "1.3";
@@ -50,10 +48,8 @@ public class IosVersionPatcherTests
         versionServiceMock.Setup(x => x.IncrementVersion(oldVersion)).Returns(newVersion);
         fileServiceMock.Setup(x => x.WriteFileAsync(filePath, It.IsAny<string>())).Returns(Task.CompletedTask);
 
-        // Act
         await patcher.PatchVersionAsync();
 
-        // Assert
         versionServiceMock.Verify(x => x.IncrementVersion(oldVersion), Times.Once);
         fileServiceMock.Verify(x => x.WriteFileAsync(filePath, It.Is<string>(s => s.Contains(newVersion))), Times.Once);
     }
@@ -61,14 +57,11 @@ public class IosVersionPatcherTests
     [Fact]
     public async Task PatchVersionAsync_WithNonExistentFile_ShouldNotProcess()
     {
-        // Arrange
         var filePath = testPathService.GetIosInfoPlistPath();
         fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(false);
 
-        // Act
         await patcher.PatchVersionAsync();
 
-        // Assert
         fileServiceMock.Verify(x => x.ReadFileAsync(It.IsAny<string>()), Times.Never);
         versionServiceMock.Verify(x => x.IncrementVersion(It.IsAny<string>()), Times.Never);
         fileServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
@@ -77,7 +70,6 @@ public class IosVersionPatcherTests
     [Fact]
     public async Task PatchVersionAsync_WithMissingCFBundleVersion_ShouldNotProcess()
     {
-        // Arrange
         var filePath = testPathService.GetIosInfoPlistPath();
         var plistContent = @"<?xml version=""1.0"" encoding=""UTF-8""?>
 <!DOCTYPE plist PUBLIC ""-//Apple//DTD PLIST 1.0//EN"" ""http://www.apple.com/DTDs/PropertyList-1.0.dtd"">
@@ -90,10 +82,8 @@ public class IosVersionPatcherTests
         fileServiceMock.Setup(x => x.FileExists(filePath)).Returns(true);
         fileServiceMock.Setup(x => x.ReadFileAsync(filePath)).ReturnsAsync(plistContent);
 
-        // Act
         await patcher.PatchVersionAsync();
 
-        // Assert
         versionServiceMock.Verify(x => x.IncrementVersion(It.IsAny<string>()), Times.Never);
         fileServiceMock.Verify(x => x.WriteFileAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }

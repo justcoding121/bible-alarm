@@ -76,7 +76,6 @@ public class AndroidAutoScheduleChangeTracker
 
         var changes = new List<ScheduleChange>();
 
-        // Find added schedules (in current but not in last)
         foreach (var schedule in currentSchedules.Where(s => !lastScheduleSignatures.ContainsKey(s.Id)))
         {
             changes.Add(new ScheduleChange
@@ -88,7 +87,6 @@ public class AndroidAutoScheduleChangeTracker
             logger.Debug(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.DetectedScheduleAdded, schedule.Id);
         }
 
-        // Find removed schedules (in last but not in current)
         foreach (var scheduleId in lastScheduleSignatures.Keys.Where(id => !currentSignatures.ContainsKey(id)))
         {
             changes.Add(new ScheduleChange
@@ -100,7 +98,6 @@ public class AndroidAutoScheduleChangeTracker
             logger.Debug(AppConstants.Logging.LegacyMediaBrowserStateSubscriptionDiagnosticsLog.DetectedScheduleRemoved, scheduleId);
         }
 
-        // Find updated schedules (in both but signature changed)
         foreach (var kvp in currentSignatures)
         {
             if (lastScheduleSignatures.TryGetValue(kvp.Key, out var oldSignature) && oldSignature != kvp.Value)
@@ -120,7 +117,6 @@ public class AndroidAutoScheduleChangeTracker
             }
         }
 
-        // Update tracked state
         lastScheduleCount = currentScheduleCount;
         lastScheduleSignatures = currentSignatures;
 

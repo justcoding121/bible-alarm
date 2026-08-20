@@ -70,7 +70,6 @@ public class AudioPlayerPositionTracker
             Duration = duration > TimeSpan.Zero ? duration : null
         });
 
-        // Check if duration changed
         UpdateDuration(duration);
     }
 }

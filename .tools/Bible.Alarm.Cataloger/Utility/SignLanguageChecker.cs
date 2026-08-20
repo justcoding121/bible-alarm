@@ -29,11 +29,6 @@ internal sealed class SignLanguageChecker
         this.downloadUtility = downloadUtility ?? throw new ArgumentNullException(nameof(downloadUtility));
     }
 
-    /// <summary>
-    /// Checks if a language code represents a sign language.
-    /// </summary>
-    /// <param name="languageCode">The language code to check (case-insensitive).</param>
-    /// <returns>True if the language is a sign language, false otherwise.</returns>
     public async Task<bool> IsSignLanguageAsync(string languageCode)
     {
         if (string.IsNullOrWhiteSpace(languageCode))
@@ -43,10 +38,8 @@ internal sealed class SignLanguageChecker
 
         var normalizedCode = languageCode.ToUpperInvariant();
 
-        // Load cache if needed
         await EnsureCacheLoadedAsync();
 
-        // Check cache
         lock (languagesCacheLock)
         {
             if (signLanguageCodesCache != null)
@@ -58,9 +51,6 @@ internal sealed class SignLanguageChecker
         return false;
     }
 
-    /// <summary>
-    /// Filters out sign languages from a dictionary of language codes to LanguageInfo.
-    /// </summary>
     public async Task<Dictionary<string, LanguageInfo>> FilterSignLanguagesAsync(Dictionary<string, LanguageInfo> languages)
     {
         if (languages == null || languages.Count == 0)
@@ -87,9 +77,6 @@ internal sealed class SignLanguageChecker
         return filtered;
     }
 
-    /// <summary>
-    /// Filters out sign languages from a list of language entries.
-    /// </summary>
     public async Task<List<(string Code, string Name, string Direction)>> FilterSignLanguagesAsync(
         List<(string Code, string Name, string Direction)> languageEntries)
     {
@@ -117,9 +104,6 @@ internal sealed class SignLanguageChecker
         return filtered;
     }
 
-    /// <summary>
-    /// Filters out sign languages from a HashSet of language codes.
-    /// </summary>
     public async Task<HashSet<string>> FilterSignLanguagesAsync(HashSet<string> languageCodes)
     {
         if (languageCodes == null || languageCodes.Count == 0)

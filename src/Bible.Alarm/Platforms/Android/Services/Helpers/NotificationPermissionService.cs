@@ -134,7 +134,6 @@ public sealed class NotificationPermissionService : IDisposable
             return true;
         }
 
-        // Check if already granted
         if (IsGranted)
         {
             logger.Information("NotificationPermissionService: Permission already granted");

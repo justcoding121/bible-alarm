@@ -48,7 +48,6 @@ internal sealed class LanguageContentPublicationSectionsFetcher
             var lowerCode = publicationCode.ToLowerInvariant();
             var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(lowerCode) ?? publicationCode;
 
-            // Get PublicationLanguage to determine catalog type
             // CatalogType is sufficient to determine if ad-hoc fetching is possible
             // Use case-sensitive code for dramas when querying database
             var publicationLanguage = await db.PublicationLanguages
@@ -95,7 +94,6 @@ internal sealed class LanguageContentPublicationSectionsFetcher
                 return false;
             }
 
-            // Get all section codes from SectionLanguages for this publication+language
             // Use case-sensitive code for dramas when querying database
             var sectionCodes = await db.SectionLanguages
                 .Include(sl => sl.Language)

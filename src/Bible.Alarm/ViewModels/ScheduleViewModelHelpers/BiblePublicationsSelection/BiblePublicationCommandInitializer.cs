@@ -54,7 +54,6 @@ public sealed class BiblePublicationCommandInitializer
         return new AsyncRelayCommand(async () =>
         {
             logger.Information(AppConstants.Logging.BiblePublicationCommandInitializerDiagnosticsLog.SelectCategoryOpeningCategoryModal);
-            // Create a CategorySelectionViewModel instance for the category modal
             var categoryViewModel = serviceProvider.GetRequiredService<CategorySelectionViewModel>();
             logger.Debug(AppConstants.Logging.BiblePublicationCommandInitializerDiagnosticsLog.SelectCategoryCreatedOpeningModal);
             await navigationService.OpenCategoryModalAsync(categoryViewModel);
@@ -115,7 +114,6 @@ public sealed class BiblePublicationCommandInitializer
 
             setBiblePublication(loadedBiblePublication);
 
-            // Create view model and open modal
             var bibleSelectionViewModel = serviceProvider.GetRequiredService<BiblePublicationSelectionViewModel>();
             await navigationService.OpenBibleSelectionModalAsync(bibleSelectionViewModel);
 
@@ -157,7 +155,6 @@ public sealed class BiblePublicationCommandInitializer
 
             setBiblePublication(loadedBiblePublication);
 
-            // Create view model and open modal
             var sectionSelectionViewModel = serviceProvider.GetRequiredService<BiblePublicationSectionSelectionViewModel>();
             await navigationService.OpenSectionSelectionModalAsync(sectionSelectionViewModel);
 
@@ -199,7 +196,6 @@ public sealed class BiblePublicationCommandInitializer
 
             setBiblePublication(loadedBiblePublication);
 
-            // Create view model and open modal
             var trackSelectionViewModel = serviceProvider.GetRequiredService<BiblePublicationTrackSelectionViewModel>();
             await navigationService.OpenBiblePublicationTrackSelectionModalAsync(trackSelectionViewModel);
 

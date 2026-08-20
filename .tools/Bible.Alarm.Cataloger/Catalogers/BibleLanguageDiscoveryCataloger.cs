@@ -40,7 +40,6 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
             var publicationCode = publication.Key;
             Logger.Information("Discovering languages for publication: {PublicationCode} ({PublicationName})", publicationCode, publication.Value);
 
-            // Discover languages for each book (1-66) and save for English
             var allDiscoveredLanguages = await DiscoverLanguagesForAllBooks(publicationCode, publication.Value, isTestRun);
 
             if (allDiscoveredLanguages == null || allDiscoveredLanguages.Count == 0)
@@ -49,7 +48,6 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
                 continue;
             }
 
-            // Filter out sign languages
             allDiscoveredLanguages = await signLanguageChecker.FilterSignLanguagesAsync(allDiscoveredLanguages);
 
             if (allDiscoveredLanguages.Count == 0)
@@ -58,7 +56,6 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
                 continue;
             }
 
-            // Save language discovery results for English and publication languages for on-demand fetching
             if (dataPersister != null)
             {
                 var languageCodeToNameMapping = allDiscoveredLanguages.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Name, StringComparer.OrdinalIgnoreCase);
@@ -101,7 +98,7 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
         Logger.Information("Total unique languages discovered across all books for {PublicationCode}: {LanguageCount}",
             publicationCode, allDiscoveredLanguages.Count);
 
-        // Return discovered languages (alllangs=1 response already lists only available languages)
+        // alllangs=1 response already lists only available languages
         return allDiscoveredLanguages;
     }
 
@@ -156,7 +153,6 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
     {
         var discoveredLanguages = new Dictionary<string, LanguageInfo>(StringComparer.OrdinalIgnoreCase);
 
-        // Use alllangs=1 and langwritten=E for discovery
         var catalogLink = $"{AppConstants.ApiEndpoints.JwOrgIndexServiceBaseUrl}?{AppConstants.Media.GetPubQueryOutputJson}&{AppConstants.Media.GetPubQueryParamName.Pub}={publicationCode}&{AppConstants.Media.GetPubQueryParamName.BookNum}={bookNum}&{AppConstants.Media.GetPubQueryParamName.FileFormat}={AppConstants.Media.MediaStreamFormatMp3}&{AppConstants.Media.GetPubQueryAllLangsOn}&{AppConstants.Media.GetPubQueryParamLangWritten}={AppConstants.Media.DefaultLanguageCode}";
 
         var jsonString = await DownloadUtility.GetAsync(catalogLink);
@@ -175,7 +171,6 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
 
         foreach (var item in languages.EnumerateObject())
         {
-            // Normalize language code to uppercase for consistent storage
             var languageCode = item.Name.ToUpperInvariant();
 
             if (!item.Value.TryGetProperty(AppConstants.Media.PubMediaJson.Name, out var nameElement))
@@ -191,7 +186,6 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
                 continue;
             }
 
-            // Extract direction (defaults to ltr if not present)
             var direction = AppConstants.Media.TextDirectionLeftToRight;
             if (item.Value.TryGetProperty(AppConstants.Media.LanguageIndexJson.Direction, out var directionElement))
             {
@@ -210,14 +204,12 @@ internal sealed class BibleLanguageDiscoveryCataloger : BaseCataloger
     /// </summary>
     private async Task SaveLanguageDiscoveryForEnglish(string publicationCode, Dictionary<string, LanguageInfo> discoveredLanguages)
     {
-        // Normalize publication code for path consistency
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
         var englishDir = $"{DirectoryHelper.IndexDirectory}/{AppConstants.FilePaths.MediaIndexCatalogRootMediaSegment}/{AppConstants.Media.BiblePublicationCategoryBible}/{AppConstants.Media.DefaultLanguageCode}/{normalizedPublicationCode}";
         DirectoryHelper.Ensure(englishDir);
 
         var languageDiscoveryFile = Path.Combine(englishDir, AppConstants.ApiEndpoints.MediaIndexLanguageDiscoveryFileName);
 
-        // Create a list of languages with Code, Name, and Direction
         var languageList = discoveredLanguages
             .Select(kvp => new
             {

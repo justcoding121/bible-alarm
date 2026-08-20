@@ -28,7 +28,6 @@ public sealed partial class BiblePublicationSelectionContainerViewModel : Observ
     private readonly IState<ApplicationState> state;
     private readonly IDispatcher dispatcher;
 
-    // Helper classes for modular functionality
     private readonly BiblePublicationCommandInitializer commandInitializer;
     private readonly BiblePublicationDisplayTextProvider displayTextProvider;
     private readonly BiblePublicationPropertyChangeDetector propertyChangeDetector;
@@ -74,7 +73,6 @@ public sealed partial class BiblePublicationSelectionContainerViewModel : Observ
         this.state = state;
         this.dispatcher = dispatcher;
 
-        // Initialize helper classes
         commandInitializer = new BiblePublicationCommandInitializer(logger, navigationService, scheduleSelectionService, state, dispatcher, mapper, serviceProvider);
         var mediaService = serviceProvider.GetRequiredService<Bible.Alarm.Services.Media.Interfaces.IMediaService>();
         var categoryNameService = serviceProvider.GetRequiredService<Bible.Alarm.Shared.Services.Media.Interfaces.ICategoryNameService>();
@@ -109,7 +107,6 @@ public sealed partial class BiblePublicationSelectionContainerViewModel : Observ
             lastProcessedScheduleId = currentSchedule.Id;
             lastProcessedLanguageCode = currentSchedule.BiblePublicationLanguageCode;
 
-            // Update selectability flags on initial load
             _ = UpdateSelectabilityFlagsAsync();
             lastProcessedLanguageName = currentSchedule.BiblePublicationLanguageName;
             lastProcessedPublicationCode = currentSchedule.BiblePublicationCode;
@@ -226,7 +223,6 @@ public sealed partial class BiblePublicationSelectionContainerViewModel : Observ
                 return;
             }
 
-            // Update selectability flags when state changes
             _ = UpdateSelectabilityFlagsAsync();
 
             // Early exit if we've already processed this exact state
@@ -267,7 +263,6 @@ public sealed partial class BiblePublicationSelectionContainerViewModel : Observ
                 });
             }
 
-            // Update last processed state after handling changes
             if (currentSchedule != null)
             {
                 lastProcessedScheduleId = currentSchedule.Id;

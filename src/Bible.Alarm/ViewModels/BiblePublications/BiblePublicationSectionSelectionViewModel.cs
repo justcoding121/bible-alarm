@@ -102,7 +102,6 @@ public sealed partial class BiblePublicationSectionSelectionViewModel : Observab
             }
         });
 
-        // Initialize helper
         stateChangeHandler = new StateChangeHandler(
             logger,
             new StateChangeHandler.Callbacks(
@@ -233,12 +232,10 @@ public sealed partial class BiblePublicationSectionSelectionViewModel : Observab
             return;
         }
 
-        // Check if language or publication code changed (need to repopulate sections)
         var languageChanged = lastLanguageCode != newLanguageCode;
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
         var needsRepopulation = languageChanged || publicationCodeChanged || !initComplete;
 
-        // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
 
@@ -437,7 +434,6 @@ public sealed partial class BiblePublicationSectionSelectionViewModel : Observab
             current?.SectionCode,
             progress);
 
-        // Update mapping
         sectionVMsMapping.Clear();
         foreach (var kvp in newMapping)
         {

@@ -69,7 +69,6 @@ public class MediaReader(string indexRoot)
     {
         var root = indexRoot;
         // Unified structure: Music/Melodies/{publicationCode}/tracks.json
-        // Normalize publication code for path consistency
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
         var trackIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryMusic, AppConstants.ApiEndpoints.MediaIndexFolderMelodies, normalizedPublicationCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
         var fileContent = await File.ReadAllTextAsync(trackIndex);
@@ -107,8 +106,7 @@ public class MediaReader(string indexRoot)
                 var tracks = JsonSerializer.Deserialize<IEnumerable<MusicTrack>>(fileContent)!;
                 var tracksDict = new SortedDictionary<int, MusicTrack>(
                     tracks.ToDictionary(x => x.Number, x => x));
-                
-                // Try to get disc name from disc.json, otherwise use disc code
+
                 string discName = discCode;
                 if (File.Exists(discInfoFile))
                 {
@@ -147,7 +145,6 @@ public class MediaReader(string indexRoot)
     {
         var root = indexRoot;
         // Unified structure: Music/Vocals/{languageCode}/publications.json
-        // Normalize language code for path consistency
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var releaseIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryMusic, AppConstants.ApiEndpoints.MediaIndexFolderVocals, normalizedLanguageCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var vocalReleases = await File.ReadAllTextAsync(releaseIndex);
@@ -158,7 +155,6 @@ public class MediaReader(string indexRoot)
     {
         var root = indexRoot;
         // Unified structure: Music/Vocals/{languageCode}/{publicationCode}/tracks.json
-        // Normalize language and publication codes for path consistency
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
         var trackIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryMusic, AppConstants.ApiEndpoints.MediaIndexFolderVocals, normalizedLanguageCode, normalizedPublicationCode, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
@@ -174,14 +170,13 @@ public class MediaReader(string indexRoot)
         var languageIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryDramas, AppConstants.ApiEndpoints.MediaIndexLanguagesFileName);
         var languages = await File.ReadAllTextAsync(languageIndex);
         return JsonSerializer.Deserialize<IEnumerable<Language>>(languages)!
-            .ToDictionary(x => x.Code.ToUpperInvariant(), x => x, StringComparer.OrdinalIgnoreCase); // Normalize keys to uppercase
+            .ToDictionary(x => x.Code.ToUpperInvariant(), x => x, StringComparer.OrdinalIgnoreCase);
     }
 
     public async Task<Dictionary<string, Publication>> GetMediatorPublications(string languageCode)
     {
         var root = indexRoot;
         // Unified structure: Dramas/{languageCode}/publications.json (no Audio/Video prefix)
-        // Normalize language code for file path lookup
         var normalizedCode = languageCode.ToUpperInvariant();
         var publicationsIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryDramas, normalizedCode, AppConstants.ApiEndpoints.MediaIndexPublicationsFileName);
         var publications = await File.ReadAllTextAsync(publicationsIndex);
@@ -193,7 +188,6 @@ public class MediaReader(string indexRoot)
     {
         var root = indexRoot;
         // Unified structure: Dramas/{languageCode}/{categoryKey}/tracks.json (no Audio/Video prefix)
-        // Normalize language code and category key for file path lookup
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var normalizedCategoryKey = categoryKey.ToUpperInvariant();
         var trackIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryDramas, normalizedLanguageCode, normalizedCategoryKey, AppConstants.ApiEndpoints.MediaIndexTracksFileName);
@@ -240,7 +234,6 @@ public class MediaReader(string indexRoot)
         var root = indexRoot;
         // Unified structure: Dramas/{languageCode}/{publicationCode}/episodes.json (no Audio/Video prefix)
         // Videos are also stored under Dramas category, IsVideo flag determines media type
-        // Normalize language code and publication code for file path lookup
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var normalizedPublicationCode = publicationCode.ToUpperInvariant();
         var episodeIndex = Path.Combine(root, AppConstants.Media.BiblePublicationCategoryDramas, normalizedLanguageCode, normalizedPublicationCode, AppConstants.ApiEndpoints.MediaIndexVideoEpisodesFileName);

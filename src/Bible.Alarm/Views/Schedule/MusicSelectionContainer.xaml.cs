@@ -14,7 +14,6 @@ public sealed partial class MusicSelectionContainer : ContentView, IDisposable
     private MusicSelectionContainerViewModel? viewModel;
     private bool isDisposed;
 
-    // Helper classes
     private AnimationManager? animationManager;
     private PropertyChangeHandler? propertyChangeHandler;
     private VisibilityManager? visibilityManager;
@@ -31,7 +30,6 @@ public sealed partial class MusicSelectionContainer : ContentView, IDisposable
         BindingContext = viewModel;
         this.viewModel = viewModel;
 
-        // Set initial visibility based on IsMusicSelectionVisible
         IsVisible = viewModel.IsMusicSelectionVisible;
 
         InitializeHelpers();
@@ -125,7 +123,6 @@ public sealed partial class MusicSelectionContainer : ContentView, IDisposable
             return;
         }
 
-        // Handle different container types
         if (view is Layout layout)
         {
             foreach (var child in layout.Children)
@@ -319,7 +316,7 @@ public sealed partial class MusicSelectionContainer : ContentView, IDisposable
             viewModel != null);
 #endif
         
-        // Handle IsMusicSelectionVisible property change - explicitly update IsVisible binding
+        // Binding does not always pick this up; set IsVisible explicitly
         if (e.PropertyName == nameof(MusicSelectionContainerViewModel.IsMusicSelectionVisible))
         {
             if (viewModel == null)
@@ -373,7 +370,6 @@ public sealed partial class MusicSelectionContainer : ContentView, IDisposable
             WireUpSwitchAndButtonHandlers();
         });
 
-        // Initialize helpers if not already initialized
         if (animationManager == null)
         {
             InitializeHelpers();
@@ -393,10 +389,7 @@ public sealed partial class MusicSelectionContainer : ContentView, IDisposable
 
         if (viewModel != null && propertyChangeHandler != null)
         {
-            // Check if we're already subscribed (avoid duplicate subscriptions)
-            // We can't easily check if an event handler is subscribed, so we'll just subscribe
-            // Event handlers can be safely subscribed multiple times, but we want to avoid it
-            // For now, we'll unsubscribe first to ensure clean subscription
+            // Unsubscribe first so we do not stack duplicate handlers
             viewModel.PropertyChanged -= OnViewModelPropertyChanged;
             viewModel.PropertyChanged += OnViewModelPropertyChanged;
 
@@ -405,7 +398,6 @@ public sealed partial class MusicSelectionContainer : ContentView, IDisposable
                 viewModel.MusicEnabled, propertyChangeHandler.LastMusicEnabledState);
 #endif
 
-            // Update last state to match current state
             propertyChangeHandler.LastMusicEnabledState = viewModel.MusicEnabled;
         }
 
@@ -456,7 +448,6 @@ public sealed partial class MusicSelectionContainer : ContentView, IDisposable
         {
             propertyChangeHandler?.Dispose();
 
-            // Unsubscribe from view model
             if (viewModel != null)
             {
                 viewModel.PropertyChanged -= OnViewModelPropertyChanged;

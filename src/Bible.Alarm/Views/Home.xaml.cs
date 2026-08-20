@@ -122,23 +122,19 @@ public sealed partial class Home : BaseContentPage, IDisposable
             return;
         }
 
-        // Get the tap position relative to the container
         var tapPosition = e.GetPosition(container);
         if (!tapPosition.HasValue)
         {
-            // If we can't get position, navigate (fallback behavior)
             viewModel.ViewScheduleCommand.Execute(item);
             return;
         }
 
-        // Check if the tap position is within any Button or Switch bounds
+        // Don't navigate when the tap landed on a Button or Switch
         if (IsTapOnInteractiveControl(container, tapPosition.Value))
         {
-            // Tap was on a button or switch - don't navigate
             return;
         }
 
-        // Tap was not on a button or switch - navigate to schedule view
         viewModel.ViewScheduleCommand.Execute(item);
     }
 

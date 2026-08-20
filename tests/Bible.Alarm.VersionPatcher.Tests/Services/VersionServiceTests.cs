@@ -16,10 +16,8 @@ public class VersionServiceTests
     [InlineData("10.99", "11.0")]
     public void IncrementVersion_ShouldIncrementCorrectly(string input, string expected)
     {
-        // Act
         var result = versionService.IncrementVersion(input);
 
-        // Assert
         result.Should().Be(expected);
     }
 
@@ -29,20 +27,16 @@ public class VersionServiceTests
     [InlineData("1000", "1001")]
     public void IncrementVersionCode_ShouldIncrementCorrectly(string input, string expected)
     {
-        // Act
         var result = versionService.IncrementVersionCode(input);
 
-        // Assert
         result.Should().Be(expected);
     }
 
     [Fact]
     public void IncrementVersion_WithInvalidFormat_ShouldThrowArgumentException()
     {
-        // Arrange
         const string InvalidVersion = "invalid";
 
-        // Act & Assert
         var action = () => versionService.IncrementVersion(InvalidVersion);
         action.Should().Throw<ArgumentException>();
     }
@@ -50,10 +44,8 @@ public class VersionServiceTests
     [Fact]
     public void IncrementVersionCode_WithInvalidFormat_ShouldThrowArgumentException()
     {
-        // Arrange
         var invalidVersionCode = "invalid";
 
-        // Act & Assert
         var action = () => versionService.IncrementVersionCode(invalidVersionCode);
         action.Should().Throw<ArgumentException>();
     }

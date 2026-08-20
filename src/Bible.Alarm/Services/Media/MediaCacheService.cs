@@ -125,7 +125,6 @@ public sealed partial class MediaCacheService : IMediaCacheService
             // Use lookup path (stable) instead of CDN URL (dynamic) for cache filename
             var lookUpPath = playItem.Metadata.LookUpPath;
             
-            // Check if file exists using lookup path
             if (await ExistsAsync(lookUpPath, scheduleId))
             {
                 // File exists and lookup path matches - skip download
@@ -177,7 +176,6 @@ public sealed partial class MediaCacheService : IMediaCacheService
 
         var lookUpPath = playItem.Metadata.LookUpPath;
 
-        // Check if the file is already cached locally
         if (await ExistsAsync(lookUpPath, scheduleId))
         {
             var cachedFilePath = GetCacheFilePath(lookUpPath, scheduleId);

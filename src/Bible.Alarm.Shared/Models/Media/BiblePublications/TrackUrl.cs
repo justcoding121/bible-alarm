@@ -27,8 +27,5 @@ public sealed class TrackUrl
     [ForeignKey(nameof(BiblePublicationTrack))]
     public int? BiblePublicationTrackId { get; set; }
 
-    /// <summary>
-    /// Navigation property to the track.
-    /// </summary>
     public BiblePublicationTrack? BiblePublicationTrack { get; set; }
 }

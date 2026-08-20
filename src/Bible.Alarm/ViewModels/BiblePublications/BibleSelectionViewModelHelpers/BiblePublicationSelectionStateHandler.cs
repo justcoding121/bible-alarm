@@ -155,7 +155,6 @@ public sealed class BiblePublicationSelectionStateHandler
             return;
         }
 
-        // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastCategoryName = newCategoryName;
 

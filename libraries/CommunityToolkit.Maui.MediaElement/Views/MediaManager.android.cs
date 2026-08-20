@@ -200,7 +200,6 @@ public partial class MediaManager : Object, IPlayerListener
             return;
         }
 
-        // When currently muted, ignore
         if (MediaElement.ShouldMute)
         {
             return;
@@ -316,7 +315,6 @@ public partial class MediaManager : Object, IPlayerListener
             return;
         }
 
-        // First time we're getting a playback speed, set initial value
         previousSpeed ??= MediaElement.Speed;
 
         if (MediaElement.Speed > 0)

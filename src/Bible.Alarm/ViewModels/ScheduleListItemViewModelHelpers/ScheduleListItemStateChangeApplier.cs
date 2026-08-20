@@ -69,7 +69,6 @@ internal sealed class ScheduleListItemStateChangeApplier
                 updatedScheduleItem?.BiblePublicationSectionName ?? "null",
                 updatedScheduleItem?.BiblePublicationTrackTitle ?? "null");
 
-            // Update tracked publication code if it changed
             if (changeInfo.BiblePublicationCodeChanged && updatedScheduleItem != null)
             {
                 stateHandler.LastKnownBiblePublicationCode = updatedScheduleItem.BiblePublicationCode;

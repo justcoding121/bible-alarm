@@ -29,7 +29,6 @@ internal static class ToastPopupFactory
 
         var text = ToastMessageNormalizer.Normalize(message);
 
-        // Create a TextBlock for the message
         var textBlock = new TextBlock
         {
             Text = text,
@@ -41,7 +40,6 @@ internal static class ToastPopupFactory
             MaxWidth = 400
         };
 
-        // Create a Border for the toast background
         var border = new Border
         {
             Background = new SolidColorBrush(backgroundColor),
@@ -50,7 +48,6 @@ internal static class ToastPopupFactory
             HorizontalAlignment = HorizontalAlignment.Center
         };
 
-        // Create the Popup
         var popup = new Popup
         {
             Child = border,

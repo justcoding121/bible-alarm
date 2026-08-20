@@ -84,7 +84,6 @@ internal sealed class MusicSectionSelectionCommandHandler
             var firstTrack = trackEnumerator.Current;
             var trackCodeToSave = firstTrack.TrackCode ?? string.Empty;
 
-            // Create MusicStateItem with selected section and track
             var musicStateItem = new MusicStateItem
             {
                 LanguageCode = languageCode,

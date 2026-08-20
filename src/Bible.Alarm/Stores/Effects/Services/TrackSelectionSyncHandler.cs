@@ -125,7 +125,6 @@ public sealed class TrackSelectionSyncHandler
             var publicationChanged = !string.IsNullOrEmpty(biblePub.PublicationCode) &&
                                      !string.Equals(biblePub.PublicationCode, currentSchedule.BiblePublicationCode, StringComparison.OrdinalIgnoreCase);
 
-            // Create updated schedule with Bible publication properties
             var updatedSchedule = ApplyBiblePublicationTrackSelection(
                 currentSchedule,
                 biblePub,

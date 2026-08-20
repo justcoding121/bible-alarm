@@ -8,10 +8,6 @@ using Bible.Alarm.Shared.Models.Schedule;
 
 namespace Bible.Alarm.Shared.Services.Schedule.Interfaces;
 
-/// <summary>
-/// Service for interacting with BiblePublicationSchedule database operations.
-/// Abstracts database access from other services.
-/// </summary>
 public interface IBiblePublicationScheduleService : IDisposable
 {
     Task<List<BiblePublicationSchedule>> GetAllBiblePublicationSchedulesAsync(CancellationToken cancellationToken = default);

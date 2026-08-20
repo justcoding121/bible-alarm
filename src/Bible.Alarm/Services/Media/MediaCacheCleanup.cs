@@ -80,7 +80,6 @@ internal static class MediaCacheCleanup
 
             var scheduleCacheFolder = getScheduleCacheFolder(schedule.Id);
 
-            // Check if folder exists
             if (!await storageService.DirectoryExists(scheduleCacheFolder))
             {
                 continue;
@@ -113,16 +112,13 @@ internal static class MediaCacheCleanup
     {
         try
         {
-            // Check if cache root directory exists
             if (!await storageService.DirectoryExists(cacheRoot))
             {
                 return;
             }
 
-            // Get all schedule IDs that exist in the database
             var validScheduleIds = new HashSet<int>(schedules.Select(s => s.Id));
 
-            // Enumerate all directories in the cache root
             string[] allDirectories;
             try
             {
@@ -339,7 +335,6 @@ internal static class MediaCacheCleanup
                 newPlaylist.Select(pi => args.GetCacheFileName(pi.Metadata.LookUpPath)),
                 StringComparer.OrdinalIgnoreCase);
 
-            // Get all files in the schedule's cache folder
             if (!await args.StorageService.DirectoryExists(scheduleCacheFolder))
             {
                 args.Logger.Debug("Cache folder does not exist for schedule {ScheduleId}, nothing to clean up", scheduleId);

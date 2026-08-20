@@ -10,8 +10,7 @@ public class PathService : IPathService
     private static string GetRepositoryRoot()
     {
         var currentDir = new DirectoryInfo(Directory.GetCurrentDirectory());
-        
-        // Find the bible-alarm root directory
+
         while (currentDir != null && currentDir.Name != "bible-alarm")
         {
             currentDir = currentDir.Parent;

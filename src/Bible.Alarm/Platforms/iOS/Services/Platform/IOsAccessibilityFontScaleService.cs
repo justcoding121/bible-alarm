@@ -22,7 +22,6 @@ public sealed class IOsAccessibilityFontScaleService : IAccessibilityFontScaleSe
 
     public IOsAccessibilityFontScaleService()
     {
-        // Get initial font scale
         currentFontScale = GetSystemFontScale();
 
         // Listen for Dynamic Type changes

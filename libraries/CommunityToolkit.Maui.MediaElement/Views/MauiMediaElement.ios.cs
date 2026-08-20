@@ -20,7 +20,6 @@ public class MauiMediaElement : UIView
     /// </summary>
     public MauiMediaElement()
     {
-        // Headless mode - no PlayerViewController needed
         // AVPlayer can work without a view controller for audio-only playback
     }
 
@@ -117,7 +116,6 @@ public class MauiMediaElement : UIView
             playerViewController.AdditionalSafeAreaInsets =
                 new UIEdgeInsets(insets.Top * -1, insets.Left, insets.Bottom * -1, insets.Right);
 
-            // Add the View from the AVPlayerViewController to the parent ViewController
             viewController.AddChildViewController(playerViewController);
         }
 #endif

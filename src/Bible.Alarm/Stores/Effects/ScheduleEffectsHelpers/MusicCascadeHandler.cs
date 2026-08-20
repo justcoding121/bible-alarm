@@ -66,7 +66,6 @@ public sealed class MusicCascadeHandler
                 !string.IsNullOrWhiteSpace(publicationCode) &&
                 PublicationTypeHelper.HasSectionStructure(publicationCode);
 
-            // Cascade 1: Publication not selected → populate publication, section, track
             if (string.IsNullOrWhiteSpace(publicationCode))
             {
                 logger.Debug(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.HandleAsyncNoPublicationCodeCallingLanguageCascade);
@@ -143,7 +142,6 @@ public sealed class MusicCascadeHandler
                 currentSchedule.MusicPublicationModalItemCount, currentSchedule.MusicSectionModalItemCount,
                 publicationModalItemCount, sectionModalItemCount);
 
-            // Only dispatch if counts have changed or are missing
             if (currentSchedule.MusicPublicationModalItemCount != publicationModalItemCount ||
                 currentSchedule.MusicSectionModalItemCount != sectionModalItemCount)
             {
@@ -449,7 +447,6 @@ public sealed class MusicCascadeHandler
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
-        // Check if publication has LanguageId
         var publication = await db.BiblePublications
             .AsNoTracking()
             .Include(bp => bp.Sections)
@@ -507,7 +504,6 @@ public sealed class MusicCascadeHandler
         logger.Information(AppConstants.Logging.MusicCascadeHandlerDiagnosticsLog.SectionCascade,
             sectionCode, publicationCode);
 
-        // Check if publication has LanguageId
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
         
@@ -527,12 +523,10 @@ public sealed class MusicCascadeHandler
 
         if (publication.LanguageId == null)
         {
-            // Publication without language - use GetBiblePublicationTracks with empty language code
             tracks = await mediaService.GetBiblePublicationTracks(string.Empty, publicationCode, sectionCode);
         }
         else
         {
-            // Publication with language
             tracks = await mediaService.GetBiblePublicationTracks(languageCode, publicationCode, sectionCode);
         }
 

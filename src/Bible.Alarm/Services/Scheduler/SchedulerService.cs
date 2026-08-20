@@ -98,7 +98,6 @@ public sealed partial class SchedulerService(
     {
         try
         {
-            // Load the schedule with all includes
             var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, includeMusic: true, includeBiblePublication: true);
 
             if (schedule != null && schedule.IsEnabled)

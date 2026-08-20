@@ -14,9 +14,6 @@ using Serilog;
 
 namespace Bible.Alarm.Shared.Services.Media;
 
-/// <summary>
-/// Service for accessing Category database operations.
-/// </summary>
 public sealed class CategoryService(IServiceScopeFactory scopeFactory, ILogger logger) : ICategoryService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));

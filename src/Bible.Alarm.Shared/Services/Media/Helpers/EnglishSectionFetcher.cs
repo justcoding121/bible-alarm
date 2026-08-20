@@ -16,9 +16,6 @@ using Serilog;
 
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
 
-/// <summary>
-/// Helper class for fetching English publication sections.
-/// </summary>
 internal sealed class EnglishSectionFetcher
 {
     private readonly HttpClient httpClient;
@@ -61,7 +58,6 @@ internal sealed class EnglishSectionFetcher
             .AsNoTracking()
             .AnyAsync(bp => bp.PublicationCode == normalizedPublicationCode && bp.LanguageId == null, cancellationToken);
         
-        // Also check PublicationLanguages for entries with LanguageId == null
         if (!publicationWithoutLanguage)
         {
             publicationWithoutLanguage = await db.PublicationLanguages
@@ -292,7 +288,6 @@ internal sealed class EnglishSectionFetcher
             using var doc = JsonDocument.Parse(jsonString);
             var root = doc.RootElement;
 
-            // Extract localized publication name from parentPubName
             if (root.TryGetProperty(AppConstants.Media.PubMediaJson.ParentPubName, out var parentPubNameElement))
             {
                 var rawName = parentPubNameElement.GetString();

@@ -31,7 +31,6 @@ internal class MediatorCataloger : BaseCataloger
 
     internal async Task CatalogMediatorLinks(IReadOnlySet<string>? publicationFilter = null)
     {
-        // Catalog each Mediator API publication (dramas, series, children, broadcasting, family, etc.).
         var mediatorCodes = JwSourceHelper.AllMediatorPublicationCodes;
         var codesToCatalog = publicationFilter != null
             ? mediatorCodes.Where(c => publicationFilter.Contains(c)).ToList()
@@ -70,7 +69,6 @@ internal class MediatorCataloger : BaseCataloger
             return;
         }
 
-        // Parse the category response to get all unique languages
         var languagesFromCategory = MediatorCategoryLanguageExtractor.ExtractLanguagesFromCategory(jsonString, Logger);
         if (languagesFromCategory.Count == 0)
         {
@@ -78,7 +76,6 @@ internal class MediatorCataloger : BaseCataloger
             return;
         }
 
-        // Filter out sign languages
         languagesFromCategory = await signLanguageChecker.FilterSignLanguagesAsync(languagesFromCategory);
 
         if (languagesFromCategory.Count == 0)
@@ -87,17 +84,13 @@ internal class MediatorCataloger : BaseCataloger
             return;
         }
 
-        // Extract language info from English category response
         var discoveredLanguages = MediatorCategoryLanguageExtractor.ExtractLanguageInfoFromCategory(jsonString, languagesFromCategory, Logger);
 
-        // Filter out sign languages from discovered languages
         discoveredLanguages = await signLanguageChecker.FilterSignLanguagesAsync(discoveredLanguages);
 
-        // Save discovered languages for on-demand fetching (excluding English)
         // The category API already lists only available languages, so no verification needed
         if (dataPersister != null && discoveredLanguages.Count > 0)
         {
-            // Remove English from discovered languages since we're processing it
             var languagesToSave = discoveredLanguages
                 .Where(kvp => !kvp.Key.Equals(AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value, StringComparer.OrdinalIgnoreCase);

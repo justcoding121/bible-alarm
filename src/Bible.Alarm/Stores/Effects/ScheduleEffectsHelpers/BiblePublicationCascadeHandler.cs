@@ -65,7 +65,6 @@ public sealed class BiblePublicationCascadeHandler
             if (!string.IsNullOrWhiteSpace(languageCode) && string.IsNullOrWhiteSpace(publicationCode))
             {
                 await HandleLanguageCascadeAsync(currentSchedule, dispatcher);
-                // Language cascade handles everything below
                 return;
             }
 
@@ -73,7 +72,6 @@ public sealed class BiblePublicationCascadeHandler
                 string.IsNullOrWhiteSpace(sectionCode))
             {
                 await HandlePublicationCascadeAsync(currentSchedule, dispatcher);
-                // Publication cascade handles section and track
                 return;
             }
 
@@ -119,9 +117,6 @@ public sealed class BiblePublicationCascadeHandler
                 languageCode, categoryName ?? "all");
             return;
         }
-        // Publication with LanguageId was cataloged above (or already existed).
-
-        // Get section and track
         var resolved = await TryResolveSectionAndTrackForLanguageCascadeAsync(
             currentSchedule,
             languageCode,
@@ -400,7 +395,6 @@ public sealed class BiblePublicationCascadeHandler
         logger.Information(AppConstants.Logging.BiblePublicationCascadeHandlerDiagnosticsLog.PublicationCascade,
             publicationCode, languageCode);
 
-        // Use existing selector logic to get section and track
         var languageDisplayName = currentSchedule.BiblePublicationLanguageName ?? languageCode;
         var languageModel = new LanguageListViewItemModel(new Language
         {
@@ -408,7 +402,6 @@ public sealed class BiblePublicationCascadeHandler
             Direction = currentSchedule.BiblePublicationLanguageDirection ?? AppConstants.Media.TextDirectionLeftToRight
         }, languageDisplayName);
 
-        // Create a minimal publication model for the selector
         var publication = new Publication
         {
             PublicationCode = publicationCode,

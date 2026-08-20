@@ -120,7 +120,6 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
         }
         catch (OperationCanceledException)
         {
-            // Hide progress bar on cancellation
             progress?.SetIsVisible(false);
             throw;
         }
@@ -136,7 +135,6 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
         }
         catch (Exception ex)
         {
-            // Hide progress bar on error
             progress?.SetIsVisible(false);
             logger.Error(ex, "Error ensuring all publications for language {LanguageCode}",
                 languageCode);

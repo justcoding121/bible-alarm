@@ -17,7 +17,6 @@ public class AndroidVersionPatcher(IVersionService versionService, IFileService 
     public async Task PatchVersionAsync()
     {
         // In .NET MAUI, Android versions are stored in the csproj file, not AndroidManifest.xml
-        // Update ApplicationVersion and ApplicationDisplayVersion in the csproj
         var csprojFile = pathService.GetCsprojPath();
 
         if (!fileService.FileExists(csprojFile))
@@ -27,8 +26,7 @@ public class AndroidVersionPatcher(IVersionService versionService, IFileService 
         }
 
         var content = await fileService.ReadFileAsync(csprojFile);
-        
-        // Update ApplicationVersion (version code)
+
         var versionCodeMatch = Regex.Match(content, @"<ApplicationVersion>(\d+)</ApplicationVersion>", RegexOptions.None, RegexTimeout);
         if (versionCodeMatch.Success)
         {
@@ -45,7 +43,6 @@ public class AndroidVersionPatcher(IVersionService versionService, IFileService 
             Console.WriteLine("Could not find ApplicationVersion in csproj");
         }
 
-        // Update ApplicationDisplayVersion (version name)
         var versionNameMatch = Regex.Match(content, @"<ApplicationDisplayVersion>([\d.]+)</ApplicationDisplayVersion>", RegexOptions.None, RegexTimeout);
         if (versionNameMatch.Success)
         {

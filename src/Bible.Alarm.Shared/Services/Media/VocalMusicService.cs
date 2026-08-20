@@ -44,8 +44,6 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                     && x.PublicationCode == publicationCode)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            // VocalMusic is a subclass of BiblePublication, so we can return the publication directly
-            // The publication is already filtered to be Music category with LanguageId
             return publication != null ? new VocalMusic { Publication = publication } : null;
         }
         catch (Exception ex)

@@ -35,7 +35,6 @@ internal static class WindowsMediaManagerHeadlessInitializer
         mediaPlayer.VolumeChanged += playerCallbacks.VolumeChanged;
         mediaPlayer.IsMutedChanged += playerCallbacks.IsMutedChanged;
 
-        // Set up system media transport controls for headless mode
         // Enable SMTC to show native Windows media controls (taskbar, lock screen, volume flyout)
         var systemMediaControls = mediaPlayer.SystemMediaTransportControls;
         systemMediaControls.IsEnabled = true;
@@ -43,12 +42,10 @@ internal static class WindowsMediaManagerHeadlessInitializer
         systemMediaControls.IsPauseEnabled = true;
         systemMediaControls.IsNextEnabled = true;
         systemMediaControls.IsPreviousEnabled = true;
-        // Enable fast forward and rewind (seek) controls
         systemMediaControls.IsFastForwardEnabled = true;
         systemMediaControls.IsRewindEnabled = true;
         systemMediaControls.PlaybackStatus = MediaPlaybackStatus.Stopped;
 
-        // Set up event handlers for headless mode
         mediaPlayer.PlaybackSession.NaturalVideoSizeChanged += sessionCallbacks.NaturalVideoSizeChanged;
         mediaPlayer.PlaybackSession.PlaybackRateChanged += sessionCallbacks.PlaybackRateChanged;
         mediaPlayer.PlaybackSession.PlaybackStateChanged += sessionCallbacks.PlaybackStateChanged;

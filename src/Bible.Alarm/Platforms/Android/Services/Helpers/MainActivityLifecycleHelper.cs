@@ -153,7 +153,6 @@ public static class MainActivityLifecycleHelper
     /// </summary>
     private static void TearDownWindowSetupService()
     {
-        // Check if MauiAppHolder is still initialized before trying to use it
         if (MauiAppHolder.IsInitialized)
         {
             var serviceProvider = MauiAppHolder.Services;

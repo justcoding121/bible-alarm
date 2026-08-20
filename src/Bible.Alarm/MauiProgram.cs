@@ -79,7 +79,6 @@ public static class MauiProgram
                 Log.Logger.Debug("Font Awesome fonts registered successfully");
             });
 
-        // Register services
 #if DEBUG
         var serviceRegStartTime = System.Diagnostics.Stopwatch.GetTimestamp();
 #endif

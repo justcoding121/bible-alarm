@@ -53,7 +53,6 @@ public partial class NumberOfTrackContainer : ContentView
             return;
         }
 
-        // Handle different container types
         if (view is Layout layout)
         {
             foreach (var child in layout.Children)

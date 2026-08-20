@@ -110,7 +110,6 @@ public sealed partial class ScheduleStateService(ScheduleStateServiceDeps deps) 
 #endif
         }
 
-        // Update database and alarm service
         AlarmSchedule? updatedSchedule = null;
         try
         {

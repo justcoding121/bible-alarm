@@ -19,9 +19,6 @@ using Serilog;
 
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
 
-/// <summary>
-/// Helper class for seeding English content publications.
-/// </summary>
 internal sealed class EnglishContentSeeder
 {
     private readonly IServiceScopeFactory scopeFactory;
@@ -342,12 +339,10 @@ internal sealed class EnglishContentSeeder
 
         var isBible = categoryName.Equals(AppConstants.Media.BiblePublicationCategoryBible, StringComparison.OrdinalIgnoreCase);
         
-        // Data-driven: Check if publication has LanguageId == null (determines if it's instrumental music)
         var publicationWithoutLanguage = await db.BiblePublications
             .AsNoTracking()
             .AnyAsync(bp => bp.PublicationCode == normalizedPublicationCode && bp.LanguageId == null, cancellationToken);
         
-        // Also check PublicationLanguages for entries with LanguageId == null
         if (!publicationWithoutLanguage)
         {
             publicationWithoutLanguage = await db.PublicationLanguages
@@ -381,7 +376,6 @@ internal sealed class EnglishContentSeeder
         var isVideo = req.IsVideo;
         var cancellationToken = req.CancellationToken;
 
-        // Check if this is a drama (uses Mediator API, not GETPUBMEDIALINKS)
         var isDrama = PublicationTypeHelper.IsDrama(normalizedPublicationCode);
         
         if (isDrama)

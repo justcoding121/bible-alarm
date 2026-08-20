@@ -6,9 +6,6 @@ using Serilog;
 
 namespace Bible.Alarm.ViewModels.BiblePublications.BiblePublicationSectionSelectionViewModelHelpers;
 
-/// <summary>
-/// Handles state change logic for BiblePublicationSectionSelectionViewModel.
-/// </summary>
 public class StateChangeHandler
 {
     public sealed record Callbacks(
@@ -60,24 +57,18 @@ public class StateChangeHandler
             return;
         }
 
-        // Check if language or publication code changed (need to repopulate sections)
         var languageChanged = lastLanguageCode != newLanguageCode;
         var publicationCodeChanged = lastPublicationCode != newPublicationCode;
         var needsRepopulation = languageChanged || publicationCodeChanged;
 
-        // If no changes detected and we're already initialized, skip
         if (!needsRepopulation && getInitComplete())
         {
             return;
         }
 
-        // Update tracking variables
         lastLanguageCode = newLanguageCode;
         lastPublicationCode = newPublicationCode;
 
-        // Derive from CurrentSchedule (single source of truth)
-        // currentSchedule is already declared above
-        // Create BiblePublicationSchedule from CurrentSchedule
         var sectionCode = currentSchedule.BiblePublicationSectionCode;
         var newCurrent = new BiblePublicationSchedule
         {
@@ -90,7 +81,6 @@ public class StateChangeHandler
         setCurrent(newCurrent);
         setLastCurrent(newCurrent);
 
-        // If language or publication code changed, repopulate sections
         if (needsRepopulation && getInitComplete())
         {
             Task.Run(async () =>

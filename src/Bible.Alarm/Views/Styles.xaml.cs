@@ -14,9 +14,7 @@ public partial class Styles : ResourceDictionary
     {
         InitializeComponent();
 
-        // Update font size resources with actual scaled values from FontService
-        // This must be done after InitializeComponent() but the resources are already
-        // available for StaticResource bindings to resolve correctly
+        // After InitializeComponent so StaticResource bindings already have placeholders
         UpdateFontSizeResources();
 
         // Subscribe to FontService property changes for instant updates
@@ -44,7 +42,6 @@ public partial class Styles : ResourceDictionary
 
     private void UpdateFontSizeResources()
     {
-        // Get FontService from FontServiceHelper (initialized in MauiProgram)
         var service = fontService ?? FontServiceHelper.GetFontService();
 
         // Calculate font scale factor based on StandardFontSize (which already includes accessibility scaling)

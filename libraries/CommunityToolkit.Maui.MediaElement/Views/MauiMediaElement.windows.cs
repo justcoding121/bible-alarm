@@ -47,7 +47,6 @@ public partial class MauiMediaElement : Grid, IDisposable
     /// </summary>
     public MauiMediaElement()
     {
-        // Headless mode - no MediaPlayerElement needed
         // Windows MediaPlayer can work without a UI element for audio-only playback
         mediaPlayerElement = null;
         customTransportControls = null;
@@ -176,7 +175,6 @@ public partial class MauiMediaElement : Grid, IDisposable
 
             if (mediaPlayerElement.MediaPlayer.Source is WinMediaSource mediaSource)
             {
-                // Dispose the MediaSource to release the resources
                 // https://learn.microsoft.com/en-us/windows/uwp/audio-video-camera/play-audio-and-video-with-mediaplayer Shows how to dispose the MediaSource
                 mediaSource.Dispose();
             }

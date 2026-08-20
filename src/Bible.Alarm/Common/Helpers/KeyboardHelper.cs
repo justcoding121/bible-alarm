@@ -26,7 +26,6 @@ public static class KeyboardHelper
             return;
         }
 
-        // First, unfocus the entry
         entry.Unfocus();
 
 #if ANDROID

@@ -20,8 +20,7 @@ internal static class EnglishTrackParser
     public static List<BiblePublicationTrack> ParseIamTracks(JsonElement filesElement)
     {
         var tracks = new List<BiblePublicationTrack>();
-        
-        // Parse tracks from files.E.MP3
+
         if (filesElement.TryGetProperty(AppConstants.Media.DefaultLanguageCode, out var englishFiles) &&
             englishFiles.TryGetProperty(AppConstants.Media.MediaStreamFormatMp3, out var mp3Files))
         {
@@ -46,8 +45,7 @@ internal static class EnglishTrackParser
         string normalizedLanguageCode)
     {
         var tracks = new List<BiblePublicationTrack>();
-        
-        // Parse tracks from files.{languageCode}.MP3
+
         if (filesElement.TryGetProperty(normalizedLanguageCode, out var languageFiles) &&
             languageFiles.TryGetProperty(AppConstants.Media.MediaStreamFormatMp3, out var mp3Files))
         {
@@ -119,7 +117,6 @@ internal static class EnglishTrackParser
             return null;
         }
 
-        // Get title
         var title = MediaTrackTitleHelper.UnknownTitle;
         if (trackFile.TryGetProperty(AppConstants.Media.PubMediaJson.Title, out var titleElement))
         {

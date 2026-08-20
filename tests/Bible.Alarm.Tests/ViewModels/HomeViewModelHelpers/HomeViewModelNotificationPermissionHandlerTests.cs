@@ -2,8 +2,6 @@
 
 using Bible.Alarm.Stores;
 using Bible.Alarm.Tests.Support;
-
-// MauiUi tests live in nested class below.
 using Bible.Alarm.ViewModels.HomeViewModelHelpers;
 using Fluxor;
 

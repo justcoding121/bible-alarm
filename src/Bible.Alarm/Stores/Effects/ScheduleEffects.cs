@@ -52,7 +52,7 @@ public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optiona
     private readonly IScheduleDisplayNameService scheduleDisplayNameService =
         optionalDeps.ScheduleDisplayNameService ?? ServiceProviderManager.GetService<IScheduleDisplayNameService>()!;
 
-    // Helper classes for modular functionality (lazy: field initializers cannot reference sibling instance fields)
+    // Lazy: field initializers cannot reference sibling instance fields
     private ScheduleUpdateProcessor? _updateProcessor;
     private ScheduleUpdateProcessor updateProcessor =>
         _updateProcessor ??= new ScheduleUpdateProcessor(
@@ -65,7 +65,6 @@ public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optiona
     private TrackSelectionSyncHandler trackSyncHandler =>
         _trackSyncHandler ??= new TrackSelectionSyncHandler(state);
 
-    // Effect handlers - initialized lazily when first accessed
     private ScheduleAddHandler? _addHandler;
     private ScheduleUpdateHandler? _updateHandler;
     private ScheduleCreateHandler? _createHandler;
@@ -135,7 +134,6 @@ public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optiona
                 return Task.CompletedTask;
             }
 
-            // Dispatch success action with schedule ID (reducer will handle this)
             dispatcher.Dispatch(new RemoveScheduleSuccessAction(action.Schedule.Id));
 
             Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleRemoveScheduleDispatchedRemoveScheduleSuccess,
@@ -285,7 +283,6 @@ public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optiona
                 return;
             }
 
-            // Check if music is enabled and has a publication (needs modal counts refresh)
             var musicNeedsModalCounts = currentSchedule.MusicEnabled && 
                                        !string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode) &&
                                        (!currentSchedule.MusicPublicationModalItemCount.HasValue || 
@@ -510,7 +507,6 @@ public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optiona
     {
         try
         {
-            // Only trigger if this is a bible publication update
             if (!action.BiblePublicationUpdated)
             {
                 return;
@@ -555,7 +551,6 @@ public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optiona
     {
         try
         {
-            // Only trigger if this is a music update
             if (!action.MusicUpdated)
             {
                 Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleMusicCascadeSkippingMusicUpdatedFalse, action.Schedule?.Id ?? 0);

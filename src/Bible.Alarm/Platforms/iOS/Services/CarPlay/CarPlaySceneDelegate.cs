@@ -65,7 +65,6 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
                 logger.Debug(AppConstants.Logging.CarPlayDiagnosticsLog.ClearedIsRecentlyConnectedFlag);
             });
 
-            // Create and set the schedule list template
             SetRootTemplate();
 
             var rotationService = ServiceProviderManager.GetService<ICarPlayDefaultScheduleRotationService>();
@@ -199,10 +198,8 @@ public class CarPlaySceneDelegate : UIResponder, ICPTemplateApplicationSceneDele
             listItems.Add(listItem);
         }
 
-        // Create a section with all schedules
         var section = new CPListSection(listItems.ToArray(), AppConstants.CarPlayScheduleList.SectionTitleSchedules, null);
 
-        // Create the list template with title and sections array
         var sections = new CPListSection[] { section };
         var template = new CPListTemplate(AppConstants.AppSettings.ApplicationDisplayName, sections);
 

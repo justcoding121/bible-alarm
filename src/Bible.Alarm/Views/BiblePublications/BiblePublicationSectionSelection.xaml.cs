@@ -70,7 +70,6 @@ public sealed partial class BiblePublicationSectionSelection : BaseContentPage, 
 
         if (disposing)
         {
-            // Cancel and dispose cancellation token source
             try
             {
                 cancellationTokenSource.Cancel();

@@ -27,7 +27,6 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
     private bool isLandscape;
     private bool areLandscapeOverlayControlsVisible = true;
 
-    // Helper classes
     private readonly AlarmViewModalStateUpdater stateUpdater;
     private readonly AlarmViewModalSliderHandler sliderHandler;
     private readonly ArtworkManager artworkManager;
@@ -56,7 +55,6 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
         playbackState = deps.PlaybackState;
         mainThread = deps.MainThreadScheduler;
 
-        // Initialize string fields to avoid nullable warnings
         title = "";
         subTitle = "";
         description = "";
@@ -96,7 +94,6 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
             () => currentDuration,
             SetProgressDirectly,
             () => OnPropertyChanged(nameof(Progress)));
-        // Initialize new helper classes
         artworkManager = new ArtworkManager(logger);
         var positionManager = new PositionManager();
         messageHandler = new MessageHandler(positionManager);
@@ -109,7 +106,6 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
         MessageHandler.RegisterHandlers(this, this);
         WeakReferenceMessenger.Default.Register<BeginStoppingPlaybackMessage>(this);
 
-        // Initialize commands
         DismissCommand = commandInitializer.CreateDismissCommand();
         CancelCommand = AlarmViewModelCommandInitializer.CreateCancelCommand();
         MinimizeCommand = new CommunityToolkit.Mvvm.Input.AsyncRelayCommand(async () =>
@@ -138,7 +134,6 @@ public sealed partial class PlaybackViewModel : ObservableObject, IDisposable, I
         RetryCommand = commandInitializer.CreateRetryCommand(() => playbackState.Value.CurrentScheduleId, () => HasError, busy => IsRetryBusy = busy);
         sliderHandler.SetSeekCommand(SeekCommand);
 
-        // Initialize from current state
         UpdateFromState();
         InitializePositionFromAudioPlayer(deps.AudioPlayer);
         AlarmViewModelAutoDisposeMonitor.Start(playbackState, () => isDisposed, Dispose);

@@ -20,7 +20,6 @@ public sealed class AndroidAccessibilityFontScaleService : IAccessibilityFontSca
 
     public AndroidAccessibilityFontScaleService()
     {
-        // Get initial font scale
         currentFontScale = GetSystemFontScale();
 
         // Listen for configuration changes (includes font scale changes)

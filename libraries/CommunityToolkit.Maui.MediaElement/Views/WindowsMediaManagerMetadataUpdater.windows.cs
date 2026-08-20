@@ -32,7 +32,6 @@ internal static class WindowsMediaManagerMetadataUpdater
             return;
         }
 
-        // Update poster source only if we have a Player (UI mode)
         if (playerElement is not null)
         {
             if (dispatcher.IsDispatchRequired)

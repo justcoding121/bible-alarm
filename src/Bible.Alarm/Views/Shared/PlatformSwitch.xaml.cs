@@ -25,7 +25,6 @@ public partial class PlatformSwitch : ContentView
     {
         InitializeComponent();
 
-        // Set default values for inherited properties
         Scale = 1.0;
         HorizontalOptions = LayoutOptions.End;
 
@@ -72,13 +71,11 @@ public partial class PlatformSwitch : ContentView
         {
             var isToggled = (bool)newValue;
 
-            // Update WinUI Switch
             if (platformSwitch.winUISwitch != null)
             {
                 platformSwitch.winUISwitch.IsToggled = isToggled;
             }
 
-            // Update SfSwitch (Android/iOS)
             if (platformSwitch.sfSwitch != null)
             {
                 platformSwitch.sfSwitch.IsOn = isToggled;

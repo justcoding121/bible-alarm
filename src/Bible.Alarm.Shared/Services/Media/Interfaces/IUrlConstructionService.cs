@@ -17,9 +17,6 @@ public interface IUrlConstructionService
     /// <returns>List of constructed URLs (primary and backup)</returns>
     Task<List<string>> ConstructTrackUrlsAsync(int trackId);
 
-    /// <summary>
-    /// Constructs download URLs for a track by publication code, language code, section code, and track number.
-    /// </summary>
     Task<List<string>> ConstructTrackUrlsAsync(
         string publicationCode,
         string languageCode,

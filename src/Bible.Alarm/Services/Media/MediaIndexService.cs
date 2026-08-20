@@ -356,7 +356,6 @@ public sealed partial class MediaIndexService(
     {
         try
         {
-            // Create a scope to get MediaDbContext
             using var scope = serviceProvider.CreateScope();
             var mediaDbContext = scope.ServiceProvider.GetService<MediaDbContext>();
 

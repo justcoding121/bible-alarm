@@ -36,7 +36,6 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
 {
     private static readonly ILogger logger = Log.ForContext<LegacyMediaBrowserService>();
 
-    // Helper classes
     private readonly MediaSessionInitializer mediaSessionInitializer = new(logger);
     private readonly ClientValidator clientValidator = new(logger);
     private readonly MediaBrowser mediaBrowser = new(logger);
@@ -80,7 +79,6 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             // Set the MediaBrowserService instance so StateSubscriptionManager can call NotifyChildrenChanged
             stateSubscriptionManager.SetMediaBrowserService(this);
 
-            // Initialize state subscription in background
             _ = stateSubscriptionManager.InitializeStateSubscriptionAsync();
 
             var rotationService = ServiceProviderManager.GetService<IAndroidAutoDefaultScheduleRotationService>();

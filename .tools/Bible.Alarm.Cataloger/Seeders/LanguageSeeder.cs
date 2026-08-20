@@ -21,9 +21,9 @@ internal sealed class LanguageSeeder
 {
     private readonly ILogger logger;
     private readonly DownloadUtility downloadUtility;
-    private JsonDocument? languagesCache; // Cache for /en/languages API response
-    private readonly object languagesCacheLock = new object(); // Lock for thread-safe cache access
-    private Task<JsonDocument>? languagesCacheTask; // Task for async-safe cache loading
+    private JsonDocument? languagesCache;
+    private readonly object languagesCacheLock = new object();
+    private Task<JsonDocument>? languagesCacheTask;
 
     public LanguageSeeder(ILogger logger, DownloadUtility downloadUtility)
     {
@@ -36,15 +36,12 @@ internal sealed class LanguageSeeder
     /// </summary>
     public async Task<Language> GetOrCreateLanguageByCode(MediaDbContext db, string code)
     {
-        // Normalize code to uppercase for consistent storage and comparison
         var normalizedCode = code.ToUpperInvariant();
 
-        // Case-insensitive lookup by code only
         var language = await db.Languages.FirstOrDefaultAsync(x =>
             string.Equals(x.LanguageCode, normalizedCode, StringComparison.OrdinalIgnoreCase));
         if (language == null)
         {
-            // Language not found - fetch name and direction from /en/languages API
             var (name, direction) = await FetchLanguageInfoFromJwOrgLanguagesApi(normalizedCode);
             
             language = new Language
@@ -233,10 +230,6 @@ internal sealed class LanguageSeeder
         }
     }
 
-    /// <summary>
-    /// Loads the languages cache from JW.org /en/languages endpoint.
-    /// This method is called once and the result is cached and reused.
-    /// </summary>
     private async Task<JsonDocument> LoadLanguagesCacheAsync()
     {
         logger.Debug("Fetching languages from JW.org /en/languages endpoint for lookup...");

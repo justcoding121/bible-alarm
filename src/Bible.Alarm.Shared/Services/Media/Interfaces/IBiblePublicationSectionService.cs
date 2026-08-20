@@ -7,9 +7,6 @@ using Bible.Alarm.Shared.Models.Media.BiblePublications;
 
 namespace Bible.Alarm.Shared.Services.Media.Interfaces;
 
-/// <summary>
-/// Service for accessing BiblePublicationSection database operations.
-/// </summary>
 public interface IBiblePublicationSectionService : IDisposable
 {
     /// <summary>

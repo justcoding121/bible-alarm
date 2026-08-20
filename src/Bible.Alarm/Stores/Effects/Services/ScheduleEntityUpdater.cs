@@ -140,7 +140,6 @@ public static class ScheduleEntityUpdater
             existing.Music.TrackCode = dbSchedule.Music.TrackCode;
             existing.Music.Repeat = dbSchedule.Music.Repeat;
 
-            // Update Id if it changed
             if (dbSchedule.Music.Id > 0)
             {
                 existing.Music.Id = dbSchedule.Music.Id;

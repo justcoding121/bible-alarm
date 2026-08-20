@@ -13,9 +13,6 @@ using Serilog;
 
 namespace Bible.Alarm.Cataloger.Seeders;
 
-/// <summary>
-/// Helper class for seeding section languages.
-/// </summary>
 internal sealed class SectionLanguageSeeder
 {
     private readonly ILogger logger;
@@ -90,7 +87,6 @@ internal sealed class SectionLanguageSeeder
             BiblePublicationSection? section = null;
             if (englishPublication != null)
             {
-                // Find section by SectionCode
                 section = englishPublication.Sections.FirstOrDefault(s => s.SectionCode == normalizedSectionCode);
                 
                 if (section == null)
@@ -124,7 +120,6 @@ internal sealed class SectionLanguageSeeder
         await db.SaveChangesAsync();
         logger.Debug("Seeded section languages");
 
-        // Seed sections for publications without language (LanguageId == null) - data-driven, not hard-coded
         await SeedSectionsWithoutLanguage(db);
         await db.SaveChangesAsync();
         logger.Information("Seeded section languages for publications without language");
@@ -195,10 +190,8 @@ internal sealed class SectionLanguageSeeder
 
         var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
 
-        // Get or create language
         var language = await languageSeeder.GetOrCreateLanguageByCode(db, normalizedLanguageCode);
-        
-        // Get the PublicationLanguage for this publication and language
+
         // Check both in database and in the current context (uncommitted changes)
         var publicationLanguage = await db.PublicationLanguages
             .FirstOrDefaultAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == language.Id);
@@ -214,8 +207,7 @@ internal sealed class SectionLanguageSeeder
             if (publicationLanguage == null)
             {
                 logger.Warning("PublicationLanguage not found for {PublicationCode} and {LanguageCode}, creating it", publicationCodeForDb, languageCode);
-                
-                // Determine catalog type and category based on publication code
+
                 var catalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
                 var categoryCode = JwSourceHelper.GetCategoryCode(normalizedPublicationCode);
                 
@@ -251,8 +243,8 @@ internal sealed class SectionLanguageSeeder
                 await db.SaveChangesAsync();
             }
         }
-        
-        // Check if already exists (use case-sensitive code for dramas)
+
+        // Use case-sensitive code for dramas
         var exists = await db.SectionLanguages
             .AnyAsync(sl => sl.PublicationCode == publicationCodeForDb && 
                            sl.SectionCode == normalizedSectionCode && 
@@ -278,7 +270,6 @@ internal sealed class SectionLanguageSeeder
     /// </summary>
     private async Task SeedSectionsWithoutLanguage(MediaDbContext db)
     {
-        // Get all publications without language (LanguageId == null) with their sections - data-driven, not hard-coded
         var publicationsWithoutLanguage = await db.BiblePublications
             .AsNoTracking()
             .Include(bp => bp.BiblePublicationCategories)

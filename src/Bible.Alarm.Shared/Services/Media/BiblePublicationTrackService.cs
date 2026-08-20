@@ -15,9 +15,6 @@ using Serilog;
 
 namespace Bible.Alarm.Shared.Services.Media;
 
-/// <summary>
-/// Service for accessing BiblePublicationTrack database operations.
-/// </summary>
 public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFactory, ILogger logger) : IBiblePublicationTrackService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
@@ -129,7 +126,6 @@ public sealed class BiblePublicationTrackService(IServiceScopeFactory scopeFacto
                         ? t.BiblePublicationSectionId == null
                         : t.Section != null && t.Section.SectionCode == sectionCode);
 
-            // Query by TrackCode (string)
             query = query.Where(t => t.TrackCode == trackCode);
 
             return await query.SingleOrDefaultAsync(cancellationToken);

@@ -32,7 +32,6 @@ internal class BibleCataloger : BaseCataloger
         new(PublicationLookupKeyComparers.LanguagePublication.Instance);
 
     /// <summary>
-    /// Gets the localized publication names collected during cataloging.
     /// Key: (languageCode, publicationCode), Value: localized publication name
     /// </summary>
     public IReadOnlyDictionary<(string LanguageCode, string PublicationCode), string> LocalizedPublicationNames => localizedPublicationNames;

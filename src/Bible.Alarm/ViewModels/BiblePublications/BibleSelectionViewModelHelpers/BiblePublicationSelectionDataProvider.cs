@@ -163,7 +163,6 @@ public sealed class BiblePublicationSelectionDataProvider
         var (publicationVMs, newMapping, defaultPublication) =
             await Task.Run(() => BuildPublicationPopulateResultAsync(languageCode, currentCategoryName, downloadAll, progress));
 
-        // Update mapping
         publicationVMsMapping.Clear();
         foreach (var kvp in newMapping)
         {

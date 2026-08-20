@@ -98,28 +98,18 @@ public static class ServiceRegistrationHelper
     /// </summary>
     public static void RegisterServices(IServiceCollection services)
     {
-        // Register HttpMessageHandler (same implementation for all platforms)
         services.AddSingleton<HttpMessageHandler, HttpClientHandler>();
-        
-        // Register HttpClient for LanguageContentService
         services.AddSingleton<System.Net.Http.HttpClient>();
 
-        // Register common services
         RegisterCommonServices(services);
-
-        // Register ViewModels
         RegisterViewModels(services);
-
-        // Register UI components
         RegisterUiComponents(services);
     }
 
     private static void RegisterCommonServices(IServiceCollection services)
     {
-        // Register AutoMapper
         services.AddAutoMapper(cfg => cfg.AddMaps(typeof(ServiceRegistrationHelper).Assembly));
 
-        // Register Fluxor
         services.AddFluxor(options =>
         {
             options.ScanAssemblies(typeof(ServiceRegistrationHelper).Assembly);
@@ -142,13 +132,11 @@ public static class ServiceRegistrationHelper
             ScheduleDisplayNameService: sp.GetService<IScheduleDisplayNameService>()));
         services.AddScoped<Bible.Alarm.Stores.Effects.ScheduleEffects>();
 
-        // Register logging
         services.AddSingleton(_ => Log.Logger);
 
-        // Register thread-safe Preferences service (must be singleton to share lock across all instances)
+        // Must be singleton so all callers share one Preferences lock
         services.AddSingleton<Bible.Alarm.Common.Interfaces.Storage.IThreadSafePreferencesService, Bible.Alarm.Common.Services.Storage.ThreadSafePreferencesService>();
 
-        // Register core services that don't have platform dependencies
         services.AddSingleton<IDownloadService, DownloadService>();
         services.AddSingleton<IMediaIndexVersionService, MediaIndexVersionService>();
         services.AddSingleton<IMediaIndexService, MediaIndexService>();
@@ -273,7 +261,6 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IDefaultDeviceRingtoneService, DefaultDeviceRingtoneServiceNoOp>();
 #endif
 
-        // Register platform-specific accessibility font scale service (required by FontService)
 #if ANDROID
         services.AddSingleton<IAccessibilityFontScaleService, AndroidAccessibilityFontScaleService>();
 #elif IOS
@@ -289,7 +276,6 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IScheduleDatabaseVersionService, ScheduleDatabaseVersionService>();
         services.AddSingleton<IDiskCacheService, DiskCacheService>();
 
-        // Register schedule services
         services.AddSingleton<IScheduleDisplayNameService, ScheduleDisplayNameService>();
         services.AddSingleton<IScheduleSaveService, ScheduleSaveService>();
         services.AddSingleton<IScheduleValidationService, ScheduleValidationService>();
@@ -307,7 +293,6 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IScheduleMediaCacheService, ScheduleMediaCacheService>();
         services.AddSingleton<IScheduleContainerService, ScheduleContainerService>();
 
-        // Register bootstrap services
         services.AddSingleton<IDatabaseBootstrapService, DatabaseBootstrapService>();
         services.AddSingleton<IFluxorBootstrapService, FluxorBootstrapService>();
         services.AddSingleton<IResourceBootstrapService, ResourceBootstrapService>();
@@ -345,7 +330,6 @@ public static class ServiceRegistrationHelper
         // Single version source from Bible.Alarm assembly (ApplicationDisplayVersion in csproj)
         services.AddSingleton<IVersionFinder, AssemblyAppVersionFinder>();
 
-        // Register platform-specific services
 #if ANDROID
         services.AddSingleton<INotificationService, AndroidNotificationService>();
         services.AddSingleton<IToastService, AndroidToastService>();
@@ -356,7 +340,6 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IBatteryOptimizationManager, AndroidBatteryOptimizationManager>();
         services.AddSingleton<IAndroidPlayerNotificationService, AndroidPlayerNotificationService>();
         services.AddSingleton<IAndroidArtworkService, AndroidArtworkService>();
-        // Register global audio focus listener and service as singletons
         services.AddSingleton<IAudioFocusListener, AudioFocusListener>();
         services.AddSingleton<IAudioFocusService, AudioFocusService>();
         // Register MediaSessionCompat using the global helper (thread-safe, prevents duplicates)
@@ -364,9 +347,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton(sp => Platforms.Android.Services.Media.MediaSessionHelper.Create());
         // MediaSessionCallback is created lazily by MediaSessionManager to avoid startup dependency issues
         services.AddSingleton<IMediaSessionManager, MediaSessionManager>();
-        // Register MediaSession effect for Android Auto
         services.AddSingleton<MediaSessionEffect>();
-        // Register global audio focus effect that manages audio focus based on playback state
         services.AddSingleton<AudioFocusEffect>();
         // Default schedule rotation when Android Auto connected and not playing (every 5 min)
         services.AddSingleton<Bible.Alarm.Platforms.Android.Services.AndroidAuto.Interfaces.IAndroidAutoDefaultScheduleRotationService, Bible.Alarm.Platforms.Android.Services.AndroidAuto.AndroidAutoDefaultScheduleRotationService>();
@@ -375,10 +356,8 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IToastService, OsToastService>();
         services.AddSingleton<IStorageService, OsStorageService>();
         services.AddSingleton<IIosAlarmHandler, OsAlarmHandler>();
-        // Register iOS Now Playing and Remote Command services for Lock Screen, Control Center, AirPods, and CarPlay
         services.AddSingleton<IiOSRemoteCommandCenterManager, IOsRemoteCommandCenterManager>();
         services.AddSingleton<IiOSNowPlayingInfoManager, IOsNowPlayingInfoManager>();
-        // Register iOS MediaSession effect for syncing playback state with system media controls
         services.AddSingleton<IOsMediaSessionEffect>();
         // Default schedule rotation when CarPlay connected and not playing (every 5 min)
         services.AddSingleton<Bible.Alarm.Platforms.iOS.Services.CarPlay.Interfaces.ICarPlayDefaultScheduleRotationService, Bible.Alarm.Platforms.iOS.Services.CarPlay.CarPlayDefaultScheduleRotationService>();
@@ -389,15 +368,11 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IToastService, WindowsToastService>();
         services.AddSingleton<IStorageService, WindowsStorageService>();
         services.AddSingleton<IWindowsAlarmHandler, WindowsAlarmHandler>();
-        // Register Windows media toast effect for rich playback notifications
         services.AddSingleton<Platforms.Windows.Effects.WindowsMediaToastEffect>();
-        // Register Windows SMTC service for handling system media transport controls
         services.AddSingleton<IWindowsSmtcService, WindowsSmtcService>();
-        // Register Windows SMTC effect for initializing and updating SMTC
         services.AddSingleton<Platforms.Windows.Effects.WindowsSmtcEffect>();
 #endif
 
-        // Register database contexts
         services.AddDbContext<ScheduleDbContext>((sp, options) =>
         {
             var storageService = sp.GetRequiredService<IStorageService>();
@@ -490,7 +465,6 @@ public static class ServiceRegistrationHelper
         services.AddTransient<ScheduleDetailsContainerViewModel>();
         services.AddTransient<AlarmSettingsContainerViewModel>();
 
-        // Register ScheduleListItem as transient for list items
         services.AddTransient<ScheduleListItemViewModel>(sp => new ScheduleListItemViewModel(new ScheduleListItemViewModelDeps(
             sp.GetRequiredService<ILogger>(),
             sp.GetRequiredService<ISchedulePlaybackService>(),

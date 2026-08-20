@@ -107,8 +107,6 @@ public sealed class LanguageContentService : ILanguageContentService
         return await englishContentSeeder.SeedEnglishPublicationAsync(publicationCode, cancellationToken);
     }
 
-    // Methods moved to EnglishContentSeeder helper class
-
     public async Task<bool> EnsurePublicationExistsAsync(
         string publicationCode,
         string languageCode,
@@ -153,5 +151,4 @@ public sealed class LanguageContentService : ILanguageContentService
         return await firstSectionFetcher.FetchFirstSectionOnlyAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
     }
 
-    // Method moved to VideoLocalizedNameFetcher helper class
 }

@@ -17,7 +17,6 @@ namespace Bible.Alarm.Platforms.Android.Services.Media;
 /// </summary>
 public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidPlayerNotificationService
 {
-    // Helper classes
     private readonly MediaSourceBuilder mediaSourceBuilder = new(logger);
     private readonly PlayerManager playerManager = new(logger);
     private readonly AndroidPlayerNotificationHelpers.MediaSessionManager mediaSessionManager = new(logger);

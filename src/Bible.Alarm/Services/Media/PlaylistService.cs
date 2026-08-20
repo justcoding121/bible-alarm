@@ -41,7 +41,6 @@ public sealed partial class PlaylistService : IPlaylistService
     private readonly PlaylistBiblePublicationTrackBuilder biblePublicationTrackBuilder;
     private readonly PlaylistMusicTrackBuilder musicTrackBuilder;
 
-    // Helper classes
     private readonly TrackChangeDetector trackChangeDetector;
     private readonly TrackNavigator trackNavigator;
     private readonly ScheduleUpdater scheduleUpdater;
@@ -217,7 +216,6 @@ public sealed partial class PlaylistService : IPlaylistService
             effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
         }
 
-        // Update schedule using service
         var updatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
             (int)trackMetadata.ScheduleId,
             schedule => UpdateScheduleForFinishedTrackInternal(schedule, effectiveMetadata, nextTrackInfo),

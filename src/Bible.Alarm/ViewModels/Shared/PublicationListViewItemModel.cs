@@ -51,7 +51,6 @@ public sealed partial class PublicationListViewItemModel(Publication publication
     {
         get
         {
-            // Return empty string if progress is not set (< 0), otherwise return percentage
             if (downloadProgress < 0.0)
             {
                 return string.Empty;

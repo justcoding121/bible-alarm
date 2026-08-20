@@ -42,7 +42,6 @@ internal sealed class SectionFetcher
         var cancellationToken = request.CancellationToken;
         var progress = request.Progress;
 
-        // Use progress token if available, otherwise use provided token
         var effectiveToken = progress?.CancellationToken ?? cancellationToken;
 
         var language = await db.Languages.FirstOrDefaultAsync(l => l.LanguageCode == normalizedLanguageCode, effectiveToken);
@@ -128,7 +127,6 @@ internal sealed class SectionFetcher
         {
             logger.Warning("No sections found for publication {PublicationCode} in language {LanguageCode}",
                 normalizedPublicationCode, normalizedLanguageCode);
-            // Clean up the empty publication
             db.BiblePublications.Remove(publication);
             await SaveChangesWithRetryAsync(db, effectiveToken);
             return false;

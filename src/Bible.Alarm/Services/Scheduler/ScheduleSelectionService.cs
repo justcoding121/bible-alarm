@@ -16,8 +16,7 @@ public sealed partial class ScheduleSelectionService
     /// </summary>
     public AlarmMusic? LoadMusicForSelection(LoadMusicForSelectionArgs args)
     {
-        // Create AlarmMusic from CurrentSchedule properties if we have the required data
-        // This works for both new and existing schedules - CurrentSchedule is the source of truth
+        // CurrentSchedule is the source of truth
         // For new schedules, CurrentSchedule has the music data from when it was created/updated
         // For existing schedules, CurrentSchedule has the music data loaded from AlarmDB on page load
         if (!string.IsNullOrWhiteSpace(args.PublicationCode) && !string.IsNullOrWhiteSpace(args.TrackCode))

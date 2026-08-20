@@ -30,12 +30,11 @@ public static class AndroidAutoScheduleHelper
         {
             logger.Debug(AppConstants.Logging.AndroidAutoScheduleHelperDiagnosticsLog.LoadingSchedulesFromStateForAa);
 
-            // Get state from service provider - schedules are already loaded during bootstrap
+            // Schedules are already loaded during bootstrap
             var state = ServiceProviderManager.GetService<IState<ApplicationState>>();
 
             if (state?.Value?.Schedules != null && state.Value.Schedules.Count > 0)
             {
-                // Return ScheduleStateItem list which includes BiblePublicationLanguageName
                 var scheduleItems = state.Value.Schedules.ToList();
                 logger.Information("Loaded {Count} schedules from state for Android Auto", scheduleItems.Count);
                 return scheduleItems;

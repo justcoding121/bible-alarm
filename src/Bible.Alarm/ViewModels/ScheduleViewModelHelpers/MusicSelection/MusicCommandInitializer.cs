@@ -108,7 +108,6 @@ public sealed class MusicCommandInitializer
 
             setMusic(loadedMusic);
 
-            // Create view model and open modal
             var songPublicationSelectionViewModel = serviceProvider.GetRequiredService<MusicPublicationSelectionViewModel>();
             await navigationService.OpenSongPublicationSelectionModalAsync(songPublicationSelectionViewModel);
 
@@ -143,7 +142,6 @@ public sealed class MusicCommandInitializer
 
             setMusic(loadedMusic);
 
-            // Create dedicated MusicSectionSelectionViewModel for music section selection
             var musicSectionSelectionViewModel = serviceProvider.GetRequiredService<Bible.Alarm.ViewModels.Music.MusicSectionSelectionViewModel>();
             await navigationService.OpenMusicSectionSelectionModalAsync(musicSectionSelectionViewModel);
 
@@ -178,7 +176,6 @@ public sealed class MusicCommandInitializer
 
             setMusic(loadedMusic);
 
-            // Create view model and open modal
             var musicTrackSelectionViewModel = serviceProvider.GetRequiredService<MusicTrackSelectionViewModel>();
             await navigationService.OpenMusicTrackSelectionModalAsync(musicTrackSelectionViewModel);
 
@@ -221,7 +218,6 @@ public sealed class MusicCommandInitializer
                 dispatcher.Dispatch(new MusicSelectionAction(musicStateItem));
             }
 
-            // Create MusicPublicationSelectionViewModel instance to open the language modal
             var musicPublicationSelectionViewModel = serviceProvider.GetRequiredService<MusicPublicationSelectionViewModel>();
 
             // Open the language modal using the MusicPublicationSelectionViewModel

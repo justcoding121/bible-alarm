@@ -37,11 +37,9 @@ public sealed class FetchProgressTracker : IFetchProgress
     {
         try
         {
-            // Clamp progress between 0.0 and 1.0
             var clampedProgress = Math.Max(0.0, Math.Min(1.0, progress));
             updateProgress(clampedProgress);
             
-            // Automatically update text with percentage
             var percent = (int)Math.Round(clampedProgress * 100);
             updateProgressText($"{percent}%");
         }

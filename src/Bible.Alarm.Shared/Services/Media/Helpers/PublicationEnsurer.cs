@@ -17,9 +17,6 @@ using Serilog;
 
 namespace Bible.Alarm.Shared.Services.Media.Helpers;
 
-/// <summary>
-/// Helper class for ensuring publications exist and fetching first publications for languages.
-/// </summary>
 internal sealed class PublicationEnsurer
 {
     private readonly IServiceScopeFactory scopeFactory;
@@ -520,7 +517,6 @@ internal sealed class PublicationEnsurer
         string languageCode,
         CancellationToken cancellationToken = default)
     {
-        // Use the new method that fetches only the first section
         return await languageContentService.FetchFirstSectionOnlyAsync(publicationCode, firstSectionCode, languageCode, cancellationToken);
     }
 }

@@ -71,7 +71,6 @@ public sealed partial class BiblePublicationTrackSelection : BaseContentPage, ID
 
         if (disposing)
         {
-            // Cancel and dispose cancellation token source
             try
             {
                 cancellationTokenSource.Cancel();
@@ -102,7 +101,6 @@ public sealed partial class BiblePublicationTrackSelection : BaseContentPage, ID
             return;
         }
 
-        // Set IsNavigating immediately to show progress indicator
         trackItem.IsNavigating = true;
 
         // Wait 50ms to ensure UI thread renders the update before doing backend work

@@ -34,10 +34,8 @@ public static class AndroidBootstrapHelper
                 e);
         }
 
-        // Create notification channel
         CreateNotificationChannel();
 
-        // Initialize background tasks
         VerifyBackgroundTasks(context);
     }
 

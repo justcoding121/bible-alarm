@@ -132,7 +132,6 @@ public static class LastPlayedMetadataHelper
                 scheduleId = Preferences.Get(LastPlayedScheduleIdKey, -1);
             }
 
-            // Return null if no valid metadata exists
             if (string.IsNullOrEmpty(title) && string.IsNullOrEmpty(artist))
             {
                 return null;

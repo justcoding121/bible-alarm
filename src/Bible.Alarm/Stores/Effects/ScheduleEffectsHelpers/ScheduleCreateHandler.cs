@@ -13,9 +13,6 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 
-/// <summary>
-/// Handles CreateScheduleAction effect logic.
-/// </summary>
 public class ScheduleCreateHandler
 {
     private readonly IMapper mapper;
@@ -58,7 +55,6 @@ public class ScheduleCreateHandler
                 dbSchedule.BiblePublicationSchedule?.PublicationCode ?? "null",
                 dbSchedule.BiblePublicationSchedule?.LanguageCode ?? "null");
 
-            // Set ID to 0 for new schedule (EF Core will generate it)
             dbSchedule.Id = 0;
 
             // Save to database on background thread to avoid blocking UI
@@ -71,7 +67,6 @@ public class ScheduleCreateHandler
 
             Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleSavedToDb, savedSchedule.Id);
 
-            // Create alarm if enabled (on background thread)
             if (savedSchedule.IsEnabled && alarmService != null)
             {
                 await Task.Run(() => alarmService.Create(savedSchedule));
@@ -86,7 +81,6 @@ public class ScheduleCreateHandler
             // Populate display names from media index (single-schedule hydration).
             await scheduleDisplayNameService.PopulateDisplayNamesAsync(scheduleStateItem, savedSchedule);
 
-            // Dispatch success action with DTO (display names preserved from state)
             dispatcher.Dispatch(new CreateScheduleSuccessAction(scheduleStateItem));
 
             Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleCreateScheduleDispatchedCreateScheduleSuccessAction,

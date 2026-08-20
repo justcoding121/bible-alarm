@@ -366,7 +366,6 @@ public class MediaSessionEffect(
             logger.Debug("HandleSetDefaultScheduleMetadata: Updating MediaSession with default schedule - ScheduleId={ScheduleId}, Title={Title}, Artist={Artist}",
                 action.ScheduleId, action.Title, action.Artist);
 
-            // Update metadata using MediaSessionManager
             mediaSessionManager.UpdateMetadata(
                 action.Title,
                 action.Artist,
@@ -374,7 +373,6 @@ public class MediaSessionEffect(
                 action.ScheduleId,
                 action.ArtworkUrl);
 
-            // Set to stopped state (idle, ready to play)
             mediaSessionManager.UpdatePlaybackStateForStop();
 
             // Persist this schedule as "last shown" for 5-minute rotation so the next rotation shows the next schedule

@@ -36,9 +36,6 @@ public sealed record ScheduleCommandExecutorUiHooks(
     Action<bool>? SetIsSaveBusy,
     Action<bool>? SetIsDeleteBusy);
 
-/// <summary>
-/// Handles command execution for ScheduleViewModel.
-/// </summary>
 public sealed class ScheduleCommandExecutor
 {
     private readonly ILogger logger;
@@ -90,10 +87,9 @@ public sealed class ScheduleCommandExecutor
 
     private async Task ExecuteCancelCommand()
     {
-        // Set IsCancelBusy immediately to show loading indicator
         setIsCancelBusy?.Invoke(true);
         
-        // Wait 50ms to ensure UI thread renders the update before doing backend work
+        // Wait 50ms so the UI thread renders the busy indicator before backend work
         await Task.Delay(50);
 
         try
@@ -104,7 +100,6 @@ public sealed class ScheduleCommandExecutor
         }
         finally
         {
-            // Reset IsCancelBusy after operation completes
             setIsCancelBusy?.Invoke(false);
         }
     }
@@ -114,7 +109,6 @@ public sealed class ScheduleCommandExecutor
         logger.Information("SaveCommand: Save button clicked. IsNewSchedule={IsNewSchedule}, ScheduleId={ScheduleId}, Name={Name}",
             IsNewSchedule(), GetScheduleId(), GetName());
 
-        // Set IsSaveBusy immediately to show loading indicator
         setIsSaveBusy?.Invoke(true);
         setIsSaving?.Invoke(true);
         
@@ -269,7 +263,6 @@ public sealed class ScheduleCommandExecutor
             return;
         }
 
-        // Set IsDeleteBusy immediately to show loading indicator
         setIsDeleteBusy?.Invoke(true);
         setIsSaving?.Invoke(true);
         
@@ -312,7 +305,6 @@ public sealed class ScheduleCommandExecutor
         }
     }
 
-    // Helper methods for accessing state
     private int GetScheduleId() => state.Value.CurrentSchedule?.Id ?? -1;
 
     private static int GetScheduleId(ScheduleStateItem? schedule) => schedule?.Id ?? -1;
@@ -325,7 +317,6 @@ public sealed class ScheduleCommandExecutor
 
     private bool DetectMusicChanges()
     {
-        // Check if music was updated via MusicSelectionContainerViewModel
         var musicContainer = getMusicSelectionContainerViewModel();
         if (musicContainer != null)
         {

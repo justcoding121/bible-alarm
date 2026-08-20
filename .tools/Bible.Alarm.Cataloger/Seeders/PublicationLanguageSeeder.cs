@@ -14,9 +14,6 @@ using Serilog;
 
 namespace Bible.Alarm.Cataloger.Seeders;
 
-/// <summary>
-/// Helper class for seeding publication languages.
-/// </summary>
 internal sealed class PublicationLanguageSeeder
 {
     private readonly ILogger logger;
@@ -32,10 +29,8 @@ internal sealed class PublicationLanguageSeeder
 
     public async Task SeedPublicationLanguages(MediaDbContext db)
     {
-        // Get all distinct languages discovered across all publications
         var allDiscoveredLanguageCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        
-        // Add all languages from PublicationLanguages
+
         foreach (var (_, languages) in dataStore.PublicationLanguages)
         {
             foreach (var languageCode in languages.Keys)
@@ -44,7 +39,6 @@ internal sealed class PublicationLanguageSeeder
             }
         }
 
-        // Add all languages from SectionLanguages
         foreach (var ((_, _), languages) in dataStore.SectionLanguages)
         {
             foreach (var languageCode in languages.Keys)
@@ -56,24 +50,19 @@ internal sealed class PublicationLanguageSeeder
         // Always include English (E) since we seed it
         allDiscoveredLanguageCodes.Add(AppConstants.Media.DefaultLanguageCode);
 
-        // Get or create all discovered languages
         foreach (var languageCode in allDiscoveredLanguageCodes)
         {
             await languageSeeder.GetOrCreateLanguageByCode(db, languageCode);
         }
 
-        // First, always seed E for all English publications
         await SeedEnglishForAllPublications(db);
         // Save E entries first to avoid duplicates
         await db.SaveChangesAsync();
 
-        // Seed publications without language (LanguageId == null) - data-driven, not hard-coded
-        // These are publications like "iam" (instrumental music) that don't have a language
+        // These are publications like "iam" (instrumental music) that don't have a language (data-driven, not hard-coded)
         await SeedPublicationsWithoutLanguage(db);
-        // Save entries without language
         await db.SaveChangesAsync();
 
-        // Seed publication languages
         if (dataStore.PublicationLanguages.IsEmpty)
         {
             logger.Information("Seeded English (E) for all publications and publications without language");
@@ -101,7 +90,6 @@ internal sealed class PublicationLanguageSeeder
         var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var publicationCodeForDb = JwSourceHelper.GetCanonicalMediatorPublicationCode(normalizedPublicationCode) ?? normalizedPublicationCode;
 
-        // Get or create language
         var language = await languageSeeder.GetOrCreateLanguageByCode(db, normalizedLanguageCode);
         var key = (publicationCodeForDb, (int?)language.Id);
 
@@ -110,7 +98,6 @@ internal sealed class PublicationLanguageSeeder
             return;
         }
 
-        // Determine catalog type and category based on publication code
         var catalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
         var categoryCode = JwSourceHelper.GetCategoryCode(normalizedPublicationCode);
 
@@ -220,7 +207,6 @@ internal sealed class PublicationLanguageSeeder
 
     private async Task SeedEnglishForAllPublications(MediaDbContext db)
     {
-        // Get all English publications
         var englishPublications = await db.BiblePublications
             .Include(bp => bp.Language)
             .Where(bp => bp.Language != null && bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode)
@@ -362,7 +348,6 @@ internal sealed class PublicationLanguageSeeder
     /// </summary>
     private async Task SeedPublicationsWithoutLanguage(MediaDbContext db)
     {
-        // Get all publications without language (LanguageId == null) - data-driven, not hard-coded
         var publicationsWithoutLanguage = await db.BiblePublications
             .AsNoTracking()
             .Include(bp => bp.BiblePublicationCategories)
@@ -406,10 +391,8 @@ internal sealed class PublicationLanguageSeeder
             publicationCodeForDb = normalizedPublicationCode;
         }
 
-        // Determine catalog type based on publication code
         var catalogType = PublicationTypeHelper.GetCatalogType(normalizedPublicationCode);
 
-        // Check if already exists (with LanguageId == null)
         var exists = await db.PublicationLanguages
             .AnyAsync(pl => pl.PublicationCode == publicationCodeForDb && pl.LanguageId == null);
 

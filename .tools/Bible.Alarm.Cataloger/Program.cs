@@ -28,10 +28,6 @@ namespace Bible.Alarm.Cataloger;
 
 public static class Program
 {
-
-    // Bible publication codes to catalog (from centralized JwSourceHelper)
-
-
     public static async Task<int> Main(string[] args)
     {
         var logging = ResolveLoggingFlags(args);

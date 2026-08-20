@@ -34,7 +34,6 @@ public class VersionPatchingServiceTests
     [Fact]
     public async Task PatchAsync_WhenNoPlatformFilter_ShouldCallAllPatchers()
     {
-        // Arrange
         androidPatcherMock.Setup(x => x.PlatformName).Returns("Android");
         iosPatcherMock.Setup(x => x.PlatformName).Returns("iOS");
         windowsPatcherMock.Setup(x => x.PlatformName).Returns("Windows");
@@ -43,10 +42,8 @@ public class VersionPatchingServiceTests
         iosPatcherMock.Setup(x => x.PatchVersionAsync()).Returns(Task.CompletedTask);
         windowsPatcherMock.Setup(x => x.PatchVersionAsync()).Returns(Task.CompletedTask);
 
-        // Act
         await service.PatchAsync(null);
 
-        // Assert
         androidPatcherMock.Verify(x => x.PatchVersionAsync(), Times.Once);
         iosPatcherMock.Verify(x => x.PatchVersionAsync(), Times.Once);
         windowsPatcherMock.Verify(x => x.PatchVersionAsync(), Times.Once);
@@ -55,7 +52,6 @@ public class VersionPatchingServiceTests
     [Fact]
     public async Task PatchAsync_WhenOnePatcherFails_ShouldThrowException()
     {
-        // Arrange
         androidPatcherMock.Setup(x => x.PlatformName).Returns("Android");
         iosPatcherMock.Setup(x => x.PlatformName).Returns("iOS");
         windowsPatcherMock.Setup(x => x.PlatformName).Returns("Windows");
@@ -64,7 +60,6 @@ public class VersionPatchingServiceTests
         iosPatcherMock.Setup(x => x.PatchVersionAsync()).ThrowsAsync(new Exception("iOS patcher failed"));
         windowsPatcherMock.Setup(x => x.PatchVersionAsync()).Returns(Task.CompletedTask);
 
-        // Act & Assert
         var action = () => service.PatchAsync(null);
         await action.Should().ThrowAsync<Exception>().WithMessage("iOS patcher failed");
     }
@@ -72,14 +67,11 @@ public class VersionPatchingServiceTests
     [Fact]
     public async Task PatchAsync_WithEmptyPatchersList_ShouldCompleteSuccessfully()
     {
-        // Arrange
         var emptyPatchers = new List<IPlatformVersionPatcher>();
         var service = new VersionPatchingService(emptyPatchers);
 
-        // Act
         var act = async () => await service.PatchAsync(null);
 
-        // Assert - Should complete without throwing
         await act.Should().NotThrowAsync();
     }
 }

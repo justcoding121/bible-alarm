@@ -95,7 +95,6 @@ public sealed class NavigationInstanceManager(ILogger logger)
             var window = app.Windows[0];
             logger.Debug("Window found. Page type: {PageType}", window?.Page?.GetType().Name ?? "null");
 
-            // Check if window.Page is NavigationPage
             if (window?.Page is NavigationPage navPage)
             {
                 logger.Debug("Found NavigationPage in window.Page");

@@ -14,10 +14,6 @@ using Serilog;
 
 namespace Bible.Alarm.Shared.Services.Schedule;
 
-/// <summary>
-/// Service for interacting with BiblePublicationSchedule database operations.
-/// Abstracts database access from other services.
-/// </summary>
 public sealed class BiblePublicationScheduleService(IServiceScopeFactory scopeFactory, ILogger logger) : IBiblePublicationScheduleService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));

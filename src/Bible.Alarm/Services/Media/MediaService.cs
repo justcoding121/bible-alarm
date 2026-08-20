@@ -193,17 +193,12 @@ public sealed partial class MediaService(MediaServiceDependencies dependencies)
     {
         await mediaIndexService.Verify();
         
-        // Check if publication has LanguageId == null (publications without language)
-        // If so, use GetSectionsForPublicationWithoutLanguage which handles publications without language
         if (await IsPublicationWithoutLanguageAsync(versionCode))
         {
-            // Publication has LanguageId == null - use GetSectionsForPublicationWithoutLanguage which handles this case
             Log.Debug(AppConstants.Logging.MediaServiceDiagnosticsLog.PublicationHasNullLanguageUsingSectionsWithoutLanguage, versionCode);
             return await GetSectionsForPublicationWithoutLanguage(versionCode);
         }
         
-        // Publication has a language - use standard query
-        // First, try to get sections from database
         var sections = await biblePublicationSectionService.GetSectionsByPublicationAsync(
             languageCode, versionCode, cancellationTokenSource.Token);
         
@@ -222,13 +217,12 @@ public sealed partial class MediaService(MediaServiceDependencies dependencies)
             
             try
             {
-                // Ensure all sections are downloaded (without tracks - tracks are fetched when section is selected)
+                // Without tracks — tracks are fetched when a section is selected
                 var fetchSuccess = await languageContentService.EnsureAllSectionsForPublicationAsync(
                     versionCode, languageCode, progress, cancellationTokenSource.Token);
                 
                 if (fetchSuccess)
                 {
-                    // Re-query database to get all sections (including newly fetched ones)
                     sections = await biblePublicationSectionService.GetSectionsByPublicationAsync(
                         languageCode, versionCode, cancellationTokenSource.Token);
                     
@@ -262,7 +256,6 @@ public sealed partial class MediaService(MediaServiceDependencies dependencies)
     {
         await mediaIndexService.Verify();
         
-        // First, try to get sections from database
         var sections = await biblePublicationSectionService.GetSectionsByPublicationWithoutLanguageAsync(publicationCode, cancellationTokenSource.Token);
         
         // If no sections found, the publication might not be cataloged yet
@@ -289,16 +282,12 @@ public sealed partial class MediaService(MediaServiceDependencies dependencies)
     {
         await mediaIndexService.Verify();
         
-        // Check if publication has LanguageId == null (publications without language)
-        // If so, query tracks directly from database without language code
         if (await IsPublicationWithoutLanguageAsync(versionCode))
         {
-            // Publication has LanguageId == null - query tracks directly from database
             Log.Debug(AppConstants.Logging.MediaServiceDiagnosticsLog.PublicationHasNullLanguageQueryingTracksDirectly, versionCode);
             return await GetTracksForPublicationWithoutLanguage(versionCode, sectionCode);
         }
         
-        // Publication has a language - use standard query
         return await biblePublicationTrackService.GetTracksBySectionAsync(languageCode, versionCode, sectionCode, cancellationTokenSource.Token);
     }
     
@@ -455,7 +444,6 @@ public sealed partial class MediaService(MediaServiceDependencies dependencies)
 
         isDisposed = true;
 
-        // Cancel and dispose cancellation token source
         try
         {
             cancellationTokenSource.Cancel();

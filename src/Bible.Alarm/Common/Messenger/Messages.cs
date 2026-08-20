@@ -2,7 +2,6 @@
 
 namespace Bible.Alarm.Common.Messenger;
 
-// Message classes for WeakReferenceMessenger
 /// <summary>
 /// App initialization message. Sent after bootstrap completes to trigger navigation to Home page.
 /// </summary>

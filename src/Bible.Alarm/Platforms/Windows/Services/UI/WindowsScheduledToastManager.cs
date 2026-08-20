@@ -12,8 +12,7 @@ internal static class WindowsScheduledToastManager
 {
     internal static bool IsNotificationScheduled(ToastNotifier notifier, int scheduleId)
     {
-        // Check if any notification exists for this schedule
-        // Notification IDs are in format: "{scheduleId}_{hash}" (max 16 characters total)
+        // Notification IDs are "{scheduleId}_{hash}" (Windows 16-character limit)
         var scheduledToasts = notifier.GetScheduledToastNotifications();
         return scheduledToasts.Any(toast => ScheduledToastNotificationIdMatcher.MatchesSchedule(scheduleId, toast.Id));
     }

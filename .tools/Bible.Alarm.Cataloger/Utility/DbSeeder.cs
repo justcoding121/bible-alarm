@@ -58,8 +58,7 @@ internal class DbSeeder : IDataPersister
         this.dataStore = new InMemoryDataStore();
         this.isTestRun = isTestRun;
         this.failedListPath = failedListPath ?? Path.Combine(Path.GetTempPath(), AppConstants.FilePaths.CatalogerTempFailedListFallbackFileName);
-        
-        // Initialize helper classes
+
         this.languageSeeder = new LanguageSeeder(logger, downloadUtility);
         this.categorySeeder = new CategorySeeder(logger);
         this.publicationLanguageSeeder = new PublicationLanguageSeeder(logger, dataStore, languageSeeder);
@@ -83,8 +82,7 @@ internal class DbSeeder : IDataPersister
             {
                 // MigrateAsync will create the database if it doesn't exist
                 await db.Database.MigrateAsync();
-                
-                // Verify the database was created and migrations were applied
+
                 var pendingMigrations = await db.Database.GetPendingMigrationsAsync();
                 if (pendingMigrations.Any())
                 {
@@ -93,8 +91,7 @@ internal class DbSeeder : IDataPersister
                 
                 var appliedMigrations = await db.Database.GetAppliedMigrationsAsync();
                 logger.Information("Applied {Count} migrations successfully", appliedMigrations.Count());
-                
-                // Verify that Categories table exists
+
                 var canConnect = await db.Database.CanConnectAsync();
                 if (!canConnect)
                 {
@@ -113,24 +110,21 @@ internal class DbSeeder : IDataPersister
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
             await categorySeeder.SeedDefaultCategoriesAndApiUrls(db);
         }
-        
-        // Seed ALL languages from jw.org /en/languages API to Languages table
+
         using (var scope = scopeFactory.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
             await languageSeeder.SeedAllLanguagesFromJwOrg(db);
         }
-        
-        // Seed discovered languages for on-demand fetching (discovery tables)
-        // Note: Only seed PublicationLanguages here - SectionLanguages needs English publications to exist first
+
+        // Only seed PublicationLanguages here — SectionLanguages needs English publications to exist first
         using (var scope = scopeFactory.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
             await publicationLanguageSeeder.SeedPublicationLanguages(db);
         }
         
-        // Seed MelodyMusic publications (instrumental music without language)
-        // This must happen before SeedEnglish() because SeedEnglish() skips publications with LanguageId == null
+        // Must happen before SeedEnglish() because SeedEnglish() skips publications with LanguageId == null
         await melodyMusicSeeder.SeedMelodyMusic();
 
         // Pre-seed SectionLanguages for IssueSectioned (magazine) publications before English seeding.
@@ -169,8 +163,7 @@ internal class DbSeeder : IDataPersister
             await db.SaveChangesAsync();
         }
         await spanishSeeder.SeedSpanishAsync();
-        
-        // In test mode, also seed MY and A after English
+
         if (isTestRun)
         {
             await testModeSeeder.SeedTestLanguages();
@@ -304,8 +297,6 @@ internal class DbSeeder : IDataPersister
         }
         return Task.CompletedTask;
     }
-
-    // Methods moved to PublicationLanguageSeeder helper class
 
     public async Task TestOnDemandFetching()
     {

@@ -17,9 +17,6 @@ using Serilog;
 
 namespace Bible.Alarm.Shared.Services.Media;
 
-/// <summary>
-/// Service for accessing BiblePublication database operations.
-/// </summary>
 public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, ILogger logger) : IBiblePublicationService
 {
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
@@ -168,7 +165,6 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
         var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
         // Load publication with only non-sectioned tracks (tracks directly under publication, not under a section)
-        // Include TrackUrl for CDN URL resolution
         var publication = await dbContext.BiblePublications
             .AsNoTracking()
             .Include(x => x.BiblePublicationCategories)
@@ -383,7 +379,6 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 .Include(x => x.Category)
                 .Where(x => (x.Language != null && x.Language.LanguageCode == normalizedLanguageCode) || x.LanguageId == null);
 
-            // Filter by category if provided (categoryName is CategoryCode)
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 query = query.Where(x => x.Category != null && x.Category.CategoryCode == categoryName);
@@ -436,7 +431,6 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
                 .Include(x => x.Category)
                 .Where(x => (x.Language != null && x.Language.LanguageCode == normalizedLanguageCode) || x.LanguageId == null);
 
-            // Filter by category if provided (categoryName is CategoryCode)
             if (!string.IsNullOrWhiteSpace(categoryName))
             {
                 query = query.Where(x => x.Category != null && x.Category.CategoryCode == categoryName);

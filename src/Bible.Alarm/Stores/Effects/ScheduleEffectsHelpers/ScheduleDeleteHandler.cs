@@ -15,9 +15,6 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 
-/// <summary>
-/// Handles DeleteScheduleAction effect logic.
-/// </summary>
 public class ScheduleDeleteHandler
 {
     private readonly IMapper mapper;
@@ -78,7 +75,6 @@ public class ScheduleDeleteHandler
             if (allSchedules.Count <= 1)
             {
                 Log.Warning(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleCannotDeleteLastSchedule, action.ScheduleId);
-                // Show toast message to user
                 WeakReferenceMessenger.Default.Send(new ShowToastMessage("Cannot delete last schedule"));
 
                 // Load the schedule from DB to restore it in the reducer (on background thread)
@@ -111,19 +107,16 @@ public class ScheduleDeleteHandler
                 return;
             }
 
-            // Delete cached media files for this schedule (on background thread)
             if (mediaCacheService != null)
             {
                 await Task.Run(async () => await mediaCacheService.DeleteScheduleCacheAsync(action.ScheduleId));
             }
 
-            // Delete alarm notification (on background thread)
             if (alarmService != null)
             {
                 await alarmService.Delete(action.ScheduleId);
             }
 
-            // Delete from database (on background thread)
             await Task.Run(async () =>
                 await alarmScheduleService.DeleteScheduleAsync(action.ScheduleId, CancellationToken.None));
 
@@ -131,7 +124,6 @@ public class ScheduleDeleteHandler
 
             WeakReferenceMessenger.Default.Send(new ShowToastMessage("Schedule removed"));
 
-            // Dispatch success action with schedule ID
             dispatcher.Dispatch(new RemoveScheduleSuccessAction(action.ScheduleId));
 
             Log.Information(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleDeleteScheduleDispatchedRemoveScheduleSuccessAction,

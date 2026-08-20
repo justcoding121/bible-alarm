@@ -54,7 +54,6 @@ public static class NotificationPermissionHelper
         var sdkInt = Build.VERSION.SdkInt;
         logger.Debug("RequestNotificationPermissionIfNeededAsync - Android SDK: {SdkInt}", sdkInt);
 
-        // Check if already granted
         if (IsNotificationPermissionGranted())
         {
             logger.Information("Notification permission already granted - no request needed");

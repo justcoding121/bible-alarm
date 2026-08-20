@@ -33,7 +33,6 @@ public sealed partial class ScheduleListItemViewModel : ObservableObject, ICompa
     private readonly IState<PlaybackState> playbackState;
     private readonly IDispatcher dispatcher;
 
-    // Helper classes
     private readonly ScheduleListItemInitializer initializer;
     private readonly ScheduleListItemStateHandler stateHandler;
     private readonly ScheduleListItemSubtitleManager subtitleManager;

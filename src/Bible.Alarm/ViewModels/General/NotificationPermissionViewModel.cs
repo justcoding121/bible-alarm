@@ -446,7 +446,6 @@ public sealed partial class NotificationPermissionViewModel : ObservableObject, 
     {
         try
         {
-            // Get the Home page from navigation service
             var homePage = navigationService.GetCurrentHomePage();
             if (homePage?.BindingContext is HomeViewModel homeViewModel)
             {

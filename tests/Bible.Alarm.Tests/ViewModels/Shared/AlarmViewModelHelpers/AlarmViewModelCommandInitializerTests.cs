@@ -214,7 +214,7 @@ public sealed class AlarmViewModelCommandInitializerTests
     {
         var cmd = AlarmViewModelCommandInitializer.CreateCancelCommand();
         Assert.True(cmd.CanExecute(null));
-        cmd.Execute(null); // does not throw
+        cmd.Execute(null);
     }
 
     [Fact]
