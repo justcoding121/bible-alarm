@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -133,149 +132,29 @@ internal sealed class MusicPublicationFetchCoordinator
         progress?.SetIsVisible(true);
         progress?.UpdateProgress(0.0);
 
-        var retryDelay = 1000;
-        var allCataloged = false;
-        var attempt = 0;
-        Dictionary<string, BiblePublication>? publicationsData = null;
-
+        CatalogRetryLoopResult<Dictionary<string, BiblePublication>> loopOutcome;
         try
         {
-            var loopOutcome = await RunMusicPublicationCatalogRetryLoopAsync(languageCode, progress, retryDelay, cancellationToken);
-            publicationsData = loopOutcome.PublicationsData;
-            allCataloged = loopOutcome.AllCataloged;
-            attempt = loopOutcome.Attempt;
+            loopOutcome = await CatalogRetryLoop.RunAsync(
+                ctx => RunMusicPublicationRetryIterationAsync(languageCode, progress, ctx),
+                (ex, attempt) => Serilog.Log.Warning(ex, AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptFailedWillRetry,
+                    attempt, languageCode),
+                cancellationToken);
         }
         finally
         {
             progress?.SetIsVisible(false);
         }
 
-        if (!allCataloged)
+        if (!loopOutcome.AllCataloged)
         {
             Serilog.Log.Warning(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.TimeoutAfterAttemptsWaitingForCatalog,
-                attempt, languageCode);
+                loopOutcome.Attempt, languageCode);
 
-            publicationsData = await TryRecoverMusicPublicationsAfterCatalogRetryTimeoutAsync(languageCode, progress, publicationsData);
+            return await TryRecoverMusicPublicationsAfterCatalogRetryTimeoutAsync(languageCode, progress, loopOutcome.Data);
         }
 
-        return publicationsData;
-    }
-
-    private sealed class MusicPublicationCatalogRetryLoopOutcome
-    {
-        public bool AllCataloged { get; init; }
-        public int Attempt { get; init; }
-        public Dictionary<string, BiblePublication>? PublicationsData { get; init; }
-    }
-
-    private async Task<MusicPublicationCatalogRetryLoopOutcome> RunMusicPublicationCatalogRetryLoopAsync(
-        string languageCode,
-        IFetchProgress? progress,
-        int retryDelay,
-        CancellationToken cancellationToken)
-    {
-        const int maxRetries = 10;
-        var maxWaitTime = TimeSpan.FromSeconds(60);
-        var startTime = DateTime.UtcNow;
-        var allCataloged = false;
-        var attempt = 0;
-        var previousCatalogedCount = -1;
-        Dictionary<string, BiblePublication>? publicationsData = null;
-
-        while (!allCataloged && attempt < maxRetries && (DateTime.UtcNow - startTime) < maxWaitTime)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            attempt++;
-
-            try
-            {
-                var outcome =
-                    await RunMusicPublicationRetryIterationAsync(languageCode, progress, attempt,
-                        retryDelay, previousCatalogedCount, cancellationToken);
-
-                var applied = ApplyMusicPublicationCatalogIterationOutcome(
-                    outcome,
-                    previousCatalogedCount,
-                    languageCode,
-                    attempt);
-                publicationsData = applied.PublicationsData;
-                allCataloged = applied.AllCataloged;
-                previousCatalogedCount = applied.PreviousCatalogedCount;
-                if (applied.ShouldBreak)
-                {
-                    break;
-                }
-            }
-            catch (Exception ex)
-            {
-                await HandleMusicPublicationCatalogRetryExceptionAsync(
-                    ex, attempt, languageCode, retryDelay, cancellationToken);
-            }
-        }
-
-        return new MusicPublicationCatalogRetryLoopOutcome
-        {
-            AllCataloged = allCataloged,
-            Attempt = attempt,
-            PublicationsData = publicationsData
-        };
-    }
-
-    private sealed record CatalogIterationApplyOutcome(
-        Dictionary<string, BiblePublication>? PublicationsData,
-        bool AllCataloged,
-        int PreviousCatalogedCount,
-        bool ShouldBreak);
-
-    private static CatalogIterationApplyOutcome ApplyMusicPublicationCatalogIterationOutcome(
-        MusicPublicationRetryIterationOutcome outcome,
-        int previousCatalogedCount,
-        string languageCode,
-        int attempt)
-    {
-        var publicationsData = outcome.NextSnapshot;
-        if (outcome.Completed)
-        {
-            if (outcome.LogSuccess)
-            {
-                Serilog.Log.Information(
-                    AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedPublicationsCatalogedOnAttempt,
-                    outcome.ExpectedCount, attempt, languageCode);
-            }
-
-            return new CatalogIterationApplyOutcome(publicationsData, AllCataloged: true, previousCatalogedCount, ShouldBreak: false);
-        }
-
-        if (outcome.BreakRetries)
-        {
-            return new CatalogIterationApplyOutcome(publicationsData, AllCataloged: false, previousCatalogedCount, ShouldBreak: true);
-        }
-
-        return new CatalogIterationApplyOutcome(
-            publicationsData,
-            AllCataloged: false,
-            outcome.UpdatedCatalogedCount,
-            ShouldBreak: false);
-    }
-
-    private static async Task HandleMusicPublicationCatalogRetryExceptionAsync(
-        Exception ex,
-        int attempt,
-        string languageCode,
-        int retryDelay,
-        CancellationToken cancellationToken)
-    {
-        if (NetworkExceptionHelper.ShouldRethrowFromCatalogRetryLoop(ex))
-        {
-            ExceptionDispatchInfo.Capture(ex).Throw();
-        }
-
-        Serilog.Log.Warning(ex, AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptFailedWillRetry,
-            attempt, languageCode);
-
-        var delay = Math.Min(retryDelay * attempt, 5000);
-        await Task.Delay(delay, cancellationToken);
+        return loopOutcome.Data;
     }
 
     private async Task<Dictionary<string, BiblePublication>?> TryRecoverMusicPublicationsAfterCatalogRetryTimeoutAsync(
@@ -302,19 +181,16 @@ internal sealed class MusicPublicationFetchCoordinator
         }
     }
 
-    private async Task<MusicPublicationRetryIterationOutcome> RunMusicPublicationRetryIterationAsync(
+    private async Task<CatalogRetryIterationResult<Dictionary<string, BiblePublication>>> RunMusicPublicationRetryIterationAsync(
         string languageCode,
         IFetchProgress? progress,
-        int attempt,
-        int retryDelayBase,
-        int previousCatalogedCount,
-        CancellationToken cancellationToken)
+        CatalogRetryIterationContext context)
     {
         var fetchedWithProgress =
             await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic,
                 downloadAll: true, progress, requireIsMusicForMusicCategory: true);
 
-        await Task.Delay(500, cancellationToken);
+        await Task.Delay(500, context.CancellationToken);
 
         var reQueriedData =
             await mediaService.GetBiblePublications(languageCode, AppConstants.Media.BiblePublicationCategoryMusic,
@@ -329,25 +205,27 @@ internal sealed class MusicPublicationFetchCoordinator
 
         if (retryAllCataloged)
         {
-            return MusicPublicationRetryIterationOutcome.ForSuccess(reQueriedData!, retryExpectedCount);
+            Serilog.Log.Information(
+                AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AllExpectedPublicationsCatalogedOnAttempt,
+                retryExpectedCount, context.Attempt, languageCode);
+            return CatalogRetryIterationResult<Dictionary<string, BiblePublication>>.Success(reQueriedData!);
         }
 
         var currentCatalogedCount = CountCatalogedPublications(reQueriedData);
 
-        if (currentCatalogedCount > 0 && currentCatalogedCount <= previousCatalogedCount)
+        if (currentCatalogedCount > 0 && currentCatalogedCount <= context.PreviousCatalogedCount)
         {
             Serilog.Log.Information(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.NoProgressBetweenRetriesStopping,
                 currentCatalogedCount, retryExpectedCount, languageCode);
-            return MusicPublicationRetryIterationOutcome.ForStagnation(reQueriedData);
+            return CatalogRetryIterationResult<Dictionary<string, BiblePublication>>.Stagnation(reQueriedData);
         }
 
-        LogMusicPublicationRetryDiagnostics(attempt, reQueriedData, retryHasAllExpected, retryActualCount,
+        LogMusicPublicationRetryDiagnostics(context.Attempt, reQueriedData, retryHasAllExpected, retryActualCount,
             retryExpectedCount);
 
-        var delay = Math.Min(retryDelayBase * attempt, 5000);
-        await Task.Delay(delay, cancellationToken);
+        await Task.Delay(CatalogRetryLoop.DelayMilliseconds(context.Attempt), context.CancellationToken);
 
-        return MusicPublicationRetryIterationOutcome.ForContinue(fetchedWithProgress, currentCatalogedCount);
+        return CatalogRetryIterationResult<Dictionary<string, BiblePublication>>.Continue(fetchedWithProgress, currentCatalogedCount);
     }
 
     private static void LogMusicPublicationRetryDiagnostics(
@@ -385,30 +263,5 @@ internal sealed class MusicPublicationFetchCoordinator
 
         Serilog.Log.Debug(AppConstants.Logging.PopulateSongPublicationsDiagnosticsLog.AttemptNoPublicationsYetRetry,
             attempt);
-    }
-
-    private sealed record MusicPublicationRetryIterationOutcome(
-        bool Completed,
-        bool LogSuccess,
-        bool BreakRetries,
-        Dictionary<string, BiblePublication>? NextSnapshot,
-        int ExpectedCount,
-        int UpdatedCatalogedCount)
-    {
-        public static MusicPublicationRetryIterationOutcome ForSuccess(
-            Dictionary<string, BiblePublication> reQueried,
-            int expectedCount) =>
-            new(true, LogSuccess: true, BreakRetries: false, NextSnapshot: reQueried, ExpectedCount: expectedCount,
-                UpdatedCatalogedCount: -1);
-
-        public static MusicPublicationRetryIterationOutcome ForStagnation(Dictionary<string, BiblePublication>? reQueried) =>
-            new(false, LogSuccess: false, BreakRetries: true, NextSnapshot: reQueried, ExpectedCount: 0,
-                UpdatedCatalogedCount: -1);
-
-        public static MusicPublicationRetryIterationOutcome ForContinue(
-            Dictionary<string, BiblePublication>? reQueried,
-            int updatedCatalogedCount) =>
-            new(false, LogSuccess: false, BreakRetries: false, NextSnapshot: reQueried, ExpectedCount: 0,
-                UpdatedCatalogedCount: updatedCatalogedCount);
     }
 }
