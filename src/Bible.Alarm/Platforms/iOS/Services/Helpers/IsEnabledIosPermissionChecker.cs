@@ -1,12 +1,9 @@
 #nullable enable
 
-#if IOS
-
-using Bible.Alarm.Platforms.iOS.Services.Helpers;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
 
-namespace Bible.Alarm.ViewModels.Schedule.AlarmSettingsContainer;
+namespace Bible.Alarm.Platforms.iOS.Services.Helpers;
 
 /// <summary>
 /// Inputs for iOS reminder enable guard when toggling IsEnabled while permission state is uncertain.
@@ -89,5 +86,3 @@ public static class IsEnabledIosPermissionChecker
         return false;
     }
 }
-
-#endif

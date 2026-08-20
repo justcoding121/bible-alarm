@@ -1,10 +1,7 @@
-#if IOS
 #nullable enable
 
 using System.Linq;
 using AutoMapper;
-using Bible.Alarm.Common.Interfaces.UI;
-using Microsoft.Extensions.DependencyInjection;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -14,12 +11,26 @@ using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.General;
 using Fluxor;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
-using Bible.Alarm.Platforms.iOS.Services.Helpers;
 
-namespace Bible.Alarm.Services.Scheduler.ScheduleStateServiceHelpers;
+namespace Bible.Alarm.Platforms.iOS.Services.Helpers;
+
+internal sealed record ScheduleIosEnablePermissionRequest(
+    int ScheduleId,
+    bool IsEnabled,
+    ILogger Logger,
+    IAlarmScheduleService AlarmScheduleService,
+    IAlarmService AlarmService,
+    IDispatcher Dispatcher,
+    INavigationService NavigationService,
+    IServiceProvider ServiceProvider,
+    Func<Exception, bool> IsSecurityException,
+    Func<int, Exception, Task<bool>> HandleSecurityExceptionAsync,
+    Action<AlarmSchedule?> UpdateFluxorStore,
+    CancellationToken CancellationToken);
 
 /// <summary>
 /// iOS: when enabling a schedule but permission not granted, enable IsEnabled in DB and show
@@ -226,4 +237,3 @@ internal static class ScheduleStateServiceIosEnableWithPermission
         public required bool PermissionGranted { get; init; }
     }
 }
-#endif

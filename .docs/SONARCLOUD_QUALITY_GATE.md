@@ -37,4 +37,4 @@ Configure in SonarCloud UI (API assignment previously returned 403).
 
 Only the **test-windows** job feeds SonarCloud via `artifacts/coverage-windows/*.opencover.xml`. Android/iOS device jobs do not emit OpenCover by design.
 
-`sonar.coverage.exclusions` also drops leftover whole-file `#if ANDROID` / `#if IOS` helpers that sit outside `Platforms/` (`ScheduleStateServiceAndroidEnableWithPermission`, `ScheduleStateServiceIosEnableWithPermission`, `IsEnabledIosPermissionChecker`, `SchedulePlatformEnablePermissionRequests`). Those types cannot be hit on the Windows host. `Platforms/Windows/**` stays in scope.
+`sonar.coverage.exclusions` drops Android/iOS `Platforms/` sources and XAML code-behind (validated on device, not instrumented on Windows). `Platforms/Windows/**` stays in scope.

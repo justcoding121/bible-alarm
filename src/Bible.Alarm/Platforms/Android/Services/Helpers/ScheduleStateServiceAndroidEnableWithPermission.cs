@@ -1,10 +1,7 @@
-#if ANDROID
 #nullable enable
 
 using System.Linq;
 using AutoMapper;
-using Bible.Alarm.Common.Interfaces.UI;
-using Bible.Alarm.Platforms.Android.Services.Helpers;
 using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Models.Schedule;
@@ -19,7 +16,20 @@ using Microsoft.Maui.ApplicationModel;
 using Serilog;
 using IDispatcher = Fluxor.IDispatcher;
 
-namespace Bible.Alarm.Services.Scheduler.ScheduleStateServiceHelpers;
+namespace Bible.Alarm.Platforms.Android.Services.Helpers;
+
+internal sealed record ScheduleAndroidEnablePermissionRequest(
+    int ScheduleId,
+    bool IsEnabled,
+    ILogger Logger,
+    IAlarmScheduleService AlarmScheduleService,
+    IAlarmService AlarmService,
+    IDispatcher Dispatcher,
+    INavigationService NavigationService,
+    IServiceProvider ServiceProvider,
+    Func<Exception, bool> IsSecurityException,
+    Func<int, Exception, Task<bool>> HandleSecurityExceptionAsync,
+    CancellationToken CancellationToken);
 
 /// <summary>
 /// Android: when enabling a schedule with NotificationEnabled=true but permission not granted,
@@ -138,4 +148,3 @@ internal static class ScheduleStateServiceAndroidEnableWithPermission
         });
     }
 }
-#endif

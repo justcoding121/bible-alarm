@@ -7,9 +7,6 @@ using Bible.Alarm.Services.UI.Interfaces;
 using Bible.Alarm.Shared.Services.Schedule.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
-#if ANDROID || IOS
-using Bible.Alarm.Services.Scheduler.ScheduleStateServiceHelpers;
-#endif
 using Bible.Alarm.ViewModels.General;
 using Bible.Alarm.ViewModels.ScheduleViewModelHelpers;
 using Fluxor;
