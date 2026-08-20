@@ -604,4 +604,140 @@ public sealed class SectionFetcherTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
             Task.FromResult(responder(request));
     }
+
+    private sealed class RecordingHandler(string body) : HttpMessageHandler
+    {
+        public List<Uri> RequestUris { get; } = [];
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (request.RequestUri is not null)
+            {
+                RequestUris.Add(request.RequestUri);
+            }
+
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body) });
+        }
+    }
+
+    [Fact]
+    public async Task FetchPublicationSectionsAsync_Bible_Query_Uses_Publication_Code_And_Booknum()
+    {
+        var (connection, db, _, _, englishStub) = await CreatePreparedDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            var handler = new RecordingHandler(MinimalBiblePubMediaJson);
+            using var client = new HttpClient(handler);
+            var sut = new SectionFetcher(client, TestLogging.CreateLogger());
+
+            Assert.True(await sut.FetchPublicationSectionsAsync(BuildRequest(db, englishStub, ["mat"])));
+
+            Assert.NotEmpty(handler.RequestUris);
+            foreach (var uri in handler.RequestUris)
+            {
+                var query = uri.Query;
+                Assert.Contains("pub=nwt", query, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("booknum=mat", query, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("fileformat=MP3", query, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("pub=mat", query, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task FetchPublicationSectionsAsync_Magazine_Query_Uses_Issue_And_Api_Pub()
+    {
+        var (connection, db, _, _, englishStub) = await CreatePreparedWatchtowerMagazineDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            var handler = new RecordingHandler(MinimalMagazineIssuePubMediaJson);
+            using var client = new HttpClient(handler);
+            var sut = new SectionFetcher(client, TestLogging.CreateLogger());
+
+            Assert.True(await sut.FetchPublicationSectionsAsync(
+                BuildWatchtowerMagazineRequest(db, englishStub, ["20090201-wp"])));
+
+            Assert.NotEmpty(handler.RequestUris);
+            foreach (var uri in handler.RequestUris)
+            {
+                var query = uri.Query;
+                Assert.Contains("pub=wp", query, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("issue=20090201", query, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("booknum=", query, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task FetchPublicationSectionsAsync_Video_Drama_Query_Uses_Section_As_Pub_And_Mp4()
+    {
+        var (connection, db, _, _, englishStub) = await CreatePreparedVideoDramaDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            var handler = new RecordingHandler(MinimalVideoMediatorPubMediaJson);
+            using var client = new HttpClient(handler);
+            var sut = new SectionFetcher(client, TestLogging.CreateLogger());
+
+            Assert.True(await sut.FetchPublicationSectionsAsync(
+                BuildVideoDramaRequest(db, englishStub, ["m-1"])));
+
+            Assert.NotEmpty(handler.RequestUris);
+            foreach (var uri in handler.RequestUris)
+            {
+                var query = uri.Query;
+                Assert.Contains("pub=m-1", query, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("fileformat=MP4", query, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("booknum=", query, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task FetchPublicationSectionsAsync_Fetches_Only_Missing_Sections()
+    {
+        var (connection, db, bibleCat, lang, englishStub) = await CreatePreparedDbAsync();
+        await using (connection)
+        await using (db)
+        {
+            db.BiblePublications.Add(new BiblePublication
+            {
+                PublicationCode = AppConstants.Media.BiblePublicationCodeNwt,
+                Name = "NWT",
+                Language = lang,
+                LanguageId = lang.Id,
+                Sections =
+                [
+                    new BiblePublicationSection { Name = "Matthew", SectionCode = "mat", Tracks = [] }
+                ],
+                Tracks = [],
+                IsVideo = false,
+                IsMusic = false,
+                BiblePublicationCategories =
+                [
+                    new BiblePublicationCategory { Category = bibleCat, CategoryId = bibleCat.Id },
+                ],
+            });
+            await db.SaveChangesAsync();
+
+            var handler = new RecordingHandler(MinimalBiblePubMediaJson);
+            using var client = new HttpClient(handler);
+            var sut = new SectionFetcher(client, TestLogging.CreateLogger());
+
+            Assert.True(await sut.FetchPublicationSectionsAsync(BuildRequest(db, englishStub, ["mat", "mrk"])));
+
+            Assert.NotEmpty(handler.RequestUris);
+            Assert.All(handler.RequestUris, uri =>
+            {
+                Assert.Contains("booknum=mrk", uri.Query, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain("booknum=mat", uri.Query, StringComparison.OrdinalIgnoreCase);
+            });
+
+            var bp = await db.BiblePublications.Include(b => b.Sections).SingleAsync();
+            Assert.Contains(bp.Sections, s => s.SectionCode.Equals("mat", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(bp.Sections, s => s.SectionCode.Equals("mrk", StringComparison.OrdinalIgnoreCase));
+        }
+    }
 }

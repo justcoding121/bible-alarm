@@ -806,6 +806,42 @@ public sealed class PublicationEnsurerTests
     }
 
     [Fact]
+    public async Task FetchFirstPublicationForLanguageAsync_Rethrows_HttpRequestException()
+    {
+        var (factory, connection) = await CreateFactoryAsync();
+        await using (connection)
+        {
+            var opts = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            await using (var seed = new MediaDbContext(opts))
+            {
+                await SeedCategoryLanguageAsync(seed);
+                var lang = await seed.Languages.SingleAsync();
+                var cat = await seed.Categories.SingleAsync();
+                seed.PublicationLanguages.Add(new PublicationLanguage
+                {
+                    PublicationCode = "net-flat",
+                    Category = cat,
+                    CategoryId = cat.Id,
+                    Language = lang,
+                    LanguageId = lang.Id,
+                    CatalogType = CatalogType.Flat,
+                    IsMusic = false
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var stub = new StubLanguageContentService
+            {
+                FetchPublicationTracksAsyncHandler = (_, _, _) => throw new HttpRequestException("network")
+            };
+            var sut = new PublicationEnsurer(factory, TestLogging.CreateLogger(), stub);
+
+            await Assert.ThrowsAsync<HttpRequestException>(() =>
+                sut.FetchFirstPublicationForLanguageAsync("M"));
+        }
+    }
+
+    [Fact]
     public async Task EnsurePublicationExistsAsync_MediatorSectioned_Calls_FetchPublicationTracks()
     {
         var (factory, connection) = await CreateFactoryAsync();

@@ -175,6 +175,66 @@ public sealed class AlarmScheduleTests
     }
 
     [Fact]
+    public void CronExpression_Sunday_UsesQuartzDayOne()
+    {
+        var sut = Create(WeekDays.Sunday, hour: 8, minute: 0, second: 0);
+
+        Assert.Equal("0 0 8 ? * 1", sut.CronExpression);
+    }
+
+    [Fact]
+    public void CronExpression_Saturday_UsesQuartzDaySeven()
+    {
+        var sut = Create(WeekDays.Saturday, hour: 8, minute: 0, second: 0);
+
+        Assert.Equal("0 0 8 ? * 7", sut.CronExpression);
+    }
+
+    [Fact]
+    public void NextFireDate_MondayOnly_SameDay_WhenAnchorIsBeforeAlarm()
+    {
+        var sut = Create(WeekDays.Monday, hour: 8, minute: 0, second: 0);
+        var after = LocalOffset(2030, 6, 3, 7, 0);
+
+        var next = sut.NextFireDate(after);
+        var localNext = TimeZoneInfo.ConvertTime(next, TimeZoneInfo.Local);
+
+        Assert.Equal(new DateTime(2030, 6, 3, 8, 0, 0), localNext.DateTime);
+    }
+
+    [Fact]
+    public void NextFireDate_MondayOnly_NextWeek_WhenAnchorIsAfterAlarm()
+    {
+        var sut = Create(WeekDays.Monday, hour: 8, minute: 0, second: 0);
+        var after = LocalOffset(2030, 6, 3, 9, 0);
+
+        var next = sut.NextFireDate(after);
+        var localNext = TimeZoneInfo.ConvertTime(next, TimeZoneInfo.Local);
+
+        Assert.Equal(new DateTime(2030, 6, 10, 8, 0, 0), localNext.DateTime);
+    }
+
+    [Fact]
+    public void NextFireDate_SundayOnly_SkipsWeekdays()
+    {
+        var sut = Create(WeekDays.Sunday, hour: 8, minute: 0, second: 0);
+        var after = LocalOffset(2030, 6, 3, 12, 0);
+
+        var next = sut.NextFireDate(after);
+        var localNext = TimeZoneInfo.ConvertTime(next, TimeZoneInfo.Local);
+
+        Assert.Equal(DayOfWeek.Sunday, localNext.DayOfWeek);
+        Assert.Equal(8, localNext.Hour);
+        Assert.True(next > after);
+    }
+
+    private static DateTimeOffset LocalOffset(int year, int month, int day, int hour, int minute)
+    {
+        var local = new DateTime(year, month, day, hour, minute, 0, DateTimeKind.Local);
+        return new DateTimeOffset(local, TimeZoneInfo.Local.GetUtcOffset(local));
+    }
+
+    [Fact]
     public async Task GetSampleSchedule_PreferredEnglishNwtAndMelodyWithSections_BuildsLinksAsync()
     {
         var bible = BuildNwtWithSingleGenesisTrack();
@@ -209,6 +269,79 @@ public sealed class AlarmScheduleTests
         Assert.NotNull(schedule.Music);
         Assert.Equal(AppConstants.Media.MelodyMusicPublicationCodeIam, schedule.Music.PublicationCode);
         Assert.False(string.IsNullOrEmpty(schedule.Music.TrackCode));
+    }
+
+    [Fact]
+    public async Task GetSampleSchedule_UsesPlaceholderName_When_NotNew()
+    {
+        var bible = BuildNwtWithSingleGenesisTrack();
+        using var bibleSvc = new SampleScheduleBibleServiceFake(
+            DistinctLanguages: _ => Task.FromResult(SampleLanguagesEnglish()),
+            GetSectioned: (_, code, _) => Task.FromResult(
+                code.Equals(AppConstants.Media.BiblePublicationCodeNwt, StringComparison.OrdinalIgnoreCase) ? bible : null),
+            ByLanguageCode: (_, _) =>
+                Task.FromResult(new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase)));
+
+        using var melodySvc = SampleScheduleMelodyServiceFake.ForReleases(SampleMelodyIamWithSections());
+
+        var schedule = await AlarmSchedule.GetSampleSchedule(
+            isNew: false,
+            biblePublicationService: bibleSvc,
+            melodyMusicService: melodySvc);
+
+        Assert.Equal(AppConstants.Media.ScheduleUiSampleNamePlaceholder, schedule.Name);
+    }
+
+    [Fact]
+    public async Task GetSampleSchedule_FallsBack_To_Other_English_Sectioned_Publication_When_Nwt_Missing()
+    {
+        var bi12 = new BiblePublication
+        {
+            PublicationCode = AppConstants.Media.BiblePublicationCodeBi12,
+            Name = "NWT 2013",
+            IsVideo = false,
+            IsMusic = false,
+            Sections = [],
+            Tracks = [],
+        };
+        var genesis = new BiblePublicationSection
+        {
+            Name = "Genesis",
+            SectionCode = AppConstants.Media.BiblePublicationGenesisBookNumber,
+            BiblePublication = bi12,
+        };
+        genesis.Tracks =
+        [
+            new BiblePublicationTrack
+            {
+                TrackCode = "genesis-start",
+                Title = "Genesis 1",
+                Publication = bi12,
+                Section = genesis,
+            },
+        ];
+        bi12.Sections.Add(genesis);
+
+        using var bibleSvc = new SampleScheduleBibleServiceFake(
+            DistinctLanguages: _ => Task.FromResult(SampleLanguagesEnglish()),
+            GetSectioned: (_, code, _) => Task.FromResult(
+                code.Equals(AppConstants.Media.BiblePublicationCodeBi12, StringComparison.OrdinalIgnoreCase) ? bi12 : null),
+            ByLanguageCode: (_, _) =>
+                Task.FromResult(new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase)
+                {
+                    [AppConstants.Media.BiblePublicationCodeBi12] = bi12,
+                }));
+
+        using var melodySvc = SampleScheduleMelodyServiceFake.ForReleases(SampleMelodyIamWithSections());
+
+        var schedule = await AlarmSchedule.GetSampleSchedule(
+            isNew: true,
+            biblePublicationService: bibleSvc,
+            melodyMusicService: melodySvc);
+
+        Assert.NotNull(schedule.BiblePublicationSchedule);
+        Assert.Equal(AppConstants.Media.BiblePublicationCodeBi12, schedule.BiblePublicationSchedule.PublicationCode);
+        Assert.Equal(AppConstants.Media.DefaultLanguageCode, schedule.BiblePublicationSchedule.LanguageCode);
     }
 
     [Fact]
