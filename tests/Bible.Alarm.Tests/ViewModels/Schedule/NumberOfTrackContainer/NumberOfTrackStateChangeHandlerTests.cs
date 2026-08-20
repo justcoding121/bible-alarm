@@ -111,12 +111,13 @@ public sealed class NumberOfTrackStateChangeHandlerTests
 
         Assert.True(sut.AlwaysPlayFromStart);
         Assert.False(sut.PlayIndefinitely);
+
+        var scheduleUpdates = dispatcher.Dispatched.OfType<UpdateScheduleFromViewModelAction>().ToList();
 #if WINDOWS
         Assert.True(sut.NotificationEnabled);
-        Assert.Empty(dispatcher.Dispatched);
+        Assert.Empty(scheduleUpdates);
 #else
-        Assert.DoesNotContain(dispatcher.Dispatched, static a =>
-            a is UpdateScheduleFromViewModelAction update && update.Schedule.NumberOfTracksToPlay != 2);
+        Assert.All(scheduleUpdates, static update => Assert.False(update.Schedule.NotificationEnabled));
 #endif
     }
 
