@@ -196,12 +196,11 @@ jobs:
         }
         Write-Host "Bundle ready: $bundlePath"
 
-    # Upload to Microsoft Store: stable → production; beta → Beta Test flight (requires MICROSOFT_STORE_BETA_FLIGHT_ID secret). Upload only; you commit from Partner Center when ready (both tracks).
+    # Upload + commit to Microsoft Store: stable → production; beta → Beta Test flight (requires MICROSOFT_STORE_BETA_FLIGHT_ID secret).
     # Uses Service Principal (client_credentials) with resource=manage.devcenter.microsoft.com and Partner Center Manager role; Admin Consent not required.
-    # If you get "Identity cannot be authorized": add Azure AD app as Manager in Partner Center; use Store ID (App identity) in MICROSOFT_STORE_APP_ID, not Client ID; use devcenter token resource, not graph. See Microsoft docs on managing Azure AD apps in Partner Center.
+    # If you get "Identity cannot be authorized": recreate the Entra app from Partner Center (User management → Microsoft Entra applications) with Manager(Windows); use Store ID in MICROSOFT_STORE_APP_ID; use the Dev Center token resource.
     - name: Upload to Microsoft Store
       id: store_upload
-      continue-on-error: true
       shell: powershell
       env:
         AZURE_AD_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
@@ -237,7 +236,7 @@ jobs:
             exit 1
         }
         
-        # 1. Token resource must be Dev Center, not Graph, or Store API returns Unauthorized
+        # Token resource must be Dev Center, not Graph, or Store API returns Unauthorized
         $tokenUrl = "https://login.microsoftonline.com/$env:AZURE_AD_TENANT_ID/oauth2/token"
         $body = @{
             grant_type    = "client_credentials"
@@ -259,13 +258,12 @@ jobs:
         }
         Write-Host "Access token obtained successfully (length: $($accessToken.Length))"
         
-        # 3. POST to create submission requires Authorization and Content-Type
         $headers = @{
             Authorization = "Bearer $accessToken"
             "Content-Type" = "application/json"
         }
         
-        # 2. Submission URL must use Store ID (Partner Center App identity), not Client ID
+        # Submission URL must use Store ID (Partner Center App identity), not Client ID
         if ($isBeta) {
             $submissionUrl = "https://manage.devcenter.microsoft.com/v1.0/my/applications/$env:STORE_APP_ID/flights/$env:MICROSOFT_STORE_BETA_FLIGHT_ID/submissions"
         } else {
@@ -283,29 +281,60 @@ jobs:
             # No pending submission, continue
         }
         
-        # Create new submission
-        $newSubmission = Invoke-RestMethod -Uri $submissionUrl -Method Post -Headers $headers
-        $submissionId = $newSubmission.id
-        $fileUploadUrl = $newSubmission.fileUploadUrl
-        
+        # Create new submission (clones the published submission)
+        $submission = Invoke-RestMethod -Uri $submissionUrl -Method Post -Headers $headers
+        $submissionId = $submission.id
+        $fileUploadUrl = $submission.fileUploadUrl
         Write-Host "Created submission: $submissionId"
         
-        # Upload the package
+        # Mark existing packages for delete and add the new package as PendingUpload
+        $packageFileName = $msixPath.Name
+        $packagesProp = if ($isBeta) { 'flightPackages' } else { 'applicationPackages' }
+        $packages = @($submission.$packagesProp)
+        foreach ($pkg in $packages) {
+            if ($null -ne $pkg.fileStatus) {
+                $pkg.fileStatus = 'PendingDelete'
+            }
+        }
+        $packages += [pscustomobject]@{
+            fileName              = $packageFileName
+            fileStatus            = 'PendingUpload'
+            minimumDirectXVersion = 'None'
+            minimumSystemRam      = 'None'
+        }
+        $submission.$packagesProp = $packages
+        
+        $updateJson = $submission | ConvertTo-Json -Depth 100 -Compress
+        $submission = Invoke-RestMethod -Uri "$submissionUrl/$submissionId" -Method Put -Headers $headers -Body $updateJson
+        $fileUploadUrl = $submission.fileUploadUrl
+        Write-Host "Updated submission packages (new package PendingUpload: $packageFileName)"
+        
+        # Dev Center expects a ZIP containing the package(s), not the raw .msixbundle
+        $zipPath = Join-Path $env:RUNNER_TEMP "store-package.zip"
+        if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+        Compress-Archive -Path $msixPath.FullName -DestinationPath $zipPath -CompressionLevel Optimal
+        Write-Host "Created upload zip: $zipPath ($([math]::Round((Get-Item $zipPath).Length / 1MB, 1)) MB)"
+        
         $uploadHeaders = @{
             "x-ms-blob-type" = "BlockBlob"
         }
+        $zipBytes = [System.IO.File]::ReadAllBytes($zipPath)
+        Invoke-RestMethod -Uri $fileUploadUrl -Method Put -Headers $uploadHeaders -Body $zipBytes -ContentType "application/octet-stream"
+        Write-Host "Package zip uploaded successfully"
         
-        # Read package and upload
-        $packageBytes = [System.IO.File]::ReadAllBytes($msixPath.FullName)
-        Invoke-RestMethod -Uri $fileUploadUrl -Method Put -Headers $uploadHeaders -Body $packageBytes -ContentType "application/octet-stream"
-        
-        Write-Host "Package uploaded successfully"
-        
-        # Do not commit the submission (sends for certification). You commit from Partner Center when ready (both stable and beta).
-        Write-Host "Submission uploaded but not committed. Commit from Partner Center when ready to send for certification."
+        # Commit sends the submission for certification / publishing
+        try {
+            $commitResult = Invoke-RestMethod -Uri "$submissionUrl/$submissionId/commit" -Method Post -Headers $headers
+            Write-Host "Submission committed. status=$($commitResult.status)"
+        } catch {
+            $errBody = $_.ErrorDetails.Message
+            Write-Error "Commit failed for submission $submissionId. $($_.Exception.Message) $errBody"
+            exit 1
+        }
 
-    # Verify no secrets are staged before committing (exclude build output obj/bin/artifacts).
+    # Verify no secrets are staged before tagging/releasing (exclude build output obj/bin/artifacts).
     - name: Verify no secrets in working directory
+      if: steps.store_upload.outcome == 'success'
       shell: powershell
       run: |
         # Check for common secret file patterns
@@ -317,9 +346,9 @@ jobs:
         }
         Write-Host "OK: No secret files found in working directory"
 
-    # GitHub Release + tag when build+bundle succeeded (run even if upload fails).
+    # GitHub Release + tag only when Store publish (upload + commit) succeeds.
     - name: Find MSIX bundle for release
-      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
+      if: steps.store_upload.outcome == 'success'
       id: find_package
       shell: powershell
       run: |
@@ -333,7 +362,7 @@ jobs:
         Write-Host "Found: $relativePath"
 
     - name: Create release tag and push
-      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
+      if: steps.store_upload.outcome == 'success'
       id: release_tag
       env:
         PACKAGE_PATH: ${{ steps.find_package.outputs.package_path }}
@@ -384,7 +413,7 @@ jobs:
         git push origin $tag
 
     - name: Create GitHub Release and upload package
-      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure') && steps.release_tag.outputs.tag != ''
+      if: steps.store_upload.outcome == 'success' && steps.release_tag.outputs.tag != ''
       uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
       with:
         tag_name: ${{ steps.release_tag.outputs.tag }}
@@ -395,7 +424,7 @@ jobs:
           **Branch:** ${{ github.ref_name }}
 
           ### Install from Microsoft Store
-          The package is uploaded to the Microsoft Store automatically.
+          The package was uploaded and committed to the Microsoft Store automatically (sent for certification).
 
           ### Sideload (manual install)
           1. Download both **Bible.Alarm.cer** and the **.msixbundle** from the assets below.
@@ -410,9 +439,9 @@ jobs:
           artifacts/*.cer
         fail_on_unmatched_files: true
 
-    # Artifacts when build+bundle succeeded (run even if upload fails).
+    # Artifacts only when Store publish succeeds.
     - name: Upload Build Artifacts
-      if: always() && (steps.store_upload.outcome == 'success' || steps.store_upload.outcome == 'failure')
+      if: steps.store_upload.outcome == 'success'
       uses: actions/upload-artifact@v6
       with:
         name: BibleAlarm-${{ github.ref_name }}-windows
