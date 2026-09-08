@@ -2,29 +2,10 @@
 
 Jehonathan Thomas (@justcoding121). All rights reserved.
 
-## CI/CD Status
-
-### Build
 [![Build](https://github.com/justcoding121/bible-alarm/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/justcoding121/bible-alarm/actions/workflows/build.yml)
-
-### Deployment
 [![Deploy Android](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-android.yml/badge.svg?branch=stable)](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-android.yml)
 [![Deploy iOS](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-ios.yml/badge.svg?branch=stable)](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-ios.yml)
 [![Deploy Windows](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-windows.yml/badge.svg?branch=stable)](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-windows.yml)
-
-## Code Quality
-
-[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=alert_status)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=coverage)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
-[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=ncloc)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
-[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=bugs)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
-[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=vulnerabilities)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
-[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=code_smells)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
-[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=security_rating)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
-[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=reliability_rating)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=sqale_rating)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
-[![Duplicated Lines](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=duplicated_lines_density)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
-[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=sqale_index)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
 
 ## Get the app
 
@@ -59,6 +40,20 @@ Jehonathan Thomas (@justcoding121). All rights reserved.
 <img src=".docs/screenshots/iOS/carplay/carplay-listing.png" width="320" alt="CarPlay listing"/> <img src=".docs/screenshots/iOS/carplay/carplay-playback.png" width="320" alt="CarPlay playback"/>
 
 *(iOS assets: phone, tablet, and carplay are under [`.docs/screenshots/iOS/`](.docs/screenshots/iOS).)*
+
+## Code quality
+
+[![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=alert_status)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=coverage)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
+[![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=ncloc)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
+[![Bugs](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=bugs)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
+[![Vulnerabilities](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=vulnerabilities)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
+[![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=code_smells)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
+[![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=security_rating)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
+[![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=reliability_rating)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
+[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=sqale_rating)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
+[![Duplicated Lines](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=duplicated_lines_density)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
+[![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=justcoding121_bible-alarm&metric=sqale_index)](https://sonarcloud.io/summary/overall?id=justcoding121_bible-alarm&branch=develop)
 
 ## Terms of Use
 
