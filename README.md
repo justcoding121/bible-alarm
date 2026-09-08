@@ -2,10 +2,10 @@
 
 Jehonathan Thomas (@justcoding121). All rights reserved.
 
-[![Build](https://github.com/justcoding121/bible-alarm/actions/workflows/build.yml/badge.svg?branch=develop)](https://github.com/justcoding121/bible-alarm/actions/workflows/build.yml)
-[![Deploy Android](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-android.yml/badge.svg?branch=stable)](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-android.yml)
-[![Deploy iOS](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-ios.yml/badge.svg?branch=stable)](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-ios.yml)
-[![Deploy Windows](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-windows.yml/badge.svg?branch=stable)](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-windows.yml)
+[![Build](https://img.shields.io/github/actions/workflow/status/justcoding121/bible-alarm/build.yml?branch=develop&label=Build)](https://github.com/justcoding121/bible-alarm/actions/workflows/build.yml)
+[![Android](https://img.shields.io/github/actions/workflow/status/justcoding121/bible-alarm/deploy-android.yml?branch=stable&label=Android)](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-android.yml)
+[![iOS](https://img.shields.io/github/actions/workflow/status/justcoding121/bible-alarm/deploy-ios.yml?branch=stable&label=iOS)](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-ios.yml)
+[![Windows](https://img.shields.io/github/actions/workflow/status/justcoding121/bible-alarm/deploy-windows.yml?branch=stable&label=Windows)](https://github.com/justcoding121/bible-alarm/actions/workflows/deploy-windows.yml)
 
 ## Get the app
 
