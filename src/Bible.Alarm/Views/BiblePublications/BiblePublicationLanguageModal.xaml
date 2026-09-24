@@ -73,6 +73,7 @@
                 Margin="16,8,16,0"
                 BackgroundColor="{DynamicResource CardBackgroundColor}"
                 StrokeThickness="0"
+                MinimumHeightRequest="{DynamicResource LanguageSearchMinHeight}"
                 Padding="{OnPlatform iOS='12,8', Default='12,3'}">
                 <Border.StrokeShape>
                     <RoundRectangle CornerRadius="{DynamicResource CornerRadiusLarge}" />
@@ -113,7 +114,7 @@
             <CollectionView
                 x:Name="LanguageCollectionView"
                 Grid.Row="2"
-                Margin="0,8,0,20"
+                Margin="{OnPlatform WinUI='0,4,0,20', Default='0,8,0,20'}"
                 BackgroundColor="Transparent"
                 Footer="{OnPlatform iOS=''}"
                 HorizontalOptions="Fill"
@@ -166,7 +167,7 @@
                                             Padding="20,18"
                                             ColumnSpacing="12"
                                             HorizontalOptions="Fill"
-                                            MinimumHeightRequest="56"
+                                            MinimumHeightRequest="{DynamicResource SelectionRowHeight}"
                                             BackgroundColor="Transparent">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="*" />

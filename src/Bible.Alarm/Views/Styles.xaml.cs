@@ -128,6 +128,23 @@ public partial class Styles : ResourceDictionary
         // Minimum height resources - scale with font size for touch targets
         this["MinimumHeightStandard"] = 56.0 * fontScaleFactor;
 
+        // Language row visual height is the large font plus 18px padding above and below.
+        // On Windows the label's line box is taller than the font size, so the search card
+        // uses that line height and matches the row at both full-screen and smaller windows.
+        const double selectionRowVerticalPadding = 36.0;
+        const double windowsLineHeightFactor = 1.33;
+        double selectionRowHeight = Math.Max(56.0, service.LargeFontSize + selectionRowVerticalPadding);
+        this["SelectionRowHeight"] = selectionRowHeight;
+        double languageSearchMinHeight = -1;
+        if (currentPlatform == DevicePlatform.WinUI)
+        {
+            languageSearchMinHeight = Math.Max(
+                selectionRowHeight,
+                service.LargeFontSize * windowsLineHeightFactor + selectionRowVerticalPadding);
+        }
+
+        this["LanguageSearchMinHeight"] = languageSearchMinHeight;
+
         // Thickness resources for common padding/margin combinations - scale with font size
         double paddingLarge = 16.0 * fontScaleFactor;
         double paddingXLarge = 24.0 * fontScaleFactor;

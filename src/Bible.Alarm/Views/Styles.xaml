@@ -77,6 +77,10 @@
     
     <!-- Minimum height resources - scale with OS font size for touch targets -->
     <x:Double x:Key="MinimumHeightStandard">56.0</x:Double>
+    <!-- Language row card: 18px above and below the large font, floored at 56 -->
+    <x:Double x:Key="SelectionRowHeight">58.0</x:Double>
+    <!-- -1 leaves the search at the native entry height; Windows overrides this at runtime -->
+    <x:Double x:Key="LanguageSearchMinHeight">-1</x:Double>
     
     <!-- Corner radius resources - scale slightly with font size for better proportions -->
     <x:Double x:Key="CornerRadiusSmall">4.0</x:Double>
