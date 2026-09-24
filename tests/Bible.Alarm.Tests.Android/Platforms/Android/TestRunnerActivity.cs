@@ -79,9 +79,9 @@ public sealed class TestRunnerActivity : Activity
             // new flag through the orchestrator.
             var args = ExtrasToDictionary(Intent?.Extras);
 
-            // typeof(...) anchors the reference graph for the linker so the cross-platform xunit
+            // typeof(...) anchors the reference graph for the linker so the platform smoke-test
             // assembly is guaranteed to ship inside the APK and reach the test runner.
-            var testAssembly = typeof(global::Bible.Alarm.Tests.AppSettingsTests).Assembly;
+            var testAssembly = typeof(global::Bible.Alarm.Tests.Platforms.Android.NotificationPermissionHelperSmokeTests).Assembly;
 
             var entryPoint = new BibleAlarmAndroidEntryPoint(resultsPath, args)
             {

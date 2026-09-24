@@ -21,7 +21,7 @@ internal sealed class TestEntryPoint : iOSApplicationEntryPoint
     protected override IEnumerable<TestAssemblyInfo> GetTestAssemblies()
     {
         // typeof(...).Assembly forces the linker to keep the test assembly in the .app bundle.
-        var assembly = typeof(global::Bible.Alarm.Tests.AppSettingsTests).Assembly;
+        var assembly = typeof(global::Bible.Alarm.Tests.Platforms.iOS.IosNotificationPermissionServiceSmokeTests).Assembly;
         yield return new TestAssemblyInfo(assembly, assembly.Location);
     }
 
