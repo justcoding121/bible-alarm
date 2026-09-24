@@ -121,9 +121,14 @@ public sealed partial class MediaElementService : IMediaElementService
     /// <summary>
     /// Disposes the MediaElement instance and releases resources.
     /// Called when playback stops to free up ExoPlayer and MediaSession resources.
+    /// Windows keeps the headless MediaPlayer: disposing it on the stop turn stows a WinUI exception (0xC000027B).
     /// </summary>
     public async Task DisposeMediaElementAsync()
     {
+#if WINDOWS
+        await ReleaseWindowsPlaybackAsync();
+        return;
+#endif
         MediaElement? toDispose = null;
 
         lock (lockObject)
@@ -165,6 +170,59 @@ public sealed partial class MediaElementService : IMediaElementService
             logger.Error(ex, "Error disposing MediaElement");
         }
     }
+
+#if WINDOWS
+    private async Task ReleaseWindowsPlaybackAsync()
+    {
+        MediaElement? instance;
+        lock (lockObject)
+        {
+            instance = mediaElementInstance;
+        }
+
+        if (instance == null)
+        {
+            logger.Debug("No MediaElement instance to release");
+            return;
+        }
+
+        try
+        {
+            logger.Information("Releasing Windows MediaElement source without disposing MediaPlayer");
+            if (MainThread.IsMainThread)
+            {
+                ReleaseWindowsPlaybackOnMainThread(instance);
+            }
+            else
+            {
+                await MainThread.InvokeOnMainThreadAsync(() => ReleaseWindowsPlaybackOnMainThread(instance));
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Error releasing Windows MediaElement");
+        }
+    }
+
+    private void ReleaseWindowsPlaybackOnMainThread(MediaElement mediaElement)
+    {
+        try
+        {
+            StopMediaElementPlaybackIfNeeded(mediaElement);
+            mediaElement.Source = null;
+            var controls = mediaElement.GetSystemMediaTransportControls();
+            if (controls is not null)
+            {
+                controls.PlaybackStatus = Windows.Media.MediaPlaybackStatus.Closed;
+                controls.IsEnabled = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Error releasing Windows MediaElement source - continuing");
+        }
+    }
+#endif
 
     private void DisposeMediaElementOnMainThread(MediaElement mediaElement)
     {

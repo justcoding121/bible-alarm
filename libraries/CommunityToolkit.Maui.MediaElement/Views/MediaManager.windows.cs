@@ -5,6 +5,7 @@ using CommunityToolkit.Maui.Primitives;
 using CommunityToolkit.Maui.Services;
 using CommunityToolkit.Maui.Views;
 using Microsoft.Extensions.Logging;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.Media;
 using Windows.Media.Playback;
@@ -91,6 +92,11 @@ partial class MediaManager : IDisposable
         }
         else if (headlessMediaPlayer is not null)
         {
+            if (systemMediaControls is not null)
+            {
+                systemMediaControls.IsEnabled = true;
+            }
+
             headlessMediaPlayer.Play();
         }
 
@@ -335,12 +341,58 @@ partial class MediaManager : IDisposable
 
                 if (headlessMediaPlayer is not null)
                 {
-                    mediaPlayer.Pause();
-                    mediaPlayer.Source = null;
-                    mediaPlayer.Dispose();
+                    QuiesceHeadlessPlayer(mediaPlayer);
+                    var playerToDispose = mediaPlayer;
                     headlessMediaPlayer = null;
+                    systemMediaControls = null;
+                    ScheduleHeadlessPlayerDispose(playerToDispose);
                 }
             }
+        }
+    }
+
+    void QuiesceHeadlessPlayer(WindowsMediaElement mediaPlayer)
+    {
+        try
+        {
+            if (systemMediaControls is not null)
+            {
+                systemMediaControls.IsEnabled = false;
+                systemMediaControls.PlaybackStatus = MediaPlaybackStatus.Closed;
+            }
+
+            mediaPlayer.Pause();
+            mediaPlayer.Source = null;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Error quiescing Windows MediaPlayer before deferred dispose");
+        }
+    }
+
+    void ScheduleHeadlessPlayerDispose(WindowsMediaElement mediaPlayer)
+    {
+        var queue = DispatcherQueue.GetForCurrentThread();
+        if (queue is not null)
+        {
+            if (queue.TryEnqueue(DispatcherQueuePriority.Low, () => DisposeHeadlessPlayer(mediaPlayer)))
+            {
+                return;
+            }
+        }
+
+        Dispatcher.Dispatch(() => DisposeHeadlessPlayer(mediaPlayer));
+    }
+
+    void DisposeHeadlessPlayer(WindowsMediaElement mediaPlayer)
+    {
+        try
+        {
+            mediaPlayer.Dispose();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogWarning(ex, "Deferred Windows MediaPlayer dispose failed");
         }
     }
 
