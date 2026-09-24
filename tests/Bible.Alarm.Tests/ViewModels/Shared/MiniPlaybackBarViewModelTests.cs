@@ -174,7 +174,7 @@ public sealed class MiniPlaybackBarViewModelTests
     [Fact]
     public async Task Receive_BeginStoppingPlaybackMessage_disables_controls()
     {
-        if (!MauiUiTestBootstrap.IsReady)
+        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI || !MauiUiTestBootstrap.IsReady)
         {
             return;
         }
@@ -194,7 +194,7 @@ public sealed class MiniPlaybackBarViewModelTests
     [Fact]
     public async Task Receive_NextButtonPressedMessage_sets_busy_state()
     {
-        if (!MauiUiTestBootstrap.IsReady)
+        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI || !MauiUiTestBootstrap.IsReady)
         {
             return;
         }
@@ -215,7 +215,7 @@ public sealed class MiniPlaybackBarViewModelTests
     [Fact]
     public async Task Playback_state_change_syncs_title_and_play_visibility()
     {
-        if (!MauiUiTestBootstrap.IsReady)
+        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI || !MauiUiTestBootstrap.IsReady)
         {
             return;
         }
@@ -263,7 +263,7 @@ public sealed class MiniPlaybackBarViewModelTests
     [Fact]
     public void IsVisible_true_resets_busy_flags_and_syncs_from_state()
     {
-        if (!MauiUiTestBootstrap.IsReady)
+        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI || !MauiUiTestBootstrap.IsReady)
         {
             return;
         }
@@ -424,7 +424,7 @@ public sealed class MiniPlaybackBarViewModelTests
     [Fact]
     public async Task Receive_PreviousButtonPressedMessage_sets_busy_state()
     {
-        if (!MauiUiTestBootstrap.IsReady)
+        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI || !MauiUiTestBootstrap.IsReady)
         {
             return;
         }
@@ -444,7 +444,7 @@ public sealed class MiniPlaybackBarViewModelTests
     [Fact]
     public void Playback_state_change_applies_is_playing_during_auto_advance()
     {
-        if (!MauiUiTestBootstrap.IsReady)
+        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI || !MauiUiTestBootstrap.IsReady)
         {
             return;
         }
