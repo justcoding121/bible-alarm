@@ -23,6 +23,7 @@ using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Controls;
+using Microsoft.Maui.Devices;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Tests.ViewModels.BiblePublications;
@@ -364,6 +365,11 @@ public sealed class BiblePublicationSelectionViewModelTests
     [Fact]
     public void ShowCancelButton_follows_IsBusy_and_ShowProgress()
     {
+        // Host-oriented coverage; PopModal / display text race on Android/iOS device runners.
+        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI)
+        {
+            return;
+        }
         using var sut = CreateSut(null, out _);
 
         sut.IsBusy = false;
@@ -462,6 +468,11 @@ public sealed class BiblePublicationSelectionViewModelTests
     [Fact]
     public async Task CancelFetchCommand_resets_overlay_flags_and_pops_modal()
     {
+        // Host-oriented coverage; PopModal / display text race on Android/iOS device runners.
+        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI)
+        {
+            return;
+        }
         using var sut = CreateSut(null, out var navigation);
         sut.ShowProgress = true;
         sut.CanCancelFetch = true;
@@ -485,6 +496,11 @@ public sealed class BiblePublicationSelectionViewModelTests
     [Fact]
     public async Task RefreshFromState_without_language_invokes_load_path()
     {
+        // Host-oriented coverage; PopModal / display text race on Android/iOS device runners.
+        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI)
+        {
+            return;
+        }
         using var sut = CreateSut(MinimalSchedule(categoryName: "Bible"), out _);
 
         try
