@@ -117,7 +117,7 @@
   -->
   <ItemGroup>
     <Compile Include="..\Bible.Alarm.Tests\**\*.cs"
-             Exclude="..\Bible.Alarm.Tests\bin\**;..\Bible.Alarm.Tests\obj\**;..\Bible.Alarm.Tests\Platforms\**">
+             Exclude="..\Bible.Alarm.Tests\bin\**;..\Bible.Alarm.Tests\obj\**;..\Bible.Alarm.Tests\Platforms\**;..\Bible.Alarm.Tests\ViewModels\Schedule\MusicSelectionContainerViewModelHelpers\MusicStateChangeHandlerTests.cs;..\Bible.Alarm.Tests\Common\ViewHelpers\CollectionViewScrollExecutorTests.cs;..\Bible.Alarm.Tests\Services\Media\PlaylistServiceTrackLifecycleTests.cs">
       <Link>SharedTests\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Compile>
     <Compile Include="..\Platforms\iOS\**\*.cs"
