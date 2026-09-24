@@ -1,22 +1,5 @@
 #nullable enable
 
-#if ANDROID || IOS
-using Xunit;
-
-namespace Bible.Alarm.Tests;
-
-/// <summary>
-/// Device runners: suite skipped. WaitUntilAsync + MainThread races hang the AVD/simulator (20+ min).
-/// Windows OpenCover host keeps the full suite below.
-/// </summary>
-public sealed class MusicStateChangeHandlerTests
-{
-    [Fact(Skip = "Host OpenCover coverage only; hangs on Android/iOS device runners")]
-    public void Skipped_on_device_runners()
-    {
-    }
-}
-#else
 using AutoMapper;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -980,4 +963,3 @@ public sealed class MusicStateChangeHandlerTests
             Task.CompletedTask;
     }
 }
-#endif

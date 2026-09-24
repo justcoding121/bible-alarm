@@ -436,12 +436,6 @@ public sealed class ScheduleListItemViewModelTests
     {
         private static void RunWithMainThreadOrSkip(Action testBody)
         {
-            // Nested Maui* Facts are for WinUI OpenCover; AVD/simulator runners hang on MainThread flush races.
-            if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
-            {
-                return;
-            }
-
             if (!MauiUiTestBootstrap.IsReady)
             {
                 return;

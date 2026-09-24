@@ -477,7 +477,7 @@ public sealed class MusicPublicationSelectionViewModelTests
     [Fact]
     public void Receive_music_publication_overlay_updates_progress_when_main_thread_available()
     {
-        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() || !MauiUiTestBootstrap.IsReady)
+        if (!MauiUiTestBootstrap.IsReady)
         {
             return;
         }
@@ -512,7 +512,7 @@ public sealed class MusicPublicationSelectionViewModelTests
     [Fact]
     public void Receive_list_item_progress_updates_matching_publication_row()
     {
-        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() || !MauiUiTestBootstrap.IsReady)
+        if (!MauiUiTestBootstrap.IsReady)
         {
             return;
         }
