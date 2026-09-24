@@ -2,6 +2,7 @@
 using Android.Graphics;
 using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
+using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
@@ -34,16 +35,21 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
     }
 
     /// <summary>
-    /// Preserves existing metadata (MediaId and artwork) in the builder.
+    /// Keeps artwork and duration for the same schedule, and replaces MediaId when the shown schedule changes.
     /// </summary>
     public void PreserveExistingMetadata(MediaMetadataCompat.Builder builder, MediaSessionCompat? mediaSession, int? scheduleId, string? artworkUrl)
     {
         if (mediaSession?.Controller?.Metadata != null)
         {
             var existingMetadata = mediaSession.Controller.Metadata;
-            PreserveMediaId(builder, existingMetadata, scheduleId);
-            PreserveOrLoadArtwork(builder, existingMetadata, artworkUrl);
-            PreserveDuration(builder, existingMetadata);
+            var existingMediaId = existingMetadata.GetString(MediaMetadataCompat.MetadataKeyMediaId);
+            var scheduleChanged = MediaSessionScheduleId.IsScheduleChange(existingMediaId, scheduleId);
+            PreserveMediaId(builder, existingMediaId, scheduleId);
+            PreserveOrLoadArtwork(builder, existingMetadata, artworkUrl, keepExistingArtwork: !scheduleChanged);
+            if (!scheduleChanged)
+            {
+                PreserveDuration(builder, existingMetadata);
+            }
         }
         else
         {
@@ -59,17 +65,12 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
         }
     }
 
-    private static void PreserveMediaId(MediaMetadataCompat.Builder builder, MediaMetadataCompat? existingMetadata, int? scheduleId)
+    private static void PreserveMediaId(MediaMetadataCompat.Builder builder, string? existingMediaId, int? scheduleId)
     {
-        // Preserve MediaId (scheduleId) for OnPlayFromMediaId
-        var existingMediaId = existingMetadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);
-        if (!string.IsNullOrEmpty(existingMediaId))
+        var mediaId = MediaSessionScheduleId.Resolve(existingMediaId, scheduleId);
+        if (!string.IsNullOrEmpty(mediaId))
         {
-            builder?.PutString(MediaMetadataCompat.MetadataKeyMediaId, existingMediaId);
-        }
-        else if (scheduleId.HasValue)
-        {
-            builder?.PutString(MediaMetadataCompat.MetadataKeyMediaId, scheduleId.Value.ToString());
+            builder.PutString(MediaMetadataCompat.MetadataKeyMediaId, mediaId);
         }
     }
 
@@ -82,16 +83,24 @@ public sealed class MetadataManager(ILogger logger, IServiceProvider serviceProv
         }
     }
 
-    private void PreserveOrLoadArtwork(MediaMetadataCompat.Builder builder, MediaMetadataCompat? existingMetadata, string? artworkUrl)
+    private void PreserveOrLoadArtwork(
+        MediaMetadataCompat.Builder builder,
+        MediaMetadataCompat? existingMetadata,
+        string? artworkUrl,
+        bool keepExistingArtwork)
     {
         if (!string.IsNullOrEmpty(artworkUrl) && TryLoadArtworkFromUrl(builder, artworkUrl))
         {
             return;
         }
 
-        // Preserve existing artwork when no artworkUrl is provided or when loading
-        // from artworkUrl failed (file not cached yet).
-        // Idle default schedule metadata does not fall back to the app icon; the car UI shows no art instead.
+        // Keep the current cover only while the same schedule stays on screen.
+        // A different schedule must not keep the previous cover if its own art is not ready yet.
+        if (!keepExistingArtwork)
+        {
+            return;
+        }
+
         Bitmap? existingArtwork = existingMetadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
         if (existingArtwork != null)
         {

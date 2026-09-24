@@ -143,7 +143,7 @@ public sealed class MediaSessionManager : IMediaSessionManager
 
     /// <summary>
     /// Updates the metadata of the shared MediaSessionCompat.
-    /// Preserves existing artwork and MediaId if present to prevent them from disappearing.
+    /// Replaces MediaId when a new schedule id is supplied so Play matches the title and artwork on screen.
     /// </summary>
     public void UpdateMetadata(string title, string artist, string? album = null, int? scheduleId = null, string? artworkUrl = null)
     {
