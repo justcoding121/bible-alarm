@@ -23,7 +23,6 @@ using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Controls;
-using Microsoft.Maui.Devices;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Tests.ViewModels.BiblePublications;
@@ -366,7 +365,7 @@ public sealed class BiblePublicationSelectionViewModelTests
     public void ShowCancelButton_follows_IsBusy_and_ShowProgress()
     {
         // Host-oriented coverage; PopModal / display text race on Android/iOS device runners.
-        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI)
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
         {
             return;
         }
@@ -469,7 +468,7 @@ public sealed class BiblePublicationSelectionViewModelTests
     public async Task CancelFetchCommand_resets_overlay_flags_and_pops_modal()
     {
         // Host-oriented coverage; PopModal / display text race on Android/iOS device runners.
-        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI)
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
         {
             return;
         }
@@ -497,7 +496,7 @@ public sealed class BiblePublicationSelectionViewModelTests
     public async Task RefreshFromState_without_language_invokes_load_path()
     {
         // Host-oriented coverage; PopModal / display text race on Android/iOS device runners.
-        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI)
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
         {
             return;
         }

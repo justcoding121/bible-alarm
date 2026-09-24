@@ -20,7 +20,6 @@ using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Maui.Devices;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using IDispatcher = Fluxor.IDispatcher;
@@ -438,7 +437,7 @@ public sealed class ScheduleListItemViewModelTests
         private static void RunWithMainThreadOrSkip(Action testBody)
         {
             // Nested Maui* Facts are for WinUI OpenCover; AVD/simulator runners hang on MainThread flush races.
-            if (DeviceInfo.Current.Platform != DevicePlatform.WinUI)
+            if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
             {
                 return;
             }
@@ -699,7 +698,7 @@ public sealed class ScheduleListItemViewModelTests
         public void RefreshTrackName_refreshes_subtitle_from_state()
         {
             // Device runner assertions differ from host; keep coverage on WinUI OpenCover pass.
-            if (DeviceInfo.Current.Platform != DevicePlatform.WinUI)
+            if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
             {
                 return;
             }
@@ -1042,7 +1041,7 @@ public sealed class ScheduleListItemViewModelTests
         public void PlaybackModalOpenedMessage_clears_row_busy_state()
         {
             // Device runner assertions differ from host; keep coverage on WinUI OpenCover pass.
-            if (DeviceInfo.Current.Platform != DevicePlatform.WinUI)
+            if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
             {
                 return;
             }

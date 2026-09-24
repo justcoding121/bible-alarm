@@ -21,7 +21,6 @@ using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Controls;
-using Microsoft.Maui.Devices;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Tests;
@@ -451,7 +450,7 @@ public sealed class MusicPublicationSelectionViewModelTests
     public async Task CancelFetchCommand_resets_progress_and_pops_modal()
     {
         // Host-oriented coverage; PopModal / display text race on Android/iOS device runners.
-        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI)
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
         {
             return;
         }
@@ -478,7 +477,7 @@ public sealed class MusicPublicationSelectionViewModelTests
     [Fact]
     public void Receive_music_publication_overlay_updates_progress_when_main_thread_available()
     {
-        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI || !MauiUiTestBootstrap.IsReady)
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() || !MauiUiTestBootstrap.IsReady)
         {
             return;
         }
@@ -513,7 +512,7 @@ public sealed class MusicPublicationSelectionViewModelTests
     [Fact]
     public void Receive_list_item_progress_updates_matching_publication_row()
     {
-        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI || !MauiUiTestBootstrap.IsReady)
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS() || !MauiUiTestBootstrap.IsReady)
         {
             return;
         }

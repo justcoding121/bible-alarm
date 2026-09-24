@@ -20,7 +20,6 @@ using Bible.Alarm.Views;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
 using Microsoft.Maui.Controls;
-using Microsoft.Maui.Devices;
 using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Tests;
@@ -441,7 +440,7 @@ public sealed class MusicSectionSelectionViewModelTests
     public async Task CancelFetchCommand_resets_overlay_flags_and_pops_modal()
     {
         // Host-oriented coverage; PopModal / display text race on Android/iOS device runners.
-        if (DeviceInfo.Current.Platform != DevicePlatform.WinUI)
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
         {
             return;
         }
