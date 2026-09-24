@@ -156,7 +156,7 @@
   -->
   <ItemGroup>
     <Compile Include="..\Bible.Alarm.Tests\**\*.cs"
-             Exclude="..\Bible.Alarm.Tests\bin\**;..\Bible.Alarm.Tests\obj\**;..\Bible.Alarm.Tests\Platforms\**;..\Bible.Alarm.Tests\ViewModels\Schedule\MusicSelectionContainerViewModelHelpers\MusicStateChangeHandlerTests.cs;..\Bible.Alarm.Tests\Common\ViewHelpers\CollectionViewScrollExecutorTests.cs;..\Bible.Alarm.Tests\Services\Media\PlaylistServiceTrackLifecycleTests.cs">
+             Exclude="..\Bible.Alarm.Tests\bin\**;..\Bible.Alarm.Tests\obj\**;..\Bible.Alarm.Tests\Platforms\**;..\Bible.Alarm.Tests\ViewModels\Schedule\MusicSelectionContainerViewModelHelpers\MusicStateChangeHandlerTests.cs;..\Bible.Alarm.Tests\Common\ViewHelpers\CollectionViewScrollExecutorTests.cs;..\Bible.Alarm.Tests\Services\Media\PlaylistServiceTrackLifecycleTests.cs;..\Bible.Alarm.Tests\ViewModels\**">
       <Link>SharedTests\%(RecursiveDir)%(Filename)%(Extension)</Link>
     </Compile>
   </ItemGroup>
