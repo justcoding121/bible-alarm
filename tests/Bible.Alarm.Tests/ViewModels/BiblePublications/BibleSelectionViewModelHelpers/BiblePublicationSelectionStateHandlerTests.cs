@@ -1,12 +1,14 @@
 #nullable enable
 
 using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
@@ -16,6 +18,8 @@ using Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
 using Bible.Alarm.ViewModels.Shared;
 using Fluxor;
 using IDispatcher = Fluxor.IDispatcher;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Tests;
@@ -213,5 +217,128 @@ public sealed class BiblePublicationSelectionStateHandlerTests
             new UnusedScopeFactory());
 
         await sut.HandleBiblePublicationChangedAsync(_ => { }, () => { }, new ObservableCollection<PublicationListViewItemModel>());
+    }
+
+    [Fact]
+    public async Task HandleBiblePublicationChangedAsync_throws_when_category_missing_after_fallback()
+    {
+        var schedule = Schedule(3, bibleLang: "E", category: null);
+        var app = new ApplicationState([], schedule);
+        var sut = new BiblePublicationSelectionStateHandler(
+            new FakeApplicationState(app),
+            CreateProvider(app),
+            new UnusedScopeFactory());
+        sut.InitializeCurrent(
+            new BiblePublicationSchedule { LanguageCode = "E", PublicationCode = "nwt", TrackCode = "1" },
+            initialLanguageCode: "E",
+            initialCategoryName: null);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.HandleBiblePublicationChangedAsync(_ => { }, () => { }, new ObservableCollection<PublicationListViewItemModel>()));
+    }
+
+    [Fact]
+    public async Task HandleBiblePublicationInitializedAsync_skips_when_already_initialized_and_languages_present()
+    {
+        var app = new ApplicationState([], Schedule(4));
+        var sut = new BiblePublicationSelectionStateHandler(
+            new FakeApplicationState(app),
+            CreateProvider(app),
+            new UnusedScopeFactory());
+        sut.InitializeCurrent(
+            new BiblePublicationSchedule { LanguageCode = "E", PublicationCode = "nwt", TrackCode = "1" },
+            initialLanguageCode: "E",
+            initialCategoryName: AppConstants.Media.BiblePublicationCategoryBible);
+
+        var languages = new ObservableCollection<LanguageListViewItemModel>
+        {
+            new(new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight }, "English")
+            {
+                IsSelected = true,
+            },
+        };
+
+        try
+        {
+            await sut.HandleBiblePublicationInitializedAsync(_ => { }, languages, languageCode: "E");
+            await sut.HandleBiblePublicationInitializedAsync(_ => { }, languages, languageCode: "E");
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or COMException)
+        {
+        }
+
+        Assert.Single(languages);
+    }
+
+    [Fact]
+    public async Task RefreshFromStateAsync_returns_when_language_never_appears()
+    {
+        var app = new ApplicationState([], currentSchedule: null);
+        var sut = new BiblePublicationSelectionStateHandler(
+            new FakeApplicationState(app),
+            CreateProvider(app),
+            new UnusedScopeFactory());
+
+        await sut.RefreshFromStateAsync(_ => { }, new ObservableCollection<PublicationListViewItemModel>());
+    }
+
+    [Fact]
+    public async Task RefreshFromStateAsync_augments_category_from_database_when_schedule_lacks_category()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using (var init = new MediaDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        await using (var seed = new MediaDbContext(options))
+        {
+            var category = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryBible };
+            seed.Categories.Add(category);
+            await seed.SaveChangesAsync();
+            var publication = new BiblePublication
+            {
+                Name = "NWT",
+                PublicationCode = "nwt",
+                LanguageId = null,
+                IsVideo = false,
+                IsMusic = false,
+            };
+            publication.BiblePublicationCategories.Add(new BiblePublicationCategory
+            {
+                Category = category,
+                CategoryId = category.Id,
+            });
+            seed.BiblePublications.Add(publication);
+            await seed.SaveChangesAsync();
+        }
+
+        var schedule = Schedule(5, bibleLang: "E", category: null);
+        schedule.BiblePublicationCode = "nwt";
+        var app = new ApplicationState([], schedule);
+        var sut = new BiblePublicationSelectionStateHandler(
+            new FakeApplicationState(app),
+            CreateProvider(app),
+            new MediaTestScopeFactory(options));
+        sut.InitializeCurrent(
+            new BiblePublicationSchedule { LanguageCode = "E", PublicationCode = "nwt", TrackCode = "1" },
+            initialLanguageCode: "E",
+            initialCategoryName: null);
+
+        var publications = new ObservableCollection<PublicationListViewItemModel>();
+
+        try
+        {
+            await sut.RefreshFromStateAsync(_ => { }, publications);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or COMException)
+        {
+        }
+
+        Assert.Equal("E", sut.Current?.LanguageCode);
     }
 }

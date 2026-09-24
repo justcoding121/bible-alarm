@@ -135,6 +135,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton(_ => Log.Logger);
 
         // Must be singleton so all callers share one Preferences lock
+        services.AddSingleton<Microsoft.Maui.Storage.IPreferences>(_ => Microsoft.Maui.Storage.Preferences.Default);
         services.AddSingleton<Bible.Alarm.Common.Interfaces.Storage.IThreadSafePreferencesService, Bible.Alarm.Common.Services.Storage.ThreadSafePreferencesService>();
 
         services.AddSingleton<IDownloadService, DownloadService>();

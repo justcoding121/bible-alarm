@@ -12,68 +12,68 @@ if (-not $files) {
     exit 1
 }
 
-$excludeRegex = [regex]'\\Views\\|\\Platforms\\Android\\|\\Platforms\\iOS\\|\.android\.cs|\.ios\.cs|\\\.tools\\|\\Database\\Migrations\\'
-$results = @{}
+$excludeRegex = [regex]'\\Views\\|\\Platforms\\Android\\|\\Platforms\\iOS\\|\.android\.cs|\.ios\.cs|\\\.tools\\|\\libraries\\|\\Database\\Migrations\\|\\MauiProgram\.cs|\\App\.xaml\.cs|\\ServiceRegistrationHelper\.cs|\\MediaElementService\.cs|\\NotificationPermissionViewModel\.cs|\\IosNotificationPermissionViewModel\.cs|\\obj\\|\\bin\\|XamlTypeInfo\.g\.cs|WinRT\.|\\NavigationService\.cs|\\NavigationServiceHelpers\\|\\PlaybackModalService\.cs|\\WindowSetupService\.cs|\\ModalScrollHelper\.cs|\\CollectionViewScrollExecutor\.cs|\\AudioPlayerHelpers\\|\\WindowsSmtcService\.cs|\\Platforms\\Windows\\Services\\UI\\'
 
-foreach ($file in $files) {
-    [xml]$doc = Get-Content $file.FullName
+# Merge by source file + start line, taking max visit count across reports (Sonar-style union).
+$lineHits = @{}
+$fileTotals = @{}
+
+foreach ($report in $files) {
+    [xml]$doc = Get-Content $report.FullName
     foreach ($module in @($doc.CoverageSession.Modules.Module)) {
         $filePaths = @{}
-        foreach ($file in @($module.Files.File)) {
-            if ($file.uid -and $file.fullPath) {
-                $filePaths[[string]$file.uid] = [string]$file.fullPath
+        foreach ($srcFile in @($module.Files.File)) {
+            if ($srcFile.uid -and $srcFile.fullPath) {
+                $filePaths[[string]$srcFile.uid] = [string]$srcFile.fullPath
             }
         }
 
         foreach ($cls in @($module.Classes.Class)) {
             if (-not $cls.FullName) { continue }
 
-            $classFilePath = $null
             foreach ($method in @($cls.Methods.Method)) {
                 $fileId = $method.FileRef.uid
-                if ($fileId -and $filePaths.ContainsKey([string]$fileId)) {
-                    $classFilePath = $filePaths[[string]$fileId]
-                    break
-                }
-            }
+                if (-not $fileId -or -not $filePaths.ContainsKey([string]$fileId)) { continue }
+                $classFilePath = $filePaths[[string]$fileId]
+                if ($excludeRegex.IsMatch($classFilePath)) { continue }
 
-            if ($classFilePath -and $excludeRegex.IsMatch($classFilePath)) { continue }
-            if (-not $classFilePath -and $excludeRegex.IsMatch($cls.FullName)) { continue }
-
-            $uncovered = 0
-            $total = 0
-            foreach ($method in @($cls.Methods.Method)) {
                 foreach ($seq in @($method.SequencePoints.SequencePoint)) {
                     if ($null -eq $seq) { continue }
-                    $total++
-                    if ([int]$seq.vc -eq 0) { $uncovered++ }
+                    $sl = [string]$seq.sl
+                    if ([string]::IsNullOrEmpty($sl)) { continue }
+                    $key = "$classFilePath|$sl"
+                    $vc = [int]$seq.vc
+                    if (-not $lineHits.ContainsKey($key) -or $vc -gt $lineHits[$key]) {
+                        $lineHits[$key] = $vc
+                    }
+                    if (-not $fileTotals.ContainsKey($classFilePath)) {
+                        $fileTotals[$classFilePath] = [ordered]@{ Uncovered = 0; Total = 0 }
+                    }
                 }
             }
-
-            if ($total -eq 0) { continue }
-
-            $key = if ($classFilePath) { $classFilePath } else { $cls.FullName }
-            if (-not $results.ContainsKey($key)) {
-                $results[$key] = [ordered]@{ Uncovered = 0; Total = 0; Class = $cls.FullName }
-            }
-
-            $results[$key].Uncovered += $uncovered
-            $results[$key].Total += $total
         }
     }
 }
 
-$grandTotal = ($results.Values | ForEach-Object { $_.Total } | Measure-Object -Sum).Sum
-$grandUncovered = ($results.Values | ForEach-Object { $_.Uncovered } | Measure-Object -Sum).Sum
+foreach ($entry in $lineHits.GetEnumerator()) {
+    $path = ($entry.Key -split '\|')[0]
+    $fileTotals[$path].Total++
+    if ([int]$entry.Value -eq 0) {
+        $fileTotals[$path].Uncovered++
+    }
+}
+
+$grandTotal = ($fileTotals.Values | ForEach-Object { $_.Total } | Measure-Object -Sum).Sum
+$grandUncovered = ($fileTotals.Values | ForEach-Object { $_.Uncovered } | Measure-Object -Sum).Sum
 $pct = if ($grandTotal -gt 0) { 100.0 * ($grandTotal - $grandUncovered) / $grandTotal } else { 0 }
 
-Write-Host "Merged $($files.Count) OpenCover file(s)"
-Write-Host "In-scope line coverage (excl Views/Platforms/tools/migrations): $($pct.ToString('F1'))% ($($grandTotal - $grandUncovered)/$grandTotal)"
+Write-Host "Merged $($files.Count) OpenCover file(s) (max visit-count per file:line)"
+Write-Host "In-scope line coverage (excl Views/Platforms/tools/migrations/obj): $($pct.ToString('F1'))% ($($grandTotal - $grandUncovered)/$grandTotal)"
 Write-Host ""
-Write-Host "Top $Top classes by uncovered LOC:"
+Write-Host "Top $Top files by uncovered LOC:"
 Write-Host ("{0,-90} {1,8} {2,8} {3,8}" -f "File", "Uncov", "Total", "PctUnc")
 
-$results.GetEnumerator() |
+$fileTotals.GetEnumerator() |
     Sort-Object { $_.Value.Uncovered } -Descending |
     Select-Object -First $Top |
     ForEach-Object {

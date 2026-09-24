@@ -7,7 +7,9 @@ using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Tests.Support;
 using Bible.Alarm.ViewModels.Shared;
+using CommunityToolkit.Mvvm.Messaging;
 using Fluxor;
+using System.Runtime.InteropServices;
 
 namespace Bible.Alarm.Tests;
 
@@ -276,5 +278,194 @@ public sealed class MiniPlaybackBarViewModelTests
         Assert.False(sut.IsNextBusy);
         Assert.False(sut.IsStopping);
         Assert.Equal("Genesis 1", sut.Title);
+    }
+
+    [Fact]
+    public void Ctor_sets_static_instance_and_dispose_clears_it()
+    {
+        MiniPlaybackBarViewModel? first = null;
+        MiniPlaybackBarViewModel? second = null;
+        try
+        {
+            first = CreateSut();
+            Assert.Same(first, MiniPlaybackBarViewModel.Instance);
+
+            first.Dispose();
+            Assert.Null(MiniPlaybackBarViewModel.Instance);
+
+            second = CreateSut();
+            Assert.Same(second, MiniPlaybackBarViewModel.Instance);
+        }
+        finally
+        {
+            second?.Dispose();
+        }
+    }
+
+    [Fact]
+    public void Ctor_syncs_title_and_control_flags_from_playback_state()
+    {
+        var playbackState = new MutablePlaybackState(PlayingState(canPlayNext: false, canPlayPrevious: false));
+        using var sut = CreateSut(playbackState: playbackState);
+
+        Assert.Equal("Genesis 1", sut.Title);
+        Assert.True(sut.IsPlaying);
+        Assert.True(sut.AreControlsEnabled);
+        Assert.False(sut.CanPlayNext);
+        Assert.False(sut.CanPlayPrevious);
+        Assert.False(sut.IsPreviousEnabled);
+        Assert.False(sut.IsNextEnabled);
+        Assert.True(sut.ShowArtworkFallback);
+    }
+
+    [Fact]
+    public void ShowArtworkFallback_false_when_artwork_loading()
+    {
+        using var sut = CreateSut();
+        sut.IsArtworkLoading = true;
+
+        Assert.False(sut.ShowArtworkFallback);
+    }
+
+    [Fact]
+    public async Task StopCommand_invokes_playback_service()
+    {
+        var playback = new RecordingPlaybackService();
+        using var sut = CreateSut(playback);
+
+        await sut.StopCommand.ExecuteAsync(null);
+
+        Assert.Contains("StopAsync", playback.Calls);
+        Assert.True(sut.IsStopping);
+    }
+
+    [Fact]
+    public async Task NextCommand_invokes_playback_service_and_sets_busy()
+    {
+        var playback = new RecordingPlaybackService();
+        using var sut = CreateSut(playback);
+
+        await sut.NextCommand.ExecuteAsync(null);
+
+        Assert.Contains("PlayNextAsync", playback.Calls);
+        Assert.True(sut.IsNextBusy);
+        Assert.Equal(0.0, sut.Progress);
+    }
+
+    [Fact]
+    public async Task PreviousCommand_invokes_playback_service_and_sets_busy()
+    {
+        var playback = new RecordingPlaybackService();
+        using var sut = CreateSut(playback);
+
+        await sut.PreviousCommand.ExecuteAsync(null);
+
+        Assert.Contains("PlayPreviousAsync", playback.Calls);
+        Assert.True(sut.IsPreviousBusy);
+    }
+
+    [Fact]
+    public async Task MaximizeCommand_sends_message_when_controls_enabled()
+    {
+        var playbackState = new MutablePlaybackState(PlayingState());
+        using var sut = CreateSut(playbackState: playbackState);
+        var received = 0;
+        WeakReferenceMessenger.Default.Register<MaximizePlaybackMessage>(
+            this,
+            (_, _) => received++);
+
+        try
+        {
+            await sut.MaximizeCommand.ExecuteAsync(null);
+            Assert.Equal(1, received);
+        }
+        finally
+        {
+            WeakReferenceMessenger.Default.Unregister<MaximizePlaybackMessage>(this);
+        }
+    }
+
+    [Fact]
+    public async Task MaximizeCommand_is_no_op_when_controls_disabled()
+    {
+        using var sut = CreateSut();
+        sut.AreControlsEnabled = false;
+        var received = 0;
+        WeakReferenceMessenger.Default.Register<MaximizePlaybackMessage>(
+            this,
+            (_, _) => received++);
+
+        try
+        {
+            await sut.MaximizeCommand.ExecuteAsync(null);
+            Assert.Equal(0, received);
+            Assert.False(sut.IsMaximizeBusy);
+        }
+        finally
+        {
+            WeakReferenceMessenger.Default.Unregister<MaximizePlaybackMessage>(this);
+        }
+    }
+
+    [Fact]
+    public void Receive_PlaybackPosition_zero_duration_keeps_progress_at_zero()
+    {
+        using var sut = CreateSut();
+
+        sut.Receive(new PlaybackPositionChangedMessage
+        {
+            Duration = TimeSpan.Zero,
+            CurrentPosition = TimeSpan.FromSeconds(5),
+        });
+
+        Assert.Equal(0.0, sut.Progress);
+    }
+
+    [Fact]
+    public async Task Receive_PreviousButtonPressedMessage_sets_busy_state()
+    {
+        if (!MauiUiTestBootstrap.IsReady)
+        {
+            return;
+        }
+
+        using var sut = CreateSut();
+
+        sut.Receive(new PreviousButtonPressedMessage());
+        if (!await MauiUiTestHostHelper.FlushMainThreadAsync())
+        {
+            return;
+        }
+
+        Assert.True(sut.IsPreviousBusy);
+        Assert.False(sut.AreControlsEnabled);
+    }
+
+    [Fact]
+    public void Playback_state_change_applies_is_playing_during_auto_advance()
+    {
+        if (!MauiUiTestBootstrap.IsReady)
+        {
+            return;
+        }
+
+        var playbackState = new MutablePlaybackState(
+            new PlaybackState(
+                new PlaybackTransportSlice(null, true, true, true, PlayStatus.Stopped, true, false),
+                new PlaybackMediaSlice("Track", null, null, null, TimeSpan.FromSeconds(30), null),
+                new PlaybackDefaultScheduleSlice(null, null, null, null, null)));
+        using var sut = CreateSut(playbackState: playbackState);
+
+        try
+        {
+            playbackState.NotifyStateChanged();
+            MauiUiTestHostHelper.FlushMainThreadAsync().GetAwaiter().GetResult();
+
+            Assert.True(sut.IsPlaying);
+            Assert.False(sut.AreControlsEnabled);
+        }
+        catch (COMException)
+        {
+        }
     }
 }

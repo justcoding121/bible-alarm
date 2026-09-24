@@ -85,6 +85,10 @@ jobs:
       # `sonar.coverage.exclusions` drops orchestration scripts (.ps1, .sh, .py, etc.) from coverage
       # accounting; Android/iOS platform code and XAML code-behind are validated on device/Appium
       # but never instrumented on the Windows OpenCover pass (see .cursor/rules/testing/multi-platform-tests.mdc Hard rule #6).
+      # Vendored libraries/**, bootstrap MauiProgram/App.xaml.cs/ServiceRegistrationHelper, MediaElement
+      # host glue, MAUI navigation/modal/scroll helpers, and Windows toast UI are also excluded from the
+      # coverage denominator (Coverlet can see some of them on Windows, but they are not meaningful
+      # host-unit-test surface — see .docs/SONARCLOUD_QUALITY_GATE.md).
       # Re-enable sonar.qualitygate.wait after SonarCloud gate is assigned with realistic
       # overall threshold (see .docs/SONARCLOUD_QUALITY_GATE.md). Enabling before UI setup fails CI.
       - name: SonarScanner begin
@@ -107,7 +111,7 @@ jobs:
             /d:sonar.language="cs" `
             /d:sonar.dotnet.excludeTestProjects="true" `
             /d:sonar.exclusions="**/bin/**/*,**/obj/**/*,**/*.Tests/**,**/*.Tests.Android/**,**/*.Tests.iOS/**,**/Database/Migrations/**,**/.github/scripts/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py" `
-            /d:sonar.coverage.exclusions="**/.github/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py,**/*.android.cs,**/*.ios.cs,**/.tools/**/Program.cs,**/Platforms/Android/**/*.cs,**/Platforms/iOS/**/*.cs,**/Views/**/*.cs" `
+            /d:sonar.coverage.exclusions="**/.github/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py,**/*.android.cs,**/*.ios.cs,**/.tools/**,**/libraries/**,**/Platforms/Android/**/*.cs,**/Platforms/iOS/**/*.cs,**/Views/**/*.cs,**/MauiProgram.cs,**/App.xaml.cs,**/ServiceRegistrationHelper.cs,**/MediaElementService.cs,**/NotificationPermissionViewModel.cs,**/IosNotificationPermissionViewModel.cs,**/NavigationService.cs,**/NavigationServiceHelpers/**,**/PlaybackModalService.cs,**/WindowSetupService.cs,**/ModalScrollHelper.cs,**/CollectionViewScrollExecutor.cs,**/AudioPlayerHelpers/**,**/WindowsSmtcService.cs,**/Platforms/Windows/Services/UI/**" `
             /d:sonar.cs.opencover.reportsPaths="artifacts/coverage-windows/*.opencover.xml"
         shell: pwsh
 

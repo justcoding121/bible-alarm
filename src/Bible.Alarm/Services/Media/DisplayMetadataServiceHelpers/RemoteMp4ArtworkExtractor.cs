@@ -59,7 +59,7 @@ internal sealed class RemoteMp4ArtworkExtractor
         }
     }
 
-    private static bool IsMp4Url(string url)
+    internal static bool IsMp4Url(string url)
     {
         if (string.IsNullOrEmpty(url) || url.Length < 5)
         {
@@ -125,7 +125,7 @@ internal sealed class RemoteMp4ArtworkExtractor
         return tailSuffix != null ? FindAndExtractMoovFromTail(tailSuffix) : null;
     }
 
-    private static async Task<long?> GetContentLengthAsync(HttpClient client, string url, CancellationToken cancellationToken)
+    internal static async Task<long?> GetContentLengthAsync(HttpClient client, string url, CancellationToken cancellationToken)
     {
         using var headRequest = new HttpRequestMessage(HttpMethod.Head, url);
         headRequest.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);
@@ -152,11 +152,25 @@ internal sealed class RemoteMp4ArtworkExtractor
             return null;
         }
 
-        string? contentRange = null;
-        if (response.Headers.TryGetValues("Content-Range", out var values))
+        var parsed = response.Content.Headers.ContentRange;
+        if (parsed?.HasLength == true && parsed.Length is long typedLength && typedLength >= 28)
         {
-            contentRange = values.FirstOrDefault();
+            return typedLength;
         }
+
+        if (parsed != null && !parsed.HasLength)
+        {
+            // e.g. Content-Range: bytes 0-0/*
+            return null;
+        }
+
+        string? contentRange = null;
+        if (!response.Headers.TryGetValues("Content-Range", out var values))
+        {
+            response.Content.Headers.TryGetValues("Content-Range", out values);
+        }
+
+        contentRange = values?.FirstOrDefault();
 
         if (string.IsNullOrEmpty(contentRange))
         {
@@ -241,7 +255,7 @@ internal sealed class RemoteMp4ArtworkExtractor
         return true;
     }
 
-    private static byte[]? FindAndExtractMoov(byte[] buffer)
+    internal static byte[]? FindAndExtractMoov(byte[] buffer)
     {
         long offset = 0;
         while (offset + 8 <= buffer.Length)
@@ -269,7 +283,7 @@ internal sealed class RemoteMp4ArtworkExtractor
         return null;
     }
 
-    private static byte[]? FindAndExtractMoovFromTail(byte[] tail)
+    internal static byte[]? FindAndExtractMoovFromTail(byte[] tail)
     {
         for (int i = tail.Length - 4; i >= 4; i--)
         {
@@ -358,7 +372,7 @@ internal sealed class RemoteMp4ArtworkExtractor
                | ((long)b[i + 4] << 24) | ((long)b[i + 5] << 16) | ((long)b[i + 6] << 8) | b[i + 7];
     }
 
-    private static async Task<byte[]?> FetchRangeAsync(HttpClient client, string url, long from, long to, CancellationToken cancellationToken)
+    internal static async Task<byte[]?> FetchRangeAsync(HttpClient client, string url, long from, long to, CancellationToken cancellationToken)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.UserAgent.ParseAdd(AppConstants.Media.MediaHttpUserAgent);

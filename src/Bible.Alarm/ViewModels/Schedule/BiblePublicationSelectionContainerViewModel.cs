@@ -150,7 +150,7 @@ public sealed partial class BiblePublicationSelectionContainerViewModel : Observ
 
         // Dispatch to state that this container is ready
         // Check state again inside the queued action to prevent duplicates from queued actions
-        MainThread.BeginInvokeOnMainThread(() =>
+        void DispatchReadyIfNeeded()
         {
             // Reset flag when action executes
             isReadyActionQueued = false;
@@ -163,7 +163,17 @@ public sealed partial class BiblePublicationSelectionContainerViewModel : Observ
                 return;
             }
             dispatcher.Dispatch(new ContainerReadyAction("BiblePublicationSelection"));
-        });
+        }
+
+        try
+        {
+            MainThread.BeginInvokeOnMainThread(DispatchReadyIfNeeded);
+        }
+        catch (System.Runtime.InteropServices.COMException ex)
+        {
+            logger.Debug(ex, "SignalContainerReady: MainThread unavailable; dispatching synchronously");
+            DispatchReadyIfNeeded();
+        }
     }
 
     private void InitializeCommands()

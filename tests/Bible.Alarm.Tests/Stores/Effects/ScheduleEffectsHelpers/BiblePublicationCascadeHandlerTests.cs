@@ -1,11 +1,13 @@
 #nullable enable
 
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Tests.Support;
@@ -13,6 +15,7 @@ using Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
 using Fluxor;
 using Microsoft.Extensions.DependencyInjection;
 using IDispatcher = Fluxor.IDispatcher;
+using CascadeFixtures = Bible.Alarm.Tests.Support.CascadeHandlerTestFixtures;
 
 namespace Bible.Alarm.Tests;
 
@@ -389,6 +392,198 @@ public sealed class BiblePublicationCascadeHandlerTests
         var handler = new BiblePublicationCascadeHandler(
             new UnexpectedBiblePublicationService(),
             new IdleMediaService(),
+            new IdleLanguageContentService(),
+            itemSelector,
+            state,
+            new UnexpectedScopeFactory(),
+            TestLogging.CreateLogger());
+
+        await handler.HandleAsync(dispatcher);
+
+        Assert.Empty(dispatcher.Dispatched);
+    }
+
+    private static BiblePublicationCascadeHandler CreateHandler(
+        ScheduleStateItem schedule,
+        IMediaService media,
+        ILanguageContentService languageContent,
+        IBiblePublicationService biblePublicationService,
+        IServiceScopeFactory scopeFactory)
+    {
+        var state = new FakeApplicationState(new ApplicationState([], currentSchedule: schedule));
+        var itemSelector = new BiblePublicationSelectionItemSelector(
+            media,
+            state,
+            biblePublicationService: biblePublicationService,
+            biblePublicationSectionService: null,
+            languageContentService: languageContent,
+            scopeFactory: scopeFactory);
+        return new BiblePublicationCascadeHandler(
+            biblePublicationService,
+            media,
+            languageContent,
+            itemSelector,
+            state,
+            scopeFactory,
+            TestLogging.CreateLogger());
+    }
+
+    [Fact]
+    public async Task HandleAsync_section_cascade_dispatches_first_track()
+    {
+        const string pub = "nwtsty";
+        var (options, connection) = await CascadeFixtures.CreateEmptyMediaDbAsync();
+        await using (connection)
+        {
+            var dispatcher = new RecordingDispatcher();
+            var schedule = new ScheduleStateItem
+            {
+                BiblePublicationLanguageCode = "E",
+                BiblePublicationCode = pub,
+                BiblePublicationSectionCode = "1",
+                BiblePublicationTrackCode = null,
+            };
+            var media = new CascadeFixtures.SectionTracksMediaService("E", pub, "1");
+            var handler = CreateHandler(
+                schedule,
+                media,
+                new CascadeFixtures.ConfigurableLanguageContentService(true),
+                new CascadeFixtures.CountingBiblePublicationService([pub]),
+                new MediaTestScopeFactory(options));
+
+            await handler.HandleAsync(dispatcher);
+
+            var action = Assert.Single(dispatcher.Dispatched);
+            var update = Assert.IsType<UpdateScheduleFromViewModelAction>(action);
+            Assert.Equal("1", update.Schedule.BiblePublicationTrackCode);
+        }
+    }
+
+    [Fact]
+    public async Task HandleAsync_publication_cascade_dispatches_flat_track()
+    {
+        const string pub = "sjjc";
+        var (options, connection) = await CascadeFixtures.CreateEmptyMediaDbAsync();
+        await using (connection)
+        {
+            await CascadeFixtures.SeedBibleFlatPublicationAsync(options, pub, "E");
+            var dispatcher = new RecordingDispatcher();
+            var schedule = new ScheduleStateItem
+            {
+                BiblePublicationLanguageCode = "E",
+                BiblePublicationCode = pub,
+                BiblePublicationSectionCode = null,
+                BiblePublicationTrackCode = null,
+            };
+            var scopeFactory = new MediaTestScopeFactory(options);
+            var languages = new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["E"] = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight },
+            };
+            var media = new CascadeFixtures.FlatTracksMediaService("E", pub);
+            var handler = CreateHandler(
+                schedule,
+                media,
+                new CascadeFixtures.ConfigurableLanguageContentService(true),
+                new CascadeFixtures.DbBackedBiblePublicationService(scopeFactory, languages, [pub]),
+                scopeFactory);
+
+            await handler.HandleAsync(dispatcher);
+
+            var action = Assert.Single(dispatcher.Dispatched);
+            var update = Assert.IsType<UpdateScheduleFromViewModelAction>(action);
+            Assert.Equal("1", update.Schedule.BiblePublicationTrackCode);
+        }
+    }
+
+    [Fact]
+    public async Task HandleAsync_language_cascade_resolves_publication_from_database()
+    {
+        const string pub = "sjjc";
+        var (options, connection) = await CascadeFixtures.CreateEmptyMediaDbAsync();
+        await using (connection)
+        {
+            await CascadeFixtures.SeedBibleFlatPublicationAsync(options, pub, "E");
+            var dispatcher = new RecordingDispatcher();
+            var schedule = new ScheduleStateItem
+            {
+                BiblePublicationLanguageCode = "E",
+                BiblePublicationCategoryName = AppConstants.Media.BiblePublicationCategoryBible,
+                BiblePublicationCode = null,
+            };
+            var scopeFactory = new MediaTestScopeFactory(options);
+            var languages = new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["E"] = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight },
+            };
+            var media = new CascadeFixtures.FlatTracksMediaService("E", pub);
+            var handler = CreateHandler(
+                schedule,
+                media,
+                new CascadeFixtures.ConfigurableLanguageContentService(true),
+                new CascadeFixtures.DbBackedBiblePublicationService(scopeFactory, languages, [pub]),
+                scopeFactory);
+
+            await handler.HandleAsync(dispatcher);
+
+            var action = Assert.Single(dispatcher.Dispatched);
+            var update = Assert.IsType<UpdateScheduleFromViewModelAction>(action);
+            Assert.Equal(pub, update.Schedule.BiblePublicationCode);
+            Assert.Equal("1", update.Schedule.BiblePublicationTrackCode);
+        }
+    }
+
+    [Fact]
+    public async Task HandleAsync_language_cascade_noop_when_publication_languages_not_queryable()
+    {
+        const string pub = "sjjc";
+        var (options, connection) = await CascadeFixtures.CreateEmptyMediaDbAsync();
+        await using (connection)
+        {
+            await CascadeFixtures.SeedMusicLanguageBoundPublicationAsync(options, pub, "E", "Wrong cat", includePublicationRow: true);
+            var dispatcher = new RecordingDispatcher();
+            var schedule = new ScheduleStateItem
+            {
+                BiblePublicationLanguageCode = "E",
+                BiblePublicationCategoryName = AppConstants.Media.BiblePublicationCategoryBible,
+                BiblePublicationCode = null,
+            };
+            var handler = CreateHandler(
+                schedule,
+                new IdleMediaService(),
+                new CascadeFixtures.ConfigurableLanguageContentService(true),
+                new CascadeFixtures.CountingBiblePublicationService([]),
+                new MediaTestScopeFactory(options));
+
+            await handler.HandleAsync(dispatcher);
+
+            Assert.Empty(dispatcher.Dispatched);
+        }
+    }
+
+    [Fact]
+    public async Task HandleAsync_section_cascade_noop_when_get_publication_codes_throws()
+    {
+        var dispatcher = new RecordingDispatcher();
+        var schedule = new ScheduleStateItem
+        {
+            BiblePublicationLanguageCode = "E",
+            BiblePublicationCode = "sjjc",
+            BiblePublicationSectionCode = "1",
+            BiblePublicationTrackCode = null,
+        };
+        var throwingBible = new UnexpectedBiblePublicationService();
+        var state = new FakeApplicationState(new ApplicationState([], schedule));
+        var itemSelector = new BiblePublicationSelectionItemSelector(
+            new CascadeFixtures.SectionTracksMediaService("E", "sjjc", "1"),
+            state,
+            biblePublicationService: throwingBible,
+            biblePublicationSectionService: null,
+            languageContentService: null,
+            scopeFactory: new UnexpectedScopeFactory());
+        var handler = new BiblePublicationCascadeHandler(
+            throwingBible,
+            new CascadeFixtures.SectionTracksMediaService("E", "sjjc", "1"),
             new IdleLanguageContentService(),
             itemSelector,
             state,

@@ -9,10 +9,12 @@ using WinUiApp = Bible.Alarm.WinUI.App;
 
 namespace Bible.Alarm.Tests;
 
+[Collection("SerilogGlobalLogger")]
 [Trait("Platform", "Windows")]
 public sealed class WinUiAppCrashHandlerTests
 {
     private static readonly Type AppType = typeof(WinUiApp);
+    private static readonly object LogGate = new();
 
     private sealed class ListSink(List<LogEvent> events) : ILogEventSink
     {
@@ -21,6 +23,16 @@ public sealed class WinUiAppCrashHandlerTests
 
     private static MethodInfo? GetStaticMethod(string name) =>
         AppType.GetMethod(name, BindingFlags.Static | BindingFlags.NonPublic);
+
+    private static List<LogEvent> InstallCapturingLogger()
+    {
+        var events = new List<LogEvent>();
+        Log.Logger = new LoggerConfiguration()
+            .MinimumLevel.Verbose()
+            .WriteTo.Sink(new ListSink(events))
+            .CreateLogger();
+        return events;
+    }
 
     [Fact]
     public void WinUi_app_type_is_the_windows_entry_point()
@@ -31,76 +43,100 @@ public sealed class WinUiAppCrashHandlerTests
     [Fact]
     public void UnobservedTaskExceptionHandler_logs_and_flushes()
     {
-        var events = new List<LogEvent>();
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Verbose()
-            .WriteTo.Sink(new ListSink(events))
-            .CreateLogger();
+        lock (LogGate)
+        {
+            var prior = Log.Logger;
+            try
+            {
+                var events = InstallCapturingLogger();
 
-        var method = GetStaticMethod("UnobservedTaskExceptionHandler");
-        Assert.NotNull(method);
+                var method = GetStaticMethod("UnobservedTaskExceptionHandler");
+                Assert.NotNull(method);
 
-        var args = new UnobservedTaskExceptionEventArgs(
-            new AggregateException(new InvalidOperationException("task-fail")));
+                var args = new UnobservedTaskExceptionEventArgs(
+                    new AggregateException(new InvalidOperationException("task-fail")));
 
-        Assert.Null(Record.Exception(() => method!.Invoke(null, [null, args])));
-        Assert.Contains(events, e => e.Level == LogEventLevel.Error);
+                Assert.Null(Record.Exception(() => method!.Invoke(null, [null, args])));
+                Assert.Contains(events, e => e.Level == LogEventLevel.Error);
+            }
+            finally
+            {
+                Log.Logger = prior ?? TestLogging.CreateLogger();
+            }
+        }
     }
 
     [Fact]
     public void UnhandledExceptionHandler_logs_exception_object()
     {
-        var events = new List<LogEvent>();
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Verbose()
-            .WriteTo.Sink(new ListSink(events))
-            .CreateLogger();
+        lock (LogGate)
+        {
+            var prior = Log.Logger;
+            try
+            {
+                var events = InstallCapturingLogger();
 
-        var method = GetStaticMethod("UnhandledExceptionHandler");
-        Assert.NotNull(method);
+                var method = GetStaticMethod("UnhandledExceptionHandler");
+                Assert.NotNull(method);
 
-        var args = new UnhandledExceptionEventArgs(new InvalidOperationException("fatal"), isTerminating: true);
+                var args = new UnhandledExceptionEventArgs(new InvalidOperationException("fatal"), isTerminating: true);
 
-        Assert.Null(Record.Exception(() => method!.Invoke(null, [this, args])));
-        Assert.Contains(events, e => e.Level == LogEventLevel.Fatal);
+                Assert.Null(Record.Exception(() => method!.Invoke(null, [this, args])));
+                Assert.Contains(events, e => e.Level == LogEventLevel.Fatal);
+            }
+            finally
+            {
+                Log.Logger = prior ?? TestLogging.CreateLogger();
+            }
+        }
     }
 
     [Fact]
     public void UnhandledExceptionHandler_logs_non_exception_object()
     {
-        var events = new List<LogEvent>();
-        Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Verbose()
-            .WriteTo.Sink(new ListSink(events))
-            .CreateLogger();
+        lock (LogGate)
+        {
+            var prior = Log.Logger;
+            try
+            {
+                var events = InstallCapturingLogger();
 
-        var method = GetStaticMethod("UnhandledExceptionHandler");
-        Assert.NotNull(method);
+                var method = GetStaticMethod("UnhandledExceptionHandler");
+                Assert.NotNull(method);
 
-        var args = new UnhandledExceptionEventArgs("non-exception payload", isTerminating: false);
+                var args = new UnhandledExceptionEventArgs("non-exception payload", isTerminating: false);
 
-        Assert.Null(Record.Exception(() => method!.Invoke(null, [this, args])));
-        Assert.Contains(events, e => e.Level == LogEventLevel.Fatal);
+                Assert.Null(Record.Exception(() => method!.Invoke(null, [this, args])));
+                Assert.Contains(events, e => e.Level == LogEventLevel.Fatal);
+            }
+            finally
+            {
+                Log.Logger = prior ?? TestLogging.CreateLogger();
+            }
+        }
     }
 
     [Fact]
     public void FlushAndDelay_swallows_close_and_flush_errors()
     {
-        var method = GetStaticMethod("FlushAndDelay");
-        Assert.NotNull(method);
-
-        var prior = Log.Logger;
-        try
+        lock (LogGate)
         {
-            Log.Logger = new LoggerConfiguration()
-                .WriteTo.Sink(new ThrowingOnCloseSink())
-                .CreateLogger();
+            var method = GetStaticMethod("FlushAndDelay");
+            Assert.NotNull(method);
 
-            Assert.Null(Record.Exception(() => method!.Invoke(null, null)));
-        }
-        finally
-        {
-            Log.Logger = prior ?? TestLogging.CreateLogger();
+            var prior = Log.Logger;
+            try
+            {
+                Log.Logger = new LoggerConfiguration()
+                    .WriteTo.Sink(new ThrowingOnCloseSink())
+                    .CreateLogger();
+
+                Assert.Null(Record.Exception(() => method!.Invoke(null, null)));
+            }
+            finally
+            {
+                Log.Logger = prior ?? TestLogging.CreateLogger();
+            }
         }
     }
 

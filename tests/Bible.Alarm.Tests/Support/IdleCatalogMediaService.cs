@@ -8,19 +8,19 @@ using Bible.Alarm.Shared.Services.Media.Interfaces;
 
 namespace Bible.Alarm.Tests.Support;
 
-internal sealed class IdleCatalogMediaService : IMediaService
+internal class IdleCatalogMediaService : IMediaService
 {
     public void Dispose()
     {
     }
 
-    public Task<Dictionary<string, Language>> GetBiblePublicationLanguages(string? categoryName = null, bool requireIsMusicForMusicCategory = false) =>
+    public virtual Task<Dictionary<string, Language>> GetBiblePublicationLanguages(string? categoryName = null, bool requireIsMusicForMusicCategory = false) =>
         Task.FromResult(new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase));
 
-    public Task<SortedDictionary<string, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode, string? sectionCode) =>
+    public virtual Task<SortedDictionary<string, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode, string? sectionCode) =>
         Task.FromResult(new SortedDictionary<string, BiblePublicationTrack>());
 
-    public Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false,
+    public virtual Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false,
         IFetchProgress? progress = null, bool requireIsMusicForMusicCategory = false) =>
         Task.FromResult(new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase));
 
@@ -28,31 +28,31 @@ internal sealed class IdleCatalogMediaService : IMediaService
         IFetchProgress? progress = null) =>
         Task.FromResult(new SortedDictionary<string, BiblePublicationSection>());
 
-    public Task<SortedDictionary<string, BiblePublicationSection>> GetSectionsForPublicationWithoutLanguage(string publicationCode) =>
+    public virtual Task<SortedDictionary<string, BiblePublicationSection>> GetSectionsForPublicationWithoutLanguage(string publicationCode) =>
         Task.FromResult(new SortedDictionary<string, BiblePublicationSection>());
 
-    public Task<BiblePublicationSection?> GetBiblePublicationSection(string languageCode, string versionCode, string sectionCode) =>
+    public virtual Task<BiblePublicationSection?> GetBiblePublicationSection(string languageCode, string versionCode, string sectionCode) =>
         Task.FromResult<BiblePublicationSection?>(null);
 
     public Task<BiblePublicationTrack?> GetBiblePublicationTrack(string languageCode, string versionCode, string? sectionCode, string trackCode) =>
         Task.FromResult<BiblePublicationTrack?>(null);
 
-    public Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases() =>
+    public virtual Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases() =>
         Task.FromResult(new Dictionary<string, MelodyMusic>(StringComparer.OrdinalIgnoreCase));
 
-    public Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode) =>
+    public virtual Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode) =>
         Task.FromResult(new SortedDictionary<int, MusicTrack>());
 
-    public Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracksBySection(string publicationCode, string sectionCode) =>
+    public virtual Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracksBySection(string publicationCode, string sectionCode) =>
         Task.FromResult(new SortedDictionary<int, MusicTrack>());
 
     public Task<Dictionary<string, Language>> GetVocalMusicLanguages() =>
         Task.FromResult(new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase));
 
-    public Task<Dictionary<string, VocalMusic>> GetVocalMusicReleases(string languageCode, bool downloadAll = false) =>
+    public virtual Task<Dictionary<string, VocalMusic>> GetVocalMusicReleases(string languageCode, bool downloadAll = false) =>
         Task.FromResult(new Dictionary<string, VocalMusic>(StringComparer.OrdinalIgnoreCase));
 
-    public Task<SortedDictionary<int, MusicTrack>> GetVocalMusicTracks(string languageCode, string publicationCode) =>
+    public virtual Task<SortedDictionary<int, MusicTrack>> GetVocalMusicTracks(string languageCode, string publicationCode) =>
         Task.FromResult(new SortedDictionary<int, MusicTrack>());
 
     public Task UpdateBiblePublicationTrackUrl(string languageCode, string versionCode, string? sectionCode, string trackCode, string url) =>

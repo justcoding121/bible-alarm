@@ -246,7 +246,10 @@ internal static class CollectionViewScrollExecutor
         collectionView.ScrollTo(item, position: position, animate: animated);
     }
 
-    private static Microsoft.Maui.Controls.ScrollView? TryFindParentScrollView(Microsoft.Maui.Controls.Element? parent)
+    /// <summary>
+    /// Walks parents looking for a ScrollView; used when End-position scroll needs a ScrollView fallback.
+    /// </summary>
+    internal static Microsoft.Maui.Controls.ScrollView? TryFindParentScrollView(Microsoft.Maui.Controls.Element? parent)
     {
         try
         {
@@ -350,7 +353,10 @@ internal static class CollectionViewScrollExecutor
         });
     }
 
-    private static bool ValidateCollectionViewBeforeScroll(MauiCollectionView collectionView, CancellationToken cancellationToken)
+    /// <summary>
+    /// Returns false when the CollectionView is not attached to a live platform view (safe no-op for scroll).
+    /// </summary>
+    internal static bool ValidateCollectionViewBeforeScroll(MauiCollectionView collectionView, CancellationToken cancellationToken)
     {
         if (collectionView == null || collectionView.Parent == null || collectionView.Handler == null || collectionView.Handler.PlatformView == null)
         {

@@ -1,7 +1,9 @@
 #nullable enable
 
 using System.Collections.ObjectModel;
+using System.Net.Http;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media;
@@ -294,6 +296,338 @@ public sealed class BiblePublicationSelectionDataProviderTests
         Assert.Single(mapping);
         Assert.NotNull(preferred);
         Assert.Equal("nwt", preferred!.Code);
+    }
+
+    [Theory]
+    [InlineData("nwt", "New World Translation", 10, true)]
+    [InlineData("stub", "stub", 3, false)]
+    [InlineData("nwt", "Holy Scriptures", 0, false)]
+    public void IsPublicationFullyCataloged_evaluates_name_id_and_code(
+        string code,
+        string name,
+        int id,
+        bool expected)
+    {
+        var method = typeof(BiblePublicationSelectionDataProvider).GetMethod(
+            "IsPublicationFullyCataloged",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(method);
+
+        var publication = new BiblePublication { PublicationCode = code, Name = name, Id = id };
+        var actual = (bool)method!.Invoke(null, [publication])!;
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void UserHasPublicationSelectedForLanguage_is_true_when_codes_match()
+    {
+        var method = typeof(BiblePublicationSelectionDataProvider).GetMethod(
+            "UserHasPublicationSelectedForLanguage",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(method);
+
+        var schedule = new ScheduleStateItem
+        {
+            Id = 1,
+            BiblePublicationLanguageCode = "E",
+            BiblePublicationCode = "nwt",
+        };
+
+        var result = (bool)method!.Invoke(null, [schedule, "E"])!;
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ScheduleAlreadyReflectsDefaultPublicationStart_matches_default_section_one_track_one()
+    {
+        var method = typeof(BiblePublicationSelectionDataProvider).GetMethod(
+            "ScheduleAlreadyReflectsDefaultPublicationStart",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(method);
+
+        var schedule = new ScheduleStateItem
+        {
+            Id = 1,
+            BiblePublicationLanguageCode = "E",
+            BiblePublicationCode = "nwt",
+            BiblePublicationSectionCode = "1",
+            BiblePublicationTrackCode = "1",
+        };
+        var defaultPub = new PublicationListViewItemModel(new BiblePublication { PublicationCode = "nwt", Name = "NWT", Id = 1 });
+
+        var result = (bool)method!.Invoke(null, [schedule, "E", defaultPub])!;
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void ShouldRethrowPublicationRetryExceptionImmediately_includes_network_failures()
+    {
+        var method = typeof(BiblePublicationSelectionDataProvider).GetMethod(
+            "ShouldRethrowPublicationRetryExceptionImmediately",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(method);
+
+        Assert.True((bool)method!.Invoke(null, [new HttpRequestException()])!);
+        Assert.False((bool)method.Invoke(null, [new InvalidOperationException("retry")])!);
+    }
+
+    [Fact]
+    public async Task PopulatePublicationsAsync_fills_mapping_for_cataloged_publications()
+    {
+        var pubs = new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["nwt"] = new BiblePublication { PublicationCode = "nwt", Name = "Holy Scriptures", Id = 5 },
+            ["nwtsty"] = new BiblePublication { PublicationCode = "nwtsty", Name = "Study Bible", Id = 6 },
+        };
+        var schedule = new ScheduleStateItem
+        {
+            Id = 1,
+            BiblePublicationCategoryName = AppConstants.Media.BiblePublicationCategoryBible,
+            BiblePublicationLanguageCode = "E",
+        };
+        var app = new ApplicationState([], schedule);
+        var sut = new BiblePublicationSelectionDataProvider(
+            new ConfigurablePublicationMediaService(pubs),
+            new IdleLanguageNameService(),
+            new FakeApplicationState(app),
+            new IdleDispatcher());
+
+        var publications = new ObservableCollection<PublicationListViewItemModel>();
+
+        try
+        {
+            await sut.PopulatePublicationsAsync("E", publications, languageChanged: false);
+        }
+        catch (Exception ex) when (ex is InvalidOperationException or COMException)
+        {
+        }
+
+        Assert.Equal(2, sut.publicationVMsMapping.Count);
+        Assert.Contains("nwt", sut.publicationVMsMapping.Keys);
+    }
+
+    [Fact]
+    public async Task LoadPublicationsDictionaryForPopulateAsync_skips_downloadAll_when_all_expected_cataloged()
+    {
+        var pubs = new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["nwt"] = new BiblePublication { PublicationCode = "nwt", Name = "Holy Scriptures", Id = 5 },
+        };
+        var media = new DownloadAllSkipMediaService(pubs, expectedCount: 1);
+        var sut = new BiblePublicationSelectionDataProvider(
+            media,
+            new IdleLanguageNameService(),
+            new FakeApplicationState(new ApplicationState([], currentSchedule: null)),
+            new IdleDispatcher());
+
+        var method = typeof(BiblePublicationSelectionDataProvider).GetMethod(
+            "LoadPublicationsDictionaryForPopulateAsync",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+
+        var taskObj = method!.Invoke(
+            sut,
+            ["E", AppConstants.Media.BiblePublicationCategoryBible, true, null]);
+        var task = Assert.IsType<Task<Dictionary<string, BiblePublication>?>>(taskObj);
+        var result = await task;
+
+        Assert.NotNull(result);
+        Assert.Single(result!);
+        Assert.Equal(0, media.DownloadAllCallCount);
+    }
+
+    [Fact]
+    public async Task TryGetDispatchDefaultPublicationFirstPickAsync_returns_section_and_track()
+    {
+        var sections = new SortedDictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["gen"] = new BiblePublicationSection { SectionCode = "gen", Name = "Genesis" },
+        };
+        var tracks = new SortedDictionary<string, BiblePublicationTrack>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["1"] = new BiblePublicationTrack { TrackCode = "1", Title = "Genesis 1" },
+        };
+        var media = new DefaultDispatchMediaService(sections, tracks);
+        var sut = new BiblePublicationSelectionDataProvider(
+            media,
+            new IdleLanguageNameService(),
+            new FakeApplicationState(new ApplicationState([], currentSchedule: null)),
+            new IdleDispatcher());
+
+        var method = typeof(BiblePublicationSelectionDataProvider).GetMethod(
+            "TryGetDispatchDefaultPublicationFirstPickAsync",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        Assert.NotNull(method);
+
+        var taskObj = method!.Invoke(sut, ["E", "nwt"]);
+        Assert.NotNull(taskObj);
+        await ((Task)taskObj).ConfigureAwait(false);
+        var pick = taskObj.GetType().GetProperty("Result")!.GetValue(taskObj);
+        Assert.NotNull(pick);
+
+        var pickType = pick!.GetType();
+        var section = pickType.GetProperty("Section")!.GetValue(pick) as BiblePublicationSection;
+        var track = pickType.GetProperty("Track")!.GetValue(pick) as BiblePublicationTrack;
+        Assert.Equal("gen", section!.SectionCode);
+        Assert.Equal("1", track!.TrackCode);
+    }
+
+    private sealed class DownloadAllSkipMediaService(
+        Dictionary<string, BiblePublication> biblePublications,
+        int expectedCount) : IMediaService
+    {
+        private readonly IdleMediaService idle = new();
+
+        public int DownloadAllCallCount { get; private set; }
+
+        public void Dispose() => idle.Dispose();
+
+        public Task<Dictionary<string, Language>> GetBiblePublicationLanguages(string? categoryName = null, bool requireIsMusicForMusicCategory = false) =>
+            idle.GetBiblePublicationLanguages(categoryName, requireIsMusicForMusicCategory);
+
+        public Task<Dictionary<string, BiblePublication>> GetBiblePublications(
+            string languageCode,
+            string? categoryName = null,
+            bool downloadAll = false,
+            IFetchProgress? progress = null,
+            bool requireIsMusicForMusicCategory = false)
+        {
+            if (downloadAll)
+            {
+                DownloadAllCallCount++;
+            }
+
+            return Task.FromResult(biblePublications);
+        }
+
+        public Task<SortedDictionary<string, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode, string? sectionCode) =>
+            idle.GetBiblePublicationTracks(languageCode, versionCode, sectionCode);
+
+        public Task<SortedDictionary<string, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode, IFetchProgress? progress = null) =>
+            idle.GetBiblePublicationSections(languageCode, versionCode, progress);
+
+        public Task<SortedDictionary<string, BiblePublicationSection>> GetSectionsForPublicationWithoutLanguage(string publicationCode) =>
+            idle.GetSectionsForPublicationWithoutLanguage(publicationCode);
+
+        public Task<BiblePublicationSection?> GetBiblePublicationSection(string languageCode, string versionCode, string sectionCode) =>
+            idle.GetBiblePublicationSection(languageCode, versionCode, sectionCode);
+
+        public Task<BiblePublicationTrack?> GetBiblePublicationTrack(string languageCode, string versionCode, string? sectionCode, string trackCode) =>
+            idle.GetBiblePublicationTrack(languageCode, versionCode, sectionCode, trackCode);
+
+        public Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases() => idle.GetMelodyMusicReleases();
+
+        public Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode) => idle.GetMelodyMusicTracks(publicationCode);
+
+        public Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracksBySection(string publicationCode, string sectionCode) =>
+            idle.GetMelodyMusicTracksBySection(publicationCode, sectionCode);
+
+        public Task<Dictionary<string, Language>> GetVocalMusicLanguages() => idle.GetVocalMusicLanguages();
+
+        public Task<Dictionary<string, VocalMusic>> GetVocalMusicReleases(string languageCode, bool downloadAll = false) =>
+            idle.GetVocalMusicReleases(languageCode, downloadAll);
+
+        public Task<SortedDictionary<int, MusicTrack>> GetVocalMusicTracks(string languageCode, string publicationCode) =>
+            idle.GetVocalMusicTracks(languageCode, publicationCode);
+
+        public Task UpdateBiblePublicationTrackUrl(string languageCode, string versionCode, string? sectionCode, string trackCode, string url) =>
+            idle.UpdateBiblePublicationTrackUrl(languageCode, versionCode, sectionCode, trackCode, url);
+
+        public Task UpdateVocalTrackUrl(string languageCode, string publicationCode, string trackCode, string url) =>
+            idle.UpdateVocalTrackUrl(languageCode, publicationCode, trackCode, url);
+
+        public Task UpdateMelodyTrackUrl(string publicationCode, string trackCode, string url) =>
+            idle.UpdateMelodyTrackUrl(publicationCode, trackCode, url);
+
+        public Task UpdateTrackUrlAsync(TrackMetadata trackMetadata, string url) =>
+            idle.UpdateTrackUrlAsync(trackMetadata, url);
+
+        public void InvalidateBiblePublicationsCache(string languageCode, string? categoryName = null) =>
+            idle.InvalidateBiblePublicationsCache(languageCode, categoryName);
+
+        public Task<bool> IsPublicationWithoutLanguageAsync(string publicationCode) =>
+            idle.IsPublicationWithoutLanguageAsync(publicationCode);
+
+        public Task<int> GetExpectedSectionCountAsync(string languageCode, string publicationCode) =>
+            idle.GetExpectedSectionCountAsync(languageCode, publicationCode);
+
+        public Task<int> GetExpectedPublicationCountAsync(string languageCode, string categoryName, bool requireIsMusicForMusicCategory = false) =>
+            Task.FromResult(expectedCount);
+
+        public Task<int> GetExpectedSectionCountForNoLanguagePublicationAsync(string publicationCode) =>
+            idle.GetExpectedSectionCountForNoLanguagePublicationAsync(publicationCode);
+    }
+
+    private sealed class DefaultDispatchMediaService(
+        SortedDictionary<string, BiblePublicationSection> sections,
+        SortedDictionary<string, BiblePublicationTrack> tracks) : IMediaService
+    {
+        private readonly IdleMediaService idle = new();
+
+        public void Dispose() => idle.Dispose();
+
+        public Task<Dictionary<string, Language>> GetBiblePublicationLanguages(string? categoryName = null, bool requireIsMusicForMusicCategory = false) =>
+            idle.GetBiblePublicationLanguages(categoryName, requireIsMusicForMusicCategory);
+
+        public Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false, IFetchProgress? progress = null, bool requireIsMusicForMusicCategory = false) =>
+            idle.GetBiblePublications(languageCode, categoryName, downloadAll, progress, requireIsMusicForMusicCategory);
+
+        public Task<SortedDictionary<string, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode, string? sectionCode) =>
+            Task.FromResult(tracks);
+
+        public Task<SortedDictionary<string, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode, IFetchProgress? progress = null) =>
+            Task.FromResult(sections);
+
+        public Task<SortedDictionary<string, BiblePublicationSection>> GetSectionsForPublicationWithoutLanguage(string publicationCode) =>
+            idle.GetSectionsForPublicationWithoutLanguage(publicationCode);
+
+        public Task<BiblePublicationSection?> GetBiblePublicationSection(string languageCode, string versionCode, string sectionCode) =>
+            idle.GetBiblePublicationSection(languageCode, versionCode, sectionCode);
+
+        public Task<BiblePublicationTrack?> GetBiblePublicationTrack(string languageCode, string versionCode, string? sectionCode, string trackCode) =>
+            idle.GetBiblePublicationTrack(languageCode, versionCode, sectionCode, trackCode);
+
+        public Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases() => idle.GetMelodyMusicReleases();
+
+        public Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode) => idle.GetMelodyMusicTracks(publicationCode);
+
+        public Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracksBySection(string publicationCode, string sectionCode) =>
+            idle.GetMelodyMusicTracksBySection(publicationCode, sectionCode);
+
+        public Task<Dictionary<string, Language>> GetVocalMusicLanguages() => idle.GetVocalMusicLanguages();
+
+        public Task<Dictionary<string, VocalMusic>> GetVocalMusicReleases(string languageCode, bool downloadAll = false) =>
+            idle.GetVocalMusicReleases(languageCode, downloadAll);
+
+        public Task<SortedDictionary<int, MusicTrack>> GetVocalMusicTracks(string languageCode, string publicationCode) =>
+            idle.GetVocalMusicTracks(languageCode, publicationCode);
+
+        public Task UpdateBiblePublicationTrackUrl(string languageCode, string versionCode, string? sectionCode, string trackCode, string url) =>
+            idle.UpdateBiblePublicationTrackUrl(languageCode, versionCode, sectionCode, trackCode, url);
+
+        public Task UpdateVocalTrackUrl(string languageCode, string publicationCode, string trackCode, string url) =>
+            idle.UpdateVocalTrackUrl(languageCode, publicationCode, trackCode, url);
+
+        public Task UpdateMelodyTrackUrl(string publicationCode, string trackCode, string url) =>
+            idle.UpdateMelodyTrackUrl(publicationCode, trackCode, url);
+
+        public Task UpdateTrackUrlAsync(TrackMetadata trackMetadata, string url) =>
+            idle.UpdateTrackUrlAsync(trackMetadata, url);
+
+        public void InvalidateBiblePublicationsCache(string languageCode, string? categoryName = null) =>
+            idle.InvalidateBiblePublicationsCache(languageCode, categoryName);
+
+        public Task<bool> IsPublicationWithoutLanguageAsync(string publicationCode) =>
+            idle.IsPublicationWithoutLanguageAsync(publicationCode);
+
+        public Task<int> GetExpectedSectionCountAsync(string languageCode, string publicationCode) =>
+            idle.GetExpectedSectionCountAsync(languageCode, publicationCode);
+
+        public Task<int> GetExpectedPublicationCountAsync(string languageCode, string categoryName, bool requireIsMusicForMusicCategory = false) =>
+            idle.GetExpectedPublicationCountAsync(languageCode, categoryName, requireIsMusicForMusicCategory);
+
+        public Task<int> GetExpectedSectionCountForNoLanguagePublicationAsync(string publicationCode) =>
+            idle.GetExpectedSectionCountForNoLanguagePublicationAsync(publicationCode);
     }
 
     private sealed class ConfigurablePublicationMediaService(Dictionary<string, BiblePublication> biblePublications) : IMediaService

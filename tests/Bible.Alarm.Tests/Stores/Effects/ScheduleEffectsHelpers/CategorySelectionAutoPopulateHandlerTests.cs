@@ -8,13 +8,17 @@ using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.BiblePublications;
+using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 using Bible.Alarm.Stores.Models;
 using Bible.Alarm.Tests.Support;
 using Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
 using Fluxor;
 using Microsoft.Extensions.DependencyInjection;
+using System.Net.Http;
+using System.Runtime.InteropServices;
 using IDispatcher = Fluxor.IDispatcher;
+using CascadeFixtures = Bible.Alarm.Tests.Support.CascadeHandlerTestFixtures;
 
 namespace Bible.Alarm.Tests;
 
@@ -331,6 +335,263 @@ public sealed class CategorySelectionAutoPopulateHandlerTests
 
         public void InvalidatePublicationCaches(string languageCode, string publicationCode)
         {
+        }
+    }
+
+    private sealed class CategoryAutoPopulateBiblePublicationService(
+        Dictionary<string, Language> languages,
+        List<string> publicationCodes) : IBiblePublicationService
+    {
+        public void Dispose()
+        {
+        }
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithSectionsAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublication?>(null);
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithTracksAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublication?>(null);
+
+        public Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase));
+
+        public Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(languages);
+
+        public Task<List<string>> GetAvailablePublicationCodesAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(publicationCodes);
+
+        public Task<string?> GetFirstPublicationCodeByOrderAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(publicationCodes.FirstOrDefault());
+
+        public Task<bool> IsNoLanguagePublicationAsync(string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<(string? CategoryCode, bool IsMusic)?> GetPublicationCategoryInfoAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<(string? CategoryCode, bool IsMusic)?>(null);
+
+        public Task<List<string>> GetPublicationCodesInCategoryOrderAsync(string languageCode, string categoryCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(publicationCodes);
+
+        public void InvalidatePublicationCaches(string languageCode, string publicationCode)
+        {
+        }
+    }
+
+    private sealed class CachedLanguageNameService : ILanguageNameService
+    {
+        public Task WarmCacheForDisplayLanguageAsync(string displayLanguageCode, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<string?> GetNameAsync(int languageId, string displayLanguageCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult<string?>("English");
+
+        public Task<string?> GetNameByLanguageCodeAsync(string languageCode, string displayLanguageCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult<string?>(languageCode);
+
+        public Task<Dictionary<int, string>> GetNamesAsync(IEnumerable<int> languageIds, string displayLanguageCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<int, string>());
+
+        public string? GetNameCached(int languageId) => "English";
+
+        public string? GetNameByLanguageCodeCached(string languageCode) => languageCode;
+    }
+
+    private static CategorySelectionAutoPopulateHandler CreateHandler(
+        ScheduleStateItem current,
+        IBiblePublicationService biblePublicationService,
+        IMediaService media,
+        ILanguageContentService languageContent,
+        IServiceScopeFactory scopeFactory,
+        ILanguageNameService? languageNameService = null)
+    {
+        var state = new FakeApplicationState(new ApplicationState([], currentSchedule: current));
+        var itemSelector = new BiblePublicationSelectionItemSelector(
+            media,
+            state,
+            biblePublicationService: biblePublicationService,
+            biblePublicationSectionService: null,
+            languageContentService: languageContent,
+            scopeFactory: scopeFactory);
+        var deps = new CategorySelectionAutoPopulateHandlerDeps(
+            BiblePublicationService: biblePublicationService,
+            MediaService: media,
+            LanguageContentService: languageContent,
+            LanguageNameService: languageNameService ?? new IdleLanguageNameService(),
+            ItemSelector: itemSelector,
+            State: state,
+            ScopeFactory: scopeFactory,
+            Logger: TestLogging.CreateLogger());
+        return new CategorySelectionAutoPopulateHandler(deps);
+    }
+
+    [Fact]
+    public async Task HandleAsync_preserves_previous_language_when_available_in_category()
+    {
+        var english = new Language { Id = 1, LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+        var french = new Language { Id = 2, LanguageCode = "F", Direction = AppConstants.Media.TextDirectionLeftToRight };
+        var languages = new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["E"] = english,
+            ["F"] = french,
+        };
+        const string pub = "sjjc";
+        var (options, connection) = await CascadeFixtures.CreateEmptyMediaDbAsync();
+        await using (connection)
+        {
+            await CascadeFixtures.SeedBibleFlatPublicationAsync(options, pub, "F");
+            var dispatcher = new RecordingDispatcher();
+            var current = new ScheduleStateItem { Id = 1, BiblePublicationLanguageCode = "F" };
+            var scopeFactory = new MediaTestScopeFactory(options);
+            var sut = CreateHandler(
+                current,
+                new CascadeFixtures.DbBackedBiblePublicationService(scopeFactory, languages, [pub]),
+                new CascadeFixtures.FlatTracksMediaService("F", pub),
+                new CascadeFixtures.ConfigurableLanguageContentService(true),
+                scopeFactory,
+                new CachedLanguageNameService());
+
+            await sut.HandleAsync(
+                new CategorySelectionAction(10, AppConstants.Media.BiblePublicationCategoryBible, previousLanguageCode: "F"),
+                dispatcher);
+
+            var action = Assert.Single(dispatcher.Dispatched);
+            var update = Assert.IsType<UpdateScheduleFromViewModelAction>(action);
+            Assert.Equal("F", update.Schedule.BiblePublicationLanguageCode);
+            Assert.Equal(pub, update.Schedule.BiblePublicationCode);
+        }
+    }
+
+    [Fact]
+    public async Task HandleAsync_auto_populates_no_language_music_publication()
+    {
+        const string pub = "iam";
+        var (options, connection) = await CascadeFixtures.CreateEmptyMediaDbAsync();
+        await using (connection)
+        {
+            const string section = "iam-1";
+            await CascadeFixtures.SeedMusicNoLanguageSectionWithTrackAsync(options, pub, section, "1", "One");
+            var english = new Language { Id = 1, LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+            var languages = new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase) { ["E"] = english };
+            var dispatcher = new RecordingDispatcher();
+            var current = new ScheduleStateItem { Id = 1 };
+            using var progress = new CascadeFixtures.CategoryProgressRecordingRecipient();
+            var scopeFactory = new MediaTestScopeFactory(options);
+            var sut = CreateHandler(
+                current,
+                new CascadeFixtures.DbBackedBiblePublicationService(scopeFactory, languages, [pub]),
+                new CascadeFixtures.SectionTracksMediaService("E", pub, section, withoutLanguage: true),
+                new CascadeFixtures.ConfigurableLanguageContentService(true),
+                scopeFactory);
+
+            await sut.HandleAsync(new CategorySelectionAction(5, AppConstants.Media.BiblePublicationCategoryMusic), dispatcher);
+
+            var action = Assert.Single(dispatcher.Dispatched);
+            var update = Assert.IsType<UpdateScheduleFromViewModelAction>(action);
+            Assert.Equal(pub, update.Schedule.BiblePublicationCode);
+            Assert.Equal("1", update.Schedule.BiblePublicationTrackCode);
+            Assert.Contains(progress.Received, p => p is { IsComplete: true, Progress: -1 });
+        }
+    }
+
+    [Fact]
+    public async Task HandleAsync_auto_populates_bible_publication_from_database()
+    {
+        const string pub = "sjjc";
+        var (options, connection) = await CascadeFixtures.CreateEmptyMediaDbAsync();
+        await using (connection)
+        {
+            await CascadeFixtures.SeedBibleFlatPublicationAsync(options, pub, "E");
+            var english = new Language { Id = 1, LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+            var languages = new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase) { ["E"] = english };
+            var dispatcher = new RecordingDispatcher();
+            var current = new ScheduleStateItem { Id = 1 };
+            var scopeFactory = new MediaTestScopeFactory(options);
+            var sut = CreateHandler(
+                current,
+                new CascadeFixtures.DbBackedBiblePublicationService(scopeFactory, languages, [pub]),
+                new CascadeFixtures.FlatTracksMediaService("E", pub),
+                new CascadeFixtures.ConfigurableLanguageContentService(true),
+                scopeFactory,
+                new CachedLanguageNameService());
+
+            await sut.HandleAsync(new CategorySelectionAction(3, AppConstants.Media.BiblePublicationCategoryBible), dispatcher);
+
+            var action = Assert.Single(dispatcher.Dispatched);
+            var update = Assert.IsType<UpdateScheduleFromViewModelAction>(action);
+            Assert.Equal(pub, update.Schedule.BiblePublicationCode);
+            Assert.Equal("1", update.Schedule.BiblePublicationTrackCode);
+            Assert.Equal("E", update.Schedule.BiblePublicationLanguageCode);
+        }
+    }
+
+    [Fact]
+    public async Task HandleAsync_reverts_schedule_on_network_error()
+    {
+        var english = new Language { Id = 1, LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+        var languages = new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase) { ["E"] = english };
+        const string pub = "nwt";
+        var (options, connection) = await CascadeFixtures.CreateEmptyMediaDbAsync();
+        await using (connection)
+        {
+            await CascadeFixtures.SeedBiblePublicationLanguageOnlyAsync(options, pub, "E");
+            var snapshot = new ScheduleStateItem { Id = 1, Name = "Before", BiblePublicationCategoryName = "Old" };
+            var dispatcher = new RecordingDispatcher();
+            var current = new ScheduleStateItem { Id = 1, Name = "During" };
+            using var progress = new CascadeFixtures.CategoryProgressRecordingRecipient();
+            var sut = CreateHandler(
+                current,
+                new CategoryAutoPopulateBiblePublicationService(languages, [pub]),
+                new IdleMediaService(),
+                new CascadeFixtures.ThrowingOnEnsureLanguageContentService(new HttpRequestException("offline")),
+                new MediaTestScopeFactory(options));
+
+            try
+            {
+                await sut.HandleAsync(
+                    new CategorySelectionAction(7, AppConstants.Media.BiblePublicationCategoryBible, previousScheduleSnapshot: snapshot),
+                    dispatcher);
+            }
+            catch (COMException)
+            {
+                return;
+            }
+
+            var revert = Assert.Single(dispatcher.Dispatched);
+            var update = Assert.IsType<UpdateScheduleFromViewModelAction>(revert);
+            Assert.Same(snapshot, update.Schedule);
+            Assert.Contains(progress.Received, p => p is { HasError: true, IsComplete: true });
+        }
+    }
+
+    [Fact]
+    public async Task HandleAsync_returns_when_languages_exist_but_no_publication_resolves()
+    {
+        var english = new Language { Id = 1, LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight };
+        var languages = new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase) { ["E"] = english };
+        var (options, connection) = await CascadeFixtures.CreateEmptyMediaDbAsync();
+        await using (connection)
+        {
+            var dispatcher = new RecordingDispatcher();
+            var current = new ScheduleStateItem { Id = 1 };
+            var sut = CreateHandler(
+                current,
+                new CategoryAutoPopulateBiblePublicationService(languages, []),
+                new IdleMediaService(),
+                new CascadeFixtures.ConfigurableLanguageContentService(true),
+                new MediaTestScopeFactory(options));
+
+            await sut.HandleAsync(new CategorySelectionAction(2, AppConstants.Media.BiblePublicationCategoryBible), dispatcher);
+
+            Assert.Empty(dispatcher.Dispatched);
         }
     }
 }

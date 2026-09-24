@@ -2,7 +2,6 @@
 
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
-using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -18,16 +17,16 @@ using IDispatcher = Fluxor.IDispatcher;
 
 namespace Bible.Alarm.Tests;
 
-public sealed class PlaylistServiceTests
+public sealed class PlaylistServiceTrackLifecycleTests
 {
 #pragma warning disable CS0067
-    private sealed class NopDispatcher : IDispatcher
+    private sealed class RecordingDispatcher : IDispatcher
     {
+        public List<object> Actions { get; } = [];
+
         public event EventHandler<ActionDispatchedEventArgs>? ActionDispatched;
 
-        public void Dispatch(object action)
-        {
-        }
+        public void Dispatch(object action) => Actions.Add(action);
     }
 #pragma warning restore CS0067
 
@@ -68,39 +67,23 @@ public sealed class PlaylistServiceTests
 
     private sealed class FakeGeneralSettingsService : IGeneralSettingsService
     {
-        public GeneralSettings? LastPlayedRow { get; set; }
-
-        public List<(string Key, string Value)> Sets { get; } = [];
-
         public void Dispose()
         {
         }
 
-        public Task<GeneralSettings?> GetGeneralSettingAsync(string key, CancellationToken cancellationToken = default)
-        {
-            if (key == AppConstants.GeneralSettingsKeys.LastPlayedScheduleId)
-            {
-                return Task.FromResult(LastPlayedRow);
-            }
+        public Task<GeneralSettings?> GetGeneralSettingAsync(string key, CancellationToken cancellationToken = default) =>
+            Task.FromResult<GeneralSettings?>(null);
 
-            return Task.FromResult<GeneralSettings?>(null);
-        }
-
-        public Task SetGeneralSettingAsync(string key, string value, CancellationToken cancellationToken = default)
-        {
-            Sets.Add((key, value));
-            return Task.CompletedTask;
-        }
+        public Task SetGeneralSettingAsync(string key, string value, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
 
         public Task<bool> GeneralSettingExistsAsync(string key, CancellationToken cancellationToken = default) =>
-            Task.FromResult(key == AppConstants.GeneralSettingsKeys.LastPlayedScheduleId && LastPlayedRow != null);
+            Task.FromResult(false);
     }
 
     private sealed class FakeAlarmScheduleService : IAlarmScheduleService
     {
         public Dictionary<int, AlarmSchedule> ById { get; } = [];
-
-        public AlarmSchedule? First { get; set; }
 
         public void Dispose()
         {
@@ -112,7 +95,7 @@ public sealed class PlaylistServiceTests
 
         public Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true,
             bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
-            Task.FromResult<AlarmSchedule?>(First);
+            Task.FromResult<AlarmSchedule?>(null);
 
         public Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true,
             bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
@@ -146,25 +129,27 @@ public sealed class PlaylistServiceTests
             Task.CompletedTask;
 
         public Task<bool> ScheduleExistsAsync(int scheduleId, CancellationToken cancellationToken = default) =>
-            Task.FromResult(false);
+            Task.FromResult(ById.ContainsKey(scheduleId));
 
         public Task<bool> AnySchedulesExistAsync(CancellationToken cancellationToken = default) =>
-            Task.FromResult(false);
+            Task.FromResult(ById.Count > 0);
 
         public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult(0);
 
         public Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult<AlarmMusic?>(null);
+            Task.FromResult(ById.GetValueOrDefault(scheduleId)?.Music);
 
         public Task<BiblePublicationSchedule?> GetBiblePublicationByScheduleIdAsync(int scheduleId,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult<BiblePublicationSchedule?>(null);
+            Task.FromResult(ById.GetValueOrDefault(scheduleId)?.BiblePublicationSchedule);
     }
 
     private sealed class StubBiblePublicationService : IBiblePublicationService
     {
+        public BiblePublication? Publication { get; init; }
+
         public void Dispose()
         {
         }
@@ -173,7 +158,10 @@ public sealed class PlaylistServiceTests
             Task.FromResult<BiblePublication?>(null);
 
         public Task<BiblePublication?> GetByLanguageAndCodeWithTracksAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default) =>
-            Task.FromResult<BiblePublication?>(null);
+            Task.FromResult(Publication is not null
+                && string.Equals(Publication.PublicationCode, publicationCode, StringComparison.OrdinalIgnoreCase)
+                ? Publication
+                : null);
 
         public Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, string? categoryName = null, bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
             Task.FromResult(new Dictionary<string, BiblePublication>());
@@ -279,198 +267,177 @@ public sealed class PlaylistServiceTests
             Task.FromResult(0);
     }
 
-    private static SortedDictionary<string, BiblePublicationTrack> SingleTrackDict(string trackCode) =>
-        new(TrackCodeComparer.Comparer)
+    private static BiblePublication FlatThreeTrackPublication(string code = "vod") =>
+        new()
         {
-            [trackCode] = new BiblePublicationTrack { TrackCode = trackCode, Title = "Chapter" },
+            PublicationCode = code,
+            IsVideo = false,
+            IsMusic = false,
+            Tracks =
+            [
+                new BiblePublicationTrack { TrackCode = "1", Title = "First" },
+                new BiblePublicationTrack { TrackCode = "2", Title = "Second" },
+                new BiblePublicationTrack { TrackCode = "3", Title = "Third" },
+            ],
+        };
+
+    private static SortedDictionary<int, MusicTrack> TwoVocalTracks() =>
+        new()
+        {
+            [1] = new MusicTrack { TrackCode = "1", Title = "Song A" },
+            [2] = new MusicTrack { TrackCode = "2", Title = "Song B" },
+        };
+
+    private static AlarmSchedule FlatBibleSchedule(int id, string trackCode = "1", string publicationCode = "vod") =>
+        new()
+        {
+            Id = id,
+            MusicEnabled = false,
+            NumberOfTracksToPlay = 1,
+            BiblePublicationSchedule = new BiblePublicationSchedule
+            {
+                PublicationCode = publicationCode,
+                LanguageCode = "E",
+                SectionCode = null,
+                TrackCode = trackCode,
+                FinishedDuration = TimeSpan.Zero,
+            },
+        };
+
+    private static TrackMetadata BibleMetadata(int scheduleId, string trackCode, string publicationCode = "vod", TimeSpan? finished = null) =>
+        new()
+        {
+            ScheduleId = scheduleId,
+            IsBibleContent = true,
+            LanguageCode = "E",
+            PublicationCode = publicationCode,
+            SectionCode = null,
+            TrackCode = trackCode,
+            FinishedDuration = finished ?? TimeSpan.Zero,
+        };
+
+    private static TrackMetadata MusicMetadata(int scheduleId, string trackCode, string publicationCode = "sjjc") =>
+        new()
+        {
+            ScheduleId = scheduleId,
+            IsBibleContent = false,
+            LanguageCode = "E",
+            PublicationCode = publicationCode,
+            TrackCode = trackCode,
         };
 
     private static PlaylistService CreateSut(
         FakeAlarmScheduleService alarm,
-        FakeGeneralSettingsService settings,
-        IMediaService? media = null) =>
+        RecordingDispatcher? dispatcher = null,
+        IMediaService? media = null,
+        IBiblePublicationService? bible = null) =>
         new(new PlaylistServiceDeps(
             TestLogging.CreateLogger(),
             media ?? new IdleCatalogMediaService(),
-            new NopDispatcher(),
+            dispatcher ?? new RecordingDispatcher(),
             new FakeApplicationState(new ApplicationState()),
             alarm,
-            settings,
-            new StubBiblePublicationService(),
+            new FakeGeneralSettingsService(),
+            bible ?? new StubBiblePublicationService { Publication = FlatThreeTrackPublication() },
             new StubUrlRefresh(),
             new StubUrlConstruction()));
 
     [Fact]
-    public void Ctor_accepts_dependencies()
+    public async Task MarkTrackAsPlayed_persists_bible_finished_duration()
     {
-        var deps = new PlaylistServiceDeps(
-            TestLogging.CreateLogger(),
-            new IdleCatalogMediaService(),
-            new NopDispatcher(),
-            null!,
-            null!,
-            null!,
-            null!,
-            new StubUrlRefresh(),
-            new StubUrlConstruction(),
-            LanguageContentService: null,
-            ScopeFactory: null,
-            ScheduleDisplayNameService: null);
-
-        using var sut = new PlaylistService(deps);
-
-        Assert.NotNull(sut);
-    }
-
-    [Fact]
-    public async Task GetRelevantScheduleToPlay_returns_last_played_schedule_id()
-    {
-        var settings = new FakeGeneralSettingsService
-        {
-            LastPlayedRow = new GeneralSettings { Value = "7" },
-        };
+        const int scheduleId = 21;
         var alarm = new FakeAlarmScheduleService();
-        alarm.ById[7] = new AlarmSchedule { Id = 7 };
-        alarm.First = new AlarmSchedule { Id = 1 };
-        using var sut = CreateSut(alarm, settings);
+        alarm.ById[scheduleId] = FlatBibleSchedule(scheduleId);
+        using var sut = CreateSut(alarm);
+        var metadata = BibleMetadata(scheduleId, "1", finished: TimeSpan.FromSeconds(42));
 
-        Assert.Equal(7, await sut.GetRelevantScheduleToPlay());
+        await sut.MarkTrackAsPlayed(metadata);
+
+        Assert.Equal(TimeSpan.FromSeconds(42), alarm.ById[scheduleId].BiblePublicationSchedule!.FinishedDuration);
+        Assert.Equal("1", alarm.ById[scheduleId].BiblePublicationSchedule!.TrackCode);
     }
 
     [Fact]
-    public async Task GetRelevantScheduleToPlay_falls_back_to_first_when_last_missing()
+    public async Task MarkTrackAsPlayed_dispatches_when_bible_track_changed()
     {
-        var settings = new FakeGeneralSettingsService { LastPlayedRow = null };
-        var alarm = new FakeAlarmScheduleService { First = new AlarmSchedule { Id = 3 } };
-        using var sut = CreateSut(alarm, settings);
-
-        Assert.Equal(3, await sut.GetRelevantScheduleToPlay());
-    }
-
-    [Fact]
-    public async Task SaveLastPlayed_persists_last_played_setting()
-    {
-        var settings = new FakeGeneralSettingsService();
+        const int scheduleId = 22;
         var alarm = new FakeAlarmScheduleService();
-        using var sut = CreateSut(alarm, settings);
+        alarm.ById[scheduleId] = FlatBibleSchedule(scheduleId, trackCode: "1");
+        var dispatcher = new RecordingDispatcher();
+        using var sut = CreateSut(alarm, dispatcher);
+        var metadata = BibleMetadata(scheduleId, "2", finished: TimeSpan.FromSeconds(5));
 
-        await sut.SaveLastPlayed(11);
+        await sut.MarkTrackAsPlayed(metadata);
 
-        var call = Assert.Single(settings.Sets);
-        Assert.Equal(AppConstants.GeneralSettingsKeys.LastPlayedScheduleId, call.Key);
+        var action = Assert.IsType<UpdateScheduleAction>(Assert.Single(dispatcher.Actions));
+        Assert.Equal("2", action.Schedule.BiblePublicationSchedule!.TrackCode);
     }
 
     [Fact]
-    public async Task ShouldResumeFromLastPositionAsync_false_when_always_play_from_start()
+    public async Task MarkTrackAsPlayed_does_not_dispatch_when_same_bible_track()
     {
+        const int scheduleId = 23;
         var alarm = new FakeAlarmScheduleService();
-        alarm.ById[5] = new AlarmSchedule { Id = 5, AlwaysPlayFromStart = true };
-        using var sut = CreateSut(alarm, new FakeGeneralSettingsService());
+        alarm.ById[scheduleId] = FlatBibleSchedule(scheduleId, trackCode: "1");
+        var dispatcher = new RecordingDispatcher();
+        using var sut = CreateSut(alarm, dispatcher);
 
-        Assert.False(await sut.ShouldResumeFromLastPositionAsync(5));
+        await sut.MarkTrackAsPlayed(BibleMetadata(scheduleId, "1", finished: TimeSpan.FromSeconds(10)));
+
+        Assert.Empty(dispatcher.Actions);
     }
 
     [Fact]
-    public async Task ShouldResumeFromLastPositionAsync_true_when_resume_allowed()
+    public async Task MarkTrackAsFinished_advances_bible_pointer_and_dispatches()
     {
+        const int scheduleId = 31;
+        var pub = FlatThreeTrackPublication();
         var alarm = new FakeAlarmScheduleService();
-        alarm.ById[6] = new AlarmSchedule { Id = 6, AlwaysPlayFromStart = false };
-        using var sut = CreateSut(alarm, new FakeGeneralSettingsService());
+        alarm.ById[scheduleId] = FlatBibleSchedule(scheduleId, trackCode: "1", publicationCode: pub.PublicationCode);
+        var dispatcher = new RecordingDispatcher();
+        using var sut = CreateSut(alarm, dispatcher, bible: new StubBiblePublicationService { Publication = pub });
 
-        Assert.True(await sut.ShouldResumeFromLastPositionAsync(6));
+        await sut.MarkTrackAsFinished(BibleMetadata(scheduleId, "1", pub.PublicationCode));
+
+        var bible = alarm.ById[scheduleId].BiblePublicationSchedule!;
+        Assert.Equal("2", bible.TrackCode);
+        Assert.Equal(TimeSpan.Zero, bible.FinishedDuration);
+        Assert.IsType<UpdateScheduleAction>(Assert.Single(dispatcher.Actions));
     }
 
     [Fact]
-    public async Task GetScheduleFinishedDurationAsync_returns_bible_finished_duration()
+    public async Task NextTrack_throws_for_invalid_schedule_id()
     {
-        var expected = TimeSpan.FromSeconds(90);
+        using var sut = CreateSut(new FakeAlarmScheduleService());
+
+        await Assert.ThrowsAsync<ArgumentException>(() => sut.NextTrack(404));
+    }
+
+    [Fact]
+    public async Task NextTrack_returns_bible_play_item_when_music_disabled()
+    {
+        const int scheduleId = 41;
+        var pub = FlatThreeTrackPublication();
         var alarm = new FakeAlarmScheduleService();
-        alarm.ById[8] = new AlarmSchedule
-        {
-            Id = 8,
-            BiblePublicationSchedule = new BiblePublicationSchedule { FinishedDuration = expected },
-        };
-        using var sut = CreateSut(alarm, new FakeGeneralSettingsService());
+        alarm.ById[scheduleId] = FlatBibleSchedule(scheduleId, trackCode: "2", publicationCode: pub.PublicationCode);
+        using var sut = CreateSut(alarm, bible: new StubBiblePublicationService { Publication = pub });
 
-        Assert.Equal(expected, await sut.GetScheduleFinishedDurationAsync(8));
+        var item = await sut.NextTrack(scheduleId);
+
+        Assert.Equal("https://example.test/bible.mp3", item.Url);
+        Assert.True(item.Metadata.IsBibleContent);
+        Assert.Equal("2", item.Metadata.TrackCode);
+        Assert.Equal(scheduleId, item.Metadata.ScheduleId);
     }
 
     [Fact]
-    public async Task NextTracks_throws_for_invalid_schedule_id()
+    public async Task NextTrack_returns_music_play_item_when_music_enabled()
     {
-        using var sut = CreateSut(new FakeAlarmScheduleService(), new FakeGeneralSettingsService());
-
-        await Assert.ThrowsAsync<ArgumentException>(() => sut.NextTracks(0));
-    }
-
-    [Fact]
-    public async Task NextTracks_builds_bible_playlist_when_bible_configured()
-    {
-        const int scheduleId = 9;
+        const int scheduleId = 42;
         var alarm = new FakeAlarmScheduleService();
         alarm.ById[scheduleId] = new AlarmSchedule
         {
             Id = scheduleId,
-            NumberOfTracksToPlay = 1,
-            MusicEnabled = false,
-            BiblePublicationSchedule = new BiblePublicationSchedule
-            {
-                PublicationCode = "nwtsty",
-                LanguageCode = "E",
-                SectionCode = "40",
-                TrackCode = "2",
-            },
-        };
-
-        var media = new StubMediaService { TracksToReturn = SingleTrackDict("2") };
-        using var sut = CreateSut(alarm, new FakeGeneralSettingsService(), media);
-
-        var items = await sut.NextTracks(scheduleId);
-
-        Assert.Equal("https://example.test/bible.mp3", Assert.Single(items).Url);
-    }
-
-    [Fact]
-    public async Task PersistSchedulePointerToFinishedTrackAsync_no_ops_for_invalid_schedule_id()
-    {
-        using var sut = CreateSut(new FakeAlarmScheduleService(), new FakeGeneralSettingsService());
-        var metadata = new TrackMetadata { ScheduleId = 0, TrackCode = "1" };
-
-        var ex = await Record.ExceptionAsync(() => sut.PersistSchedulePointerToFinishedTrackAsync(metadata));
-
-        Assert.Null(ex);
-    }
-
-    [Fact]
-    public async Task ShouldResumeFromLastPositionAsync_false_when_schedule_missing()
-    {
-        using var sut = CreateSut(new FakeAlarmScheduleService(), new FakeGeneralSettingsService());
-
-        Assert.False(await sut.ShouldResumeFromLastPositionAsync(404));
-    }
-
-    [Fact]
-    public async Task GetRelevantScheduleToPlay_falls_back_when_last_played_schedule_not_found()
-    {
-        var settings = new FakeGeneralSettingsService
-        {
-            LastPlayedRow = new GeneralSettings { Value = "999" },
-        };
-        var alarm = new FakeAlarmScheduleService { First = new AlarmSchedule { Id = 4 } };
-        using var sut = CreateSut(alarm, settings);
-
-        Assert.Equal(4, await sut.GetRelevantScheduleToPlay());
-    }
-
-    [Fact]
-    public async Task NextTracks_includes_music_and_bible_when_both_configured()
-    {
-        const int scheduleId = 15;
-        var alarm = new FakeAlarmScheduleService();
-        alarm.ById[scheduleId] = new AlarmSchedule
-        {
-            Id = scheduleId,
-            NumberOfTracksToPlay = 1,
             MusicEnabled = true,
             Music = new AlarmMusic
             {
@@ -478,109 +445,166 @@ public sealed class PlaylistServiceTests
                 PublicationCode = "sjjc",
                 TrackCode = "1",
             },
-            BiblePublicationSchedule = new BiblePublicationSchedule
-            {
-                PublicationCode = "nwtsty",
-                LanguageCode = "E",
-                SectionCode = "40",
-                TrackCode = "2",
-            },
         };
+        var media = new StubMediaService { VocalTracks = TwoVocalTracks() };
+        using var sut = CreateSut(alarm, media: media);
 
-        var media = new StubMediaService
-        {
-            TracksToReturn = SingleTrackDict("2"),
-            VocalTracks = new SortedDictionary<int, MusicTrack>
-            {
-                [1] = new MusicTrack { TrackCode = "1", Title = "Song" },
-            },
-        };
-        using var sut = CreateSut(alarm, new FakeGeneralSettingsService(), media);
+        var item = await sut.NextTrack(scheduleId);
 
-        var items = await sut.NextTracks(scheduleId);
-
-        Assert.Equal(2, items.Count);
-        Assert.False(items[0].Metadata.IsBibleContent);
-        Assert.True(items[1].Metadata.IsBibleContent);
+        Assert.Equal("1", item.Metadata.TrackCode);
+        Assert.False(item.Metadata.IsBibleContent);
+        Assert.Equal("https://example.test/bible.mp3", item.Url);
     }
 
     [Fact]
-    public async Task MoveToNextBiblePublicationTrack_throws_when_bible_schedule_missing()
+    public async Task NextBiblePublicationTrack_returns_null_when_bible_missing()
     {
-        const int scheduleId = 16;
+        const int scheduleId = 51;
         var alarm = new FakeAlarmScheduleService();
         alarm.ById[scheduleId] = new AlarmSchedule { Id = scheduleId, BiblePublicationSchedule = null };
-        var dispatcher = new RecordingDispatcher();
-        using var sut = CreateSutWithDispatcher(alarm, dispatcher);
+        using var sut = CreateSut(alarm);
 
-        await Assert.ThrowsAsync<ArgumentException>(() => sut.MoveToNextBiblePublicationTrack(scheduleId));
-        Assert.Empty(dispatcher.Actions);
+        Assert.Null(await sut.NextBiblePublicationTrack(scheduleId));
     }
 
     [Fact]
-    public async Task PersistSchedulePointerToFinishedTrackAsync_updates_bible_track_and_dispatches()
+    public async Task NextBiblePublicationTrack_returns_play_item_when_configured()
     {
-        const int scheduleId = 17;
+        const int scheduleId = 52;
+        var pub = FlatThreeTrackPublication();
+        var alarm = new FakeAlarmScheduleService();
+        alarm.ById[scheduleId] = FlatBibleSchedule(scheduleId, trackCode: "1", publicationCode: pub.PublicationCode);
+        using var sut = CreateSut(alarm, bible: new StubBiblePublicationService { Publication = pub });
+
+        var item = await sut.NextBiblePublicationTrack(scheduleId);
+
+        Assert.NotNull(item);
+        Assert.Equal("1", item!.Metadata.TrackCode);
+        Assert.Equal(pub.PublicationCode, item.Metadata.PublicationCode);
+    }
+
+    [Fact]
+    public async Task GetNextPlayItemAsync_throws_when_metadata_null()
+    {
+        using var sut = CreateSut(new FakeAlarmScheduleService());
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => sut.GetNextPlayItemAsync(null!));
+    }
+
+    [Fact]
+    public async Task GetNextPlayItemAsync_returns_next_bible_track()
+    {
+        var pub = FlatThreeTrackPublication();
+        using var sut = CreateSut(
+            new FakeAlarmScheduleService(),
+            bible: new StubBiblePublicationService { Publication = pub });
+
+        var item = await sut.GetNextPlayItemAsync(BibleMetadata(10, "1", pub.PublicationCode));
+
+        Assert.Equal("2", item.Metadata.TrackCode);
+        Assert.Equal(pub.PublicationCode, item.Metadata.PublicationCode);
+        Assert.Equal("https://example.test/bible.mp3", item.Url);
+    }
+
+    [Fact]
+    public async Task GetNextPlayItemAsync_returns_next_music_track()
+    {
+        const int scheduleId = 61;
         var alarm = new FakeAlarmScheduleService();
         alarm.ById[scheduleId] = new AlarmSchedule
         {
             Id = scheduleId,
-            BiblePublicationSchedule = new BiblePublicationSchedule
+            Music = new AlarmMusic
             {
-                PublicationCode = "nwt",
                 LanguageCode = "E",
+                PublicationCode = "sjjc",
                 TrackCode = "1",
             },
         };
-        var dispatcher = new RecordingDispatcher();
-        using var sut = CreateSutWithDispatcher(alarm, dispatcher);
-        var metadata = new TrackMetadata
+        var media = new StubMediaService { VocalTracks = TwoVocalTracks() };
+        using var sut = CreateSut(alarm, media: media);
+
+        var item = await sut.GetNextPlayItemAsync(MusicMetadata(scheduleId, "1"));
+
+        Assert.Equal("2", item.Metadata.TrackCode);
+        Assert.False(item.Metadata.IsBibleContent);
+    }
+
+    [Fact]
+    public async Task GetPreviousPlayItemAsync_throws_when_metadata_null()
+    {
+        using var sut = CreateSut(new FakeAlarmScheduleService());
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => sut.GetPreviousPlayItemAsync(null!));
+    }
+
+    [Fact]
+    public async Task GetPreviousPlayItemAsync_returns_previous_bible_track()
+    {
+        var pub = FlatThreeTrackPublication();
+        using var sut = CreateSut(
+            new FakeAlarmScheduleService(),
+            bible: new StubBiblePublicationService { Publication = pub });
+
+        var item = await sut.GetPreviousPlayItemAsync(BibleMetadata(10, "2", pub.PublicationCode));
+
+        Assert.Equal("1", item.Metadata.TrackCode);
+        Assert.Equal("https://example.test/bible.mp3", item.Url);
+    }
+
+    [Fact]
+    public async Task GetPreviousPlayItemAsync_returns_previous_music_track()
+    {
+        const int scheduleId = 62;
+        var alarm = new FakeAlarmScheduleService();
+        alarm.ById[scheduleId] = new AlarmSchedule
         {
-            ScheduleId = scheduleId,
-            IsBibleContent = true,
-            LanguageCode = "E",
-            PublicationCode = "nwt",
-            TrackCode = "3",
+            Id = scheduleId,
+            Music = new AlarmMusic
+            {
+                LanguageCode = "E",
+                PublicationCode = "sjjc",
+                TrackCode = "2",
+            },
         };
+        var media = new StubMediaService { VocalTracks = TwoVocalTracks() };
+        using var sut = CreateSut(alarm, media: media);
 
-        await sut.PersistSchedulePointerToFinishedTrackAsync(metadata);
+        var item = await sut.GetPreviousPlayItemAsync(MusicMetadata(scheduleId, "2"));
 
-        Assert.Equal("3", alarm.ById[scheduleId].BiblePublicationSchedule!.TrackCode);
+        Assert.Equal("1", item.Metadata.TrackCode);
+    }
+
+    [Fact]
+    public async Task MoveToNextBiblePublicationTrack_updates_schedule_pointer()
+    {
+        const int scheduleId = 71;
+        var pub = FlatThreeTrackPublication();
+        var alarm = new FakeAlarmScheduleService();
+        alarm.ById[scheduleId] = FlatBibleSchedule(scheduleId, trackCode: "1", publicationCode: pub.PublicationCode);
+        var dispatcher = new RecordingDispatcher();
+        using var sut = CreateSut(alarm, dispatcher, bible: new StubBiblePublicationService { Publication = pub });
+
+        await sut.MoveToNextBiblePublicationTrack(scheduleId);
+
+        Assert.Equal("2", alarm.ById[scheduleId].BiblePublicationSchedule!.TrackCode);
+        Assert.Equal(TimeSpan.Zero, alarm.ById[scheduleId].BiblePublicationSchedule!.FinishedDuration);
         Assert.IsType<UpdateScheduleAction>(Assert.Single(dispatcher.Actions));
     }
 
     [Fact]
-    public void Dispose_can_be_called_twice_without_throw()
+    public async Task MoveToPreviousBiblePublicationTrack_updates_schedule_pointer()
     {
-        var sut = CreateSut(new FakeAlarmScheduleService(), new FakeGeneralSettingsService());
+        const int scheduleId = 72;
+        var pub = FlatThreeTrackPublication();
+        var alarm = new FakeAlarmScheduleService();
+        alarm.ById[scheduleId] = FlatBibleSchedule(scheduleId, trackCode: "2", publicationCode: pub.PublicationCode);
+        var dispatcher = new RecordingDispatcher();
+        using var sut = CreateSut(alarm, dispatcher, bible: new StubBiblePublicationService { Publication = pub });
 
-        sut.Dispose();
-        sut.Dispose();
+        await sut.MoveToPreviousBiblePublicationTrack(scheduleId);
+
+        Assert.Equal("1", alarm.ById[scheduleId].BiblePublicationSchedule!.TrackCode);
+        Assert.IsType<UpdateScheduleAction>(Assert.Single(dispatcher.Actions));
     }
-
-#pragma warning disable CS0067
-    private sealed class RecordingDispatcher : IDispatcher
-    {
-        public List<object> Actions { get; } = [];
-
-        public event EventHandler<ActionDispatchedEventArgs>? ActionDispatched;
-
-        public void Dispatch(object action) => Actions.Add(action);
-    }
-#pragma warning restore CS0067
-
-    private static PlaylistService CreateSutWithDispatcher(
-        FakeAlarmScheduleService alarm,
-        RecordingDispatcher dispatcher,
-        IMediaService? media = null) =>
-        new(new PlaylistServiceDeps(
-            TestLogging.CreateLogger(),
-            media ?? new IdleCatalogMediaService(),
-            dispatcher,
-            new FakeApplicationState(new ApplicationState()),
-            alarm,
-            new FakeGeneralSettingsService(),
-            new StubBiblePublicationService(),
-            new StubUrlRefresh(),
-            new StubUrlConstruction()));
 }

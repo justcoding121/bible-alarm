@@ -58,6 +58,31 @@ public sealed class ModalScrollHelperTests
     }
 
     [Fact]
+    public void IsFetchFailure_true_for_deeply_nested_fetch_failure()
+    {
+        var inner = new HttpRequestException("network");
+        var middle = new InvalidOperationException("middle", inner);
+        var outer = new Exception("outer", middle);
+
+        Assert.True(ModalScrollHelper.IsFetchFailure(outer));
+    }
+
+    [Fact]
+    public void GetFetchErrorMessage_socket_exception_uses_default_message()
+    {
+        Assert.Equal(ModalScrollHelper.DefaultFetchErrorMessage, ModalScrollHelper.GetFetchErrorMessage(new System.Net.Sockets.SocketException()));
+    }
+
+    [Fact]
+    public void GetFetchErrorMessage_wrapped_http_status_falls_back_to_default()
+    {
+        var inner = new HttpRequestException("err", null, HttpStatusCode.InternalServerError);
+        var wrapped = new InvalidOperationException("wrap", inner);
+
+        Assert.Equal(ModalScrollHelper.DefaultFetchErrorMessage, ModalScrollHelper.GetFetchErrorMessage(wrapped));
+    }
+
+    [Fact]
     public void GetFetchErrorMessage_http_status_maps_message()
     {
         var serverErr = new HttpRequestException("err", null, HttpStatusCode.ServiceUnavailable);

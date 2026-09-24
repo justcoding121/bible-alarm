@@ -4,6 +4,7 @@ using System;
 
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Interfaces.Storage;
+using Microsoft.Maui.Storage;
 using Serilog;
 
 namespace Bible.Alarm.Common.Services.Storage;
@@ -25,12 +26,19 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
     // Initial count of 1 ensures only one operation at a time
     private static readonly SemaphoreSlim preferencesLock = new(1, 1);
 
+    private readonly IPreferences preferences;
+
+    public ThreadSafePreferencesService(IPreferences? preferences = null)
+    {
+        this.preferences = preferences ?? Preferences.Default;
+    }
+
     public string Get(string key, string defaultValue = "", string? sharedName = null)
     {
         preferencesLock.Wait();
         try
         {
-            return Preferences.Get(key, defaultValue, sharedName);
+            return preferences.Get(key, defaultValue, sharedName);
         }
         catch (Exception ex)
         {
@@ -48,7 +56,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         preferencesLock.Wait();
         try
         {
-            return Preferences.Get(key, defaultValue, sharedName);
+            return preferences.Get(key, defaultValue, sharedName);
         }
         catch (Exception ex)
         {
@@ -66,7 +74,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         preferencesLock.Wait();
         try
         {
-            return Preferences.Get(key, defaultValue, sharedName);
+            return preferences.Get(key, defaultValue, sharedName);
         }
         catch (Exception ex)
         {
@@ -84,7 +92,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         preferencesLock.Wait();
         try
         {
-            return Preferences.Get(key, defaultValue, sharedName);
+            return preferences.Get(key, defaultValue, sharedName);
         }
         catch (Exception ex)
         {
@@ -102,7 +110,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         preferencesLock.Wait();
         try
         {
-            return Preferences.Get(key, defaultValue, sharedName);
+            return preferences.Get(key, defaultValue, sharedName);
         }
         catch (Exception ex)
         {
@@ -120,7 +128,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         preferencesLock.Wait();
         try
         {
-            return Preferences.Get(key, defaultValue, sharedName);
+            return preferences.Get(key, defaultValue, sharedName);
         }
         catch (Exception ex)
         {
@@ -138,7 +146,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         preferencesLock.Wait();
         try
         {
-            return Preferences.Get(key, defaultValue, sharedName);
+            return preferences.Get(key, defaultValue, sharedName);
         }
         catch (Exception ex)
         {
@@ -186,7 +194,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         SetInternal(key, value, sharedName);
     }
 
-    private static void SetInternal<T>(string key, T value, string? sharedName)
+    private void SetInternal<T>(string key, T value, string? sharedName)
     {
         preferencesLock.Wait();
         try
@@ -218,30 +226,30 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         }
     }
 
-    private static void SetPreferencesByType<T>(string key, T value, string? sharedName)
+    private void SetPreferencesByType<T>(string key, T value, string? sharedName)
     {
         switch (value)
         {
             case string s:
-                Preferences.Set(key, s, sharedName);
+                preferences.Set(key, s, sharedName);
                 break;
             case int i:
-                Preferences.Set(key, i, sharedName);
+                preferences.Set(key, i, sharedName);
                 break;
             case bool b:
-                Preferences.Set(key, b, sharedName);
+                preferences.Set(key, b, sharedName);
                 break;
             case double d:
-                Preferences.Set(key, d, sharedName);
+                preferences.Set(key, d, sharedName);
                 break;
             case float f:
-                Preferences.Set(key, f, sharedName);
+                preferences.Set(key, f, sharedName);
                 break;
             case long l:
-                Preferences.Set(key, l, sharedName);
+                preferences.Set(key, l, sharedName);
                 break;
             case DateTime dt:
-                Preferences.Set(key, dt, sharedName);
+                preferences.Set(key, dt, sharedName);
                 break;
             default:
                 throw new NotSupportedException($"Preferences.Set does not support type {typeof(T).Name}");
@@ -253,7 +261,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         preferencesLock.Wait();
         try
         {
-            Preferences.Remove(key, sharedName);
+            preferences.Remove(key, sharedName);
         }
         catch (Exception ex)
         {
@@ -270,7 +278,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         preferencesLock.Wait();
         try
         {
-            Preferences.Clear(sharedName);
+            preferences.Clear(sharedName);
         }
         catch (Exception ex)
         {
@@ -287,7 +295,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         preferencesLock.Wait();
         try
         {
-            return Preferences.ContainsKey(key, sharedName);
+            return preferences.ContainsKey(key, sharedName);
         }
         catch (Exception ex)
         {
@@ -306,7 +314,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         {
             try
             {
-                return Preferences.Get(key, defaultValue, sharedName);
+                return preferences.Get(key, defaultValue, sharedName);
             }
             catch (Exception ex)
             {
@@ -322,7 +330,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         {
             try
             {
-                return Preferences.Get(key, defaultValue, sharedName);
+                return preferences.Get(key, defaultValue, sharedName);
             }
             catch (Exception ex)
             {
@@ -338,7 +346,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         {
             try
             {
-                return Preferences.Get(key, defaultValue, sharedName);
+                return preferences.Get(key, defaultValue, sharedName);
             }
             catch (Exception ex)
             {
@@ -354,7 +362,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         {
             try
             {
-                return Preferences.Get(key, defaultValue, sharedName);
+                return preferences.Get(key, defaultValue, sharedName);
             }
             catch (Exception ex)
             {
@@ -370,7 +378,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         {
             try
             {
-                return Preferences.Get(key, defaultValue, sharedName);
+                return preferences.Get(key, defaultValue, sharedName);
             }
             catch (Exception ex)
             {
@@ -386,7 +394,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         {
             try
             {
-                return Preferences.Get(key, defaultValue, sharedName);
+                return preferences.Get(key, defaultValue, sharedName);
             }
             catch (Exception ex)
             {
@@ -402,7 +410,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         {
             try
             {
-                return Preferences.Get(key, defaultValue, sharedName);
+                return preferences.Get(key, defaultValue, sharedName);
             }
             catch (Exception ex)
             {
@@ -447,7 +455,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         await SetAsyncInternal(key, value, sharedName, cancellationToken);
     }
 
-    private static async Task SetAsyncInternal<T>(string key, T value, string? sharedName, CancellationToken cancellationToken)
+    private async Task SetAsyncInternal<T>(string key, T value, string? sharedName, CancellationToken cancellationToken)
     {
         await ConcurrencyHelper.ExecuteAsync(preferencesLock, async () =>
         {
@@ -476,7 +484,7 @@ public sealed class ThreadSafePreferencesService : IThreadSafePreferencesService
         {
             try
             {
-                Preferences.Remove(key, sharedName);
+                preferences.Remove(key, sharedName);
             }
             catch (Exception ex)
             {

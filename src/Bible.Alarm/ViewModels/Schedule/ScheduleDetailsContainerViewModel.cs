@@ -106,7 +106,7 @@ public sealed partial class ScheduleDetailsContainerViewModel : ObservableObject
 
         // Dispatch to state that this container is ready
         // Check state again inside the queued action to prevent duplicates from queued actions
-        MainThread.BeginInvokeOnMainThread(() =>
+        void DispatchReadyIfNeeded()
         {
             // Reset flag when action executes
             isReadyActionQueued = false;
@@ -119,7 +119,18 @@ public sealed partial class ScheduleDetailsContainerViewModel : ObservableObject
                 return;
             }
             dispatcher.Dispatch(new ContainerReadyAction("ScheduleDetails"));
-        });
+        }
+
+        try
+        {
+            MainThread.BeginInvokeOnMainThread(DispatchReadyIfNeeded);
+        }
+        catch (System.Runtime.InteropServices.COMException ex)
+        {
+            // Headless unit-test hosts have no WinUI DispatcherQueue.
+            logger.Debug(ex, "SignalContainerReady: MainThread unavailable; dispatching synchronously");
+            DispatchReadyIfNeeded();
+        }
     }
 
     private void OnStateChanged(object? sender, EventArgs e)

@@ -10,12 +10,14 @@ using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Schedule;
 using Bible.Alarm.Stores.Effects.ScheduleEffectsHelpers;
 using Bible.Alarm.Stores.Models;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Tests.Support;
 using Fluxor;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using IDispatcher = Fluxor.IDispatcher;
+using CascadeFixtures = Bible.Alarm.Tests.Support.CascadeHandlerTestFixtures;
 
 namespace Bible.Alarm.Tests;
 
@@ -382,5 +384,196 @@ public sealed class MusicCascadeHandlerTests
         await handler.HandleAsync(dispatcher);
 
         Assert.Empty(dispatcher.Dispatched);
+    }
+
+    [Fact]
+    public async Task HandleAsync_language_cascade_dispatches_first_flat_publication_and_track()
+    {
+        const string pub = "sjjc";
+        var (options, connection) = await CascadeFixtures.CreateEmptyMediaDbAsync();
+        await using (connection)
+        {
+            await CascadeFixtures.SeedMusicLanguageBoundPublicationAsync(options, pub, "E", "Sing", includePublicationRow: true);
+            var dispatcher = new RecordingDispatcher();
+            var current = new ScheduleStateItem
+            {
+                MusicEnabled = true,
+                MusicLanguageCode = "E",
+                MusicPublicationCode = null,
+            };
+            var media = new CascadeFixtures.FlatTracksMediaService("E", pub);
+            var handler = new MusicCascadeHandler(
+                media,
+                new CascadeFixtures.ConfigurableLanguageContentService(ensureExists: true),
+                new FakeApplicationState(new ApplicationState([], current)),
+                new MediaTestScopeFactory(options),
+                TestLogging.CreateLogger());
+
+            await handler.HandleAsync(dispatcher);
+
+            var action = Assert.Single(dispatcher.Dispatched);
+            var update = Assert.IsType<UpdateScheduleFromViewModelAction>(action);
+            Assert.Equal(pub, update.Schedule.MusicPublicationCode);
+            Assert.Equal("2", update.Schedule.MusicTrackCode);
+            Assert.True(update.MusicUpdated);
+        }
+    }
+
+    [Fact]
+    public async Task HandleAsync_language_cascade_no_language_publication_dispatches_via_custom_path()
+    {
+        const string pub = "iam";
+        var (options, connection) = await CascadeFixtures.CreateEmptyMediaDbAsync();
+        await using (connection)
+        {
+            await CascadeFixtures.SeedMusicFlatPublicationAsync(options, pub, "Kingdom Melodies");
+            var dispatcher = new RecordingDispatcher();
+            var current = new ScheduleStateItem
+            {
+                MusicEnabled = true,
+                MusicLanguageCode = "F",
+                MusicLanguageName = "French",
+                MusicPublicationCode = null,
+            };
+            var sectionCode = "iam-1";
+            var media = new CascadeFixtures.SectionTracksMediaService("E", pub, sectionCode, withoutLanguage: true);
+            var handler = new MusicCascadeHandler(
+                media,
+                new IdleLanguageContentService(),
+                new FakeApplicationState(new ApplicationState([], current)),
+                new MediaTestScopeFactory(options),
+                TestLogging.CreateLogger());
+
+            await handler.HandleAsync(dispatcher);
+
+            var action = Assert.Single(dispatcher.Dispatched);
+            var update = Assert.IsType<UpdateScheduleFromViewModelAction>(action);
+            Assert.Equal(pub, update.Schedule.MusicPublicationCode);
+            Assert.Equal("F", update.Schedule.MusicLanguageCode);
+            Assert.Equal("1", update.Schedule.MusicTrackCode);
+        }
+    }
+
+    [Fact]
+    public async Task HandleAsync_flat_publication_cascade_dispatches_when_track_missing()
+    {
+        const string pub = "osg";
+        var (options, connection) = await CascadeFixtures.CreateEmptyMediaDbAsync();
+        await using (connection)
+        {
+            await CascadeFixtures.SeedMusicFlatPublicationAsync(options, pub, "Organ");
+            var dispatcher = new RecordingDispatcher();
+            var current = new ScheduleStateItem
+            {
+                MusicEnabled = true,
+                MusicPublicationCode = pub,
+                MusicTrackCode = null,
+            };
+            var media = new CascadeFixtures.FlatTracksMediaService(string.Empty, pub, withoutLanguage: true);
+            var handler = new MusicCascadeHandler(
+                media,
+                new IdleLanguageContentService(),
+                new FakeApplicationState(new ApplicationState([], current)),
+                new MediaTestScopeFactory(options),
+                TestLogging.CreateLogger());
+
+            await handler.HandleAsync(dispatcher);
+
+            var action = Assert.Single(dispatcher.Dispatched);
+            var update = Assert.IsType<UpdateScheduleFromViewModelAction>(action);
+            Assert.Equal("2", update.Schedule.MusicTrackCode);
+            Assert.Null(update.Schedule.MusicSectionCode);
+        }
+    }
+
+    [Fact]
+    public async Task HandleAsync_publication_cascade_dispatches_section_and_track_for_sectioned_publication()
+    {
+        const string pub = "iam";
+        const string section = "iam-1";
+        var (options, connection) = await CascadeFixtures.CreateEmptyMediaDbAsync();
+        await using (connection)
+        {
+            await CascadeFixtures.SeedMusicSectionedPublicationAsync(options, pub, withoutLanguage: true);
+            var dispatcher = new RecordingDispatcher();
+            var current = new ScheduleStateItem
+            {
+                MusicEnabled = true,
+                MusicPublicationCode = pub,
+                MusicSectionCode = null,
+                MusicTrackCode = null,
+            };
+            var media = new CascadeFixtures.SectionTracksMediaService(string.Empty, pub, section, withoutLanguage: true);
+            var handler = new MusicCascadeHandler(
+                media,
+                new IdleLanguageContentService(),
+                new FakeApplicationState(new ApplicationState([], current)),
+                new MediaTestScopeFactory(options),
+                TestLogging.CreateLogger());
+
+            await handler.HandleAsync(dispatcher);
+
+            var action = Assert.Single(dispatcher.Dispatched);
+            var update = Assert.IsType<UpdateScheduleFromViewModelAction>(action);
+            Assert.Equal(section, update.Schedule.MusicSectionCode);
+            Assert.Equal("1", update.Schedule.MusicTrackCode);
+        }
+    }
+
+    [Fact]
+    public async Task HandleAsync_section_cascade_dispatches_first_track_when_section_set()
+    {
+        const string pub = "iam";
+        const string section = "iam-2";
+        var (options, connection) = await CascadeFixtures.CreateEmptyMediaDbAsync();
+        await using (connection)
+        {
+            await CascadeFixtures.SeedMusicSectionedPublicationAsync(options, pub, withoutLanguage: false);
+            var dispatcher = new RecordingDispatcher();
+            var current = new ScheduleStateItem
+            {
+                MusicEnabled = true,
+                MusicLanguageCode = "E",
+                MusicPublicationCode = pub,
+                MusicSectionCode = section,
+                MusicTrackCode = null,
+            };
+            var media = new CascadeFixtures.SectionTracksMediaService("E", pub, section);
+            var handler = new MusicCascadeHandler(
+                media,
+                new IdleLanguageContentService(),
+                new FakeApplicationState(new ApplicationState([], current)),
+                new MediaTestScopeFactory(options),
+                TestLogging.CreateLogger());
+
+            await handler.HandleAsync(dispatcher);
+
+            var action = Assert.Single(dispatcher.Dispatched);
+            var update = Assert.IsType<UpdateScheduleFromViewModelAction>(action);
+            Assert.Equal("1", update.Schedule.MusicTrackCode);
+        }
+    }
+
+    [Fact]
+    public async Task HandleAsync_language_cascade_exits_when_catalog_fails()
+    {
+        const string pub = "vocal-fail";
+        var (options, connection) = await CascadeFixtures.CreateEmptyMediaDbAsync();
+        await using (connection)
+        {
+            await CascadeFixtures.SeedMusicLanguageBoundPublicationAsync(options, pub, "E", "Vocal", includePublicationRow: false);
+            var dispatcher = new RecordingDispatcher();
+            var current = new ScheduleStateItem { MusicEnabled = true, MusicLanguageCode = "E" };
+            var handler = new MusicCascadeHandler(
+                new IdleMediaService(),
+                new CascadeFixtures.ConfigurableLanguageContentService(ensureExists: false),
+                new FakeApplicationState(new ApplicationState([], current)),
+                new MediaTestScopeFactory(options),
+                TestLogging.CreateLogger());
+
+            await handler.HandleAsync(dispatcher);
+
+            Assert.Empty(dispatcher.Dispatched);
+        }
     }
 }

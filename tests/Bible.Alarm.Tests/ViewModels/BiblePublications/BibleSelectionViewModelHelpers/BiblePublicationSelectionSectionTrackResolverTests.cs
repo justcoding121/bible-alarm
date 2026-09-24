@@ -3,6 +3,8 @@
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Models.Media;
+using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -186,5 +188,151 @@ public sealed class BiblePublicationSelectionSectionTrackResolverTests
         Assert.Equal(string.Empty, result.TrackCode);
         Assert.Equal(string.Empty, result.SectionName);
         Assert.Equal(string.Empty, result.TrackTitle);
+    }
+
+    [Fact]
+    public async Task GetFirstSectionAndTrackFromSectionsAsync_returns_first_track_for_no_language_section_in_db()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var init = new MediaDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        await using (var seed = new MediaDbContext(options))
+        {
+            var publication = new BiblePublication
+            {
+                Name = "Kingdom Melodies",
+                PublicationCode = "iam",
+                LanguageId = null,
+                IsVideo = false,
+                IsMusic = true,
+            };
+            var section = new BiblePublicationSection
+            {
+                Name = "Disc 1",
+                SectionCode = "iam-1",
+                BiblePublication = publication,
+            };
+            publication.Sections.Add(section);
+            section.Tracks.Add(new BiblePublicationTrack
+            {
+                TrackCode = "190",
+                Title = "Melody 190",
+                Section = section,
+                Publication = publication,
+            });
+            seed.BiblePublications.Add(publication);
+            await seed.SaveChangesAsync();
+        }
+
+        var sections = new SortedDictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["iam-1"] = new BiblePublicationSection { SectionCode = "iam-1", Name = "Disc 1" },
+        };
+
+        var sut = new BiblePublicationSelectionSectionTrackResolver(
+            new StubMedia(),
+            new MediaTestScopeFactory(options),
+            biblePublicationService: null,
+            languageContentService: null);
+
+        var result = await sut.GetFirstSectionAndTrackFromSectionsAsync(languageCode: null, "iam", sections);
+
+        Assert.Equal("iam-1", result.SectionCode);
+        Assert.Equal("190", result.TrackCode);
+        Assert.Equal("Disc 1", result.SectionName);
+        Assert.Equal("Melody 190", result.TrackTitle);
+    }
+
+    [Fact]
+    public async Task GetFirstTrackForNonSectionedAsync_returns_track_when_service_and_db_have_flat_tracks()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var init = new MediaDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        await using (var seed = new MediaDbContext(options))
+        {
+            var publication = new BiblePublication
+            {
+                Name = "Drama",
+                PublicationCode = "sjjc",
+                LanguageId = null,
+                IsVideo = false,
+                IsMusic = false,
+            };
+            publication.Tracks.Add(new BiblePublicationTrack
+            {
+                TrackCode = "3",
+                Title = "Scene 3",
+                Publication = publication,
+            });
+            seed.BiblePublications.Add(publication);
+            await seed.SaveChangesAsync();
+        }
+
+        var sut = new BiblePublicationSelectionSectionTrackResolver(
+            new StubMedia(),
+            new MediaTestScopeFactory(options),
+            biblePublicationService: new FlatTrackBiblePublicationService(),
+            languageContentService: null);
+
+        var result = await sut.GetFirstTrackForNonSectionedAsync(languageCode: null, "sjjc");
+
+        Assert.Null(result.SectionCode);
+        Assert.Equal("3", result.TrackCode);
+        Assert.Equal("Scene 3", result.TrackTitle);
+    }
+
+    private sealed class FlatTrackBiblePublicationService : IBiblePublicationService
+    {
+        public void Dispose()
+        {
+        }
+
+        public void InvalidatePublicationCaches(string languageCode, string publicationCode)
+        {
+        }
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithTracksAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublication?>(null);
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithSectionsAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublication?>(null);
+
+        public Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, string? categoryName = null, bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<string, BiblePublication>());
+
+        public Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(string? categoryName = null, bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<string, Language>());
+
+        public Task<List<string>> GetAvailablePublicationCodesAsync(string languageCode, string? categoryName = null, bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<string>());
+
+        public Task<string?> GetFirstPublicationCodeByOrderAsync(string languageCode, string? categoryName = null, bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult<string?>(null);
+
+        public Task<bool> IsNoLanguagePublicationAsync(string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+
+        public Task<(string? CategoryCode, bool IsMusic)?> GetPublicationCategoryInfoAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult<(string? CategoryCode, bool IsMusic)?>(null);
+
+        public Task<List<string>> GetPublicationCodesInCategoryOrderAsync(string languageCode, string categoryCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<string>());
     }
 }

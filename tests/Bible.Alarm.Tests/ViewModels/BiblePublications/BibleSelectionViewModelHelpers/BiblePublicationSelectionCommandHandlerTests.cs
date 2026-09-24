@@ -1,14 +1,20 @@
 #nullable enable
 
+using System.Collections.ObjectModel;
+using System.Reflection;
 using System.Windows.Input;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Models;
 using Bible.Alarm.ViewModels.BiblePublications.BibleSelectionViewModelHelpers;
+using Bible.Alarm.ViewModels.Shared;
 using Bible.Alarm.Views;
 using CommunityToolkit.Mvvm.Input;
 using Fluxor;
@@ -228,5 +234,142 @@ public sealed class BiblePublicationSelectionCommandHandlerTests
 
         Assert.Equal(0, navigation.PopAsyncCalls);
         Assert.Equal(1, navigation.PopModalCalls);
+    }
+
+    [Fact]
+    public async Task CreateSectionSelectionCommand_is_noop_when_publication_null()
+    {
+        var navigation = new RecordingNavigationService();
+        var sut = CreateCommandHandler(navigation);
+        var selectors = CreateSelectors(null);
+
+        await ExecuteAsync(sut.CreateSectionSelectionCommand(selectors, CreateUiBindings()), null);
+
+        Assert.Equal(0, navigation.PopModalCalls);
+    }
+
+    [Fact]
+    public async Task CreateSectionSelectionCommand_is_noop_when_schedule_missing()
+    {
+        var navigation = new RecordingNavigationService();
+        var sut = CreateCommandHandler(navigation, schedule: null, useDefaultScheduleWhenNull: false);
+        var publication = new PublicationListViewItemModel(new BiblePublication
+        {
+            PublicationCode = "nwt",
+            Name = "NWT",
+            Id = 1,
+        });
+        var selectors = CreateSelectors(null);
+
+        await ExecuteAsync(sut.CreateSectionSelectionCommand(selectors, CreateUiBindings()), publication);
+
+        Assert.Equal(0, navigation.PopModalCalls);
+    }
+
+    [Fact]
+    public void ResolveLanguageCodeForSectionPublicationTap_prefers_schedule_language_for_language_bound_publication()
+    {
+        var method = typeof(BiblePublicationSelectionCommandHandler).GetMethod(
+            "ResolveLanguageCodeForSectionPublicationTap",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(method);
+
+        var publication = new PublicationListViewItemModel(new BiblePublication
+        {
+            PublicationCode = "nwt",
+            Name = "NWT",
+            LanguageId = 1,
+            Id = 2,
+        });
+        var schedule = new ScheduleStateItem
+        {
+            Id = 1,
+            BiblePublicationLanguageCode = "E",
+        };
+        var selectors = new SectionSelectionSelectors(
+            () => new LanguageListViewItemModel(new Language { LanguageCode = "F" }, "French"),
+            () => new ObservableCollection<PublicationListViewItemModel>(),
+            () => new Dictionary<string, PublicationListViewItemModel>(),
+            () => null);
+
+        var code = (string)method!.Invoke(null, [publication, schedule, selectors])!;
+        Assert.Equal("E", code);
+    }
+
+    [Fact]
+    public void ResolveLanguageCodeForSectionPublicationTap_uses_default_for_no_language_publication()
+    {
+        var method = typeof(BiblePublicationSelectionCommandHandler).GetMethod(
+            "ResolveLanguageCodeForSectionPublicationTap",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(method);
+
+        var publication = new PublicationListViewItemModel(new BiblePublication
+        {
+            PublicationCode = "iam",
+            Name = "Melodies",
+            LanguageId = null,
+            Id = 3,
+        });
+        var schedule = new ScheduleStateItem { Id = 1, BiblePublicationLanguageCode = null };
+        var selectors = CreateSelectors(null);
+
+        var code = (string)method!.Invoke(null, [publication, schedule, selectors])!;
+        Assert.Equal(AppConstants.Media.DefaultLanguageCode, code);
+    }
+
+    private static BiblePublicationSelectionCommandHandler CreateCommandHandler(
+        RecordingNavigationService navigation,
+        ScheduleStateItem? schedule = null,
+        bool useDefaultScheduleWhenNull = true)
+    {
+        if (schedule == null && useDefaultScheduleWhenNull)
+        {
+            schedule = new ScheduleStateItem
+        {
+            Id = 1,
+            Name = "Morning",
+            IsEnabled = true,
+            Hour = 7,
+            Minute = 0,
+            Second = 0,
+            DaysOfWeek = WeekDays.Monday,
+            NotificationEnabled = true,
+            MusicEnabled = false,
+            SnoozeMinutes = 5,
+            NumberOfTracksToPlay = 1,
+            AlwaysPlayFromStart = false,
+            CurrentPlayItem = PlayType.Bible,
+            BiblePublicationCategoryName = AppConstants.Media.BiblePublicationCategoryBible,
+            BiblePublicationLanguageCode = "E",
+            };
+        }
+
+        return new BiblePublicationSelectionCommandHandler(
+            new IdleMediaService(),
+            new FakeApplicationState(new ApplicationState([], schedule)),
+            new RecordingDispatcher(),
+            navigation);
+    }
+
+    private static SectionSelectionSelectors CreateSelectors(LanguageListViewItemModel? currentLanguage) =>
+        new(
+            () => currentLanguage,
+            () => new ObservableCollection<PublicationListViewItemModel>(),
+            () => new Dictionary<string, PublicationListViewItemModel>(),
+            () => null);
+
+    private static SectionSelectionUiBindings CreateUiBindings() =>
+        new(_ => { }, _ => { }, _ => { }, _ => { });
+
+    private static async Task ExecuteAsync(ICommand command, PublicationListViewItemModel? parameter)
+    {
+        if (command is IAsyncRelayCommand<PublicationListViewItemModel> typed)
+        {
+            await typed.ExecuteAsync(parameter);
+            return;
+        }
+
+        throw new InvalidOperationException("Expected IAsyncRelayCommand<PublicationListViewItemModel>");
     }
 }
