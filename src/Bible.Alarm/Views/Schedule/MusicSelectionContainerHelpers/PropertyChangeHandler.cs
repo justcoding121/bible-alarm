@@ -117,7 +117,7 @@ public sealed partial class PropertyChangeHandler : IDisposable
 
         container.Dispatcher.DispatchAsync(async () =>
         {
-            await Task.Delay(200);
+            await Task.Delay(200, debounceTokenSource.Token);
             scrollToBottom();
 
             if (viewModel != null)

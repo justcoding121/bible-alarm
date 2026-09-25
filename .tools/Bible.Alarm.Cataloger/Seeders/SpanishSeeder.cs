@@ -65,12 +65,9 @@ internal sealed class SpanishSeeder
 
         var sectionedPublicationCodes = await db.BiblePublications
             .AsNoTracking()
-            .Include(bp => bp.Language)
-            .Include(bp => bp.Sections)
             .Where(bp => bp.Language != null
                 && bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode
-                && bp.Sections != null
-                && bp.Sections.Count > 0)
+                && bp.Sections.Any())
             .Select(bp => bp.PublicationCode)
             .Distinct()
             .ToListAsync();

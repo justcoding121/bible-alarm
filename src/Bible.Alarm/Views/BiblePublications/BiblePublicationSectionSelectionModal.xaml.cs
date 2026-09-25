@@ -49,7 +49,7 @@ public sealed partial class BiblePublicationSectionSelectionModal : BaseContentP
                             // Wait for WinUI to finish presenting the modal before popping.
                             // Popping during the modal presentation transition leaves WinUI's
                             // visual tree in a broken state (blank screen).
-                            await Task.Delay(500);
+                            await Task.Delay(500, cancellationTokenSource.Token);
                             await navigationService.PopModalAsync();
                         }
                         catch (InvalidOperationException ex)
@@ -100,7 +100,7 @@ public sealed partial class BiblePublicationSectionSelectionModal : BaseContentP
         isSelectingSection = true;
 
         sectionItem.IsNavigating = true;
-        await Task.Delay(50);
+        await Task.Delay(50, cancellationTokenSource.Token);
 
         try
         {
@@ -115,7 +115,7 @@ public sealed partial class BiblePublicationSectionSelectionModal : BaseContentP
         }
         catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
         {
-            await Task.Delay(500);
+            await Task.Delay(500, cancellationTokenSource.Token);
             await navigationService.PopModalAsync();
             await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
         }

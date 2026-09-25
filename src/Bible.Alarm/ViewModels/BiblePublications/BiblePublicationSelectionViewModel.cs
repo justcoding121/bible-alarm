@@ -134,7 +134,7 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
     private async Task CancelFetchAsync()
     {
         IsCancelBusy = true;
-        await Task.Delay(50);
+        await Task.Delay(50, fetchCts?.Token ?? CancellationToken.None);
 
         try
         {
@@ -194,7 +194,7 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
     public async Task RefreshFromState()
     {
         // Serialize RefreshFromState calls - if one is in progress, wait for it to complete
-        await refreshSemaphore.WaitAsync();
+        await refreshSemaphore.WaitAsync(fetchCts?.Token ?? CancellationToken.None);
         try
         {
             await RefreshFromStateInternal();

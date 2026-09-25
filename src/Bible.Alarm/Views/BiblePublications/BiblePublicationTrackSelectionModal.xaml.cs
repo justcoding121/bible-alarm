@@ -87,7 +87,7 @@ public sealed partial class BiblePublicationTrackSelectionModal : BaseContentPag
         isSelectingTrack = true;
 
         trackItem.IsNavigating = true;
-        await Task.Delay(50);
+        await Task.Delay(50, cancellationTokenSource.Token);
 
         try
         {

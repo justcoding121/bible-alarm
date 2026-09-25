@@ -213,6 +213,7 @@ internal sealed class FlatPublicationFetcher
                 .ThenInclude(t => t.TrackUrl)
                 .Include(bp => bp.BiblePublicationCategories)
                 .ThenInclude(bpc => bpc.Category)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(
                     bp => bp.PublicationCode == normalizedPublicationCode &&
                           bp.LanguageId == resolvedLanguage.Id,
@@ -224,6 +225,7 @@ internal sealed class FlatPublicationFetcher
             .ThenInclude(t => t.TrackUrl)
             .Include(bp => bp.BiblePublicationCategories)
             .ThenInclude(bpc => bpc.Category)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(
                 bp => bp.PublicationCode == normalizedPublicationCode &&
                       bp.LanguageId == null,

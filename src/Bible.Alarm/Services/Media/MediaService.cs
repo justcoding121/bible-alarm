@@ -372,7 +372,7 @@ public sealed partial class MediaService(MediaServiceDependencies dependencies)
                 {
                     Log.Warning(ex, AppConstants.Logging.MediaServiceDiagnosticsLog.BackgroundFailedEnsureAllVocalMusicReleasesForLanguage, languageCode);
                 }
-            });
+            }, cancellationTokenSource.Token);
         }
         return result;
     }

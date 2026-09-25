@@ -128,14 +128,14 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
                 await PopulateLanguages();
 
                 // Wait a moment to ensure the collection is assigned and UI is ready
-                await Task.Delay(50);
+                await Task.Delay(50, fetchCts?.Token ?? CancellationToken.None);
 
                 // Double-check that languages are populated before opening modal
                 if (Languages == null || Languages.Count == 0)
                 {
-                    await Task.Delay(100);
+                    await Task.Delay(100, fetchCts?.Token ?? CancellationToken.None);
                     await PopulateLanguages();
-                    await Task.Delay(50);
+                    await Task.Delay(50, fetchCts?.Token ?? CancellationToken.None);
                 }
 
                 await this.navigationService.OpenLanguageModalAsync(this);
@@ -183,7 +183,7 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
         stateManager.HandleMusicChanged(
             state,
             busy => IsBusy = busy,
-            async (langCode) => await PopulateSongPublications(langCode),
+            async (langCode) => await PopulateSongPublications(langCode, cancellationToken: fetchCts?.Token ?? CancellationToken.None),
             SetSelectedSongPublication);
     }
 
@@ -214,7 +214,7 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
     private async Task CancelFetchAsync()
     {
         IsCancelBusy = true;
-        await Task.Delay(50);
+        await Task.Delay(50, fetchCts?.Token ?? CancellationToken.None);
 
         try
         {
@@ -346,7 +346,7 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
     private async Task Initialize()
     {
         // Serialize with RefreshFromState calls
-        await refreshSemaphore.WaitAsync();
+        await refreshSemaphore.WaitAsync(fetchCts?.Token ?? CancellationToken.None);
         try
         {
             await InitializeInternal();
@@ -379,7 +379,7 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
     {
         // Serialize RefreshFromState/Initialize calls - if one is in progress, wait for it to complete
         // This fixes the race condition where fire-and-forget Initialize races with ModalScrollHelper's refresh call
-        await refreshSemaphore.WaitAsync();
+        await refreshSemaphore.WaitAsync(fetchCts?.Token ?? CancellationToken.None);
         try
         {
             await RefreshFromStateInternal();

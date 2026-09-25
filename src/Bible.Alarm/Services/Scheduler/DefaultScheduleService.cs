@@ -190,7 +190,7 @@ public sealed partial class DefaultScheduleService(
         }
 
         // Prepare the first track using PreparePlaybackService (downloads and creates AudioPlayerTrack)
-        var audioPlayerTrack = await preparePlaybackService.PrepareSingleTrackAsync(firstPlayItem);
+        var audioPlayerTrack = await preparePlaybackService.PrepareSingleTrackAsync(firstPlayItem, cancellationTokenSource.Token);
 
         if (audioPlayerTrack == null)
         {
@@ -225,8 +225,8 @@ public sealed partial class DefaultScheduleService(
                     Directory.CreateDirectory(artworkDir);
                     // Clean up old default schedule artwork files to prevent accumulation
                     CleanupOldDefaultScheduleArtworkFiles(artworkDir);
-                    await File.WriteAllBytesAsync(artworkPath, metadata.ArtworkBytes);
-                });
+                    await File.WriteAllBytesAsync(artworkPath, metadata.ArtworkBytes, cancellationTokenSource.Token);
+                }, cancellationToken: cancellationTokenSource.Token);
                 
                 artworkUrl = artworkPath;
                 logger.Debug(AppConstants.Logging.DefaultScheduleServiceDiagnosticsLog.SavedDefaultScheduleArtworkToPathAndSize, artworkPath, metadata.ArtworkBytes.Length);

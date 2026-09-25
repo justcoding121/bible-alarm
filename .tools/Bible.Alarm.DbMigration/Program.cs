@@ -577,8 +577,6 @@ static class Program
         using var context = new MediaDbContext(optionsBuilder.Options);
         var languages = await context.PublicationLanguages
             .AsNoTracking()
-            .Include(x => x.Language)
-            .Include(x => x.Category)
             .Where(x => x.Category != null && x.Category.CategoryCode == "Bible" && x.LanguageId != null && x.Language != null)
             .Select(x => x.Language!.LanguageCode)
             .Distinct()

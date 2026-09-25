@@ -59,6 +59,7 @@ internal sealed class EnglishPublicationBuilder
             .ThenInclude(t => t.TrackUrl)
             .Include(bp => bp.BiblePublicationCategories)
             .ThenInclude(bpc => bpc.Category)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(
                 bp => bp.PublicationCode == normalizedPublicationCode && bp.LanguageId == languageId,
                 cancellationToken);

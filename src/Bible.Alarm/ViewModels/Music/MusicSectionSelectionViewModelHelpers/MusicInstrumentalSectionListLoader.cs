@@ -47,7 +47,7 @@ internal sealed class MusicInstrumentalSectionListLoader
             allSectionsCataloged);
 
         var (items, selected) = await Task.Run(async () =>
-            await ProcessInstrumentalSectionsBackgroundAsync(publicationCode, selectedSectionCode, progress, prefetch, cancellationToken));
+            await ProcessInstrumentalSectionsBackgroundAsync(publicationCode, selectedSectionCode, progress, prefetch, cancellationToken), progress?.CancellationToken ?? CancellationToken.None);
 
         if (!prefetch.AllSectionsCataloged)
         {

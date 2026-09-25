@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Services.UI.Interfaces;
@@ -50,7 +50,7 @@ public sealed partial class NavigationService(
         {
             var navigation = GetNavigation();
             await homeHandler.NavigateToHomeAsync(navigation, animated);
-        });
+        }, cancellationToken: cancellationTokenSource.Token);
     }
 
     /// <summary>
@@ -103,13 +103,13 @@ public sealed partial class NavigationService(
                     await navigation.PushAsync(page, animated: false);
                     WindowSetupService.UpdateNavigationBarColors();
                 });
-            });
+            }, cancellationToken: cancellationTokenSource.Token);
 
             // Spinner is now visible. Resolve ViewModel on a background thread so it does
             // not block the UI, then hand it to the page to finish loading content.
             if (page != null)
             {
-                var viewModel = await Task.Run(() => serviceProvider.GetRequiredService<ScheduleViewModel>());
+                var viewModel = await Task.Run(() => serviceProvider.GetRequiredService<ScheduleViewModel>(), cancellationTokenSource.Token);
                 await uiThreadInvoker.InvokeOnUiThreadAsync(async () => await page.InitializeViewModelAsync(viewModel));
             }
         }
@@ -176,7 +176,7 @@ public sealed partial class NavigationService(
                         (afterPushTime - overallStartTime).TotalMilliseconds);
 #endif
                 });
-            });
+            }, cancellationToken: cancellationTokenSource.Token);
 
             // Spinner is now visible on screen.
             // Resolve ViewModel on a background thread (doesn't block spinner animation),
@@ -187,7 +187,7 @@ public sealed partial class NavigationService(
                 var beforeVmTime = DateTime.UtcNow;
                 logger.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PerfNavigateToScheduleAsyncResolvingViewModelAt, beforeVmTime);
 #endif
-                var viewModel = await Task.Run(() => serviceProvider.GetRequiredService<ScheduleViewModel>());
+                var viewModel = await Task.Run(() => serviceProvider.GetRequiredService<ScheduleViewModel>(), cancellationTokenSource.Token);
 #if DEBUG
                 logger.Information(AppConstants.Logging.NavigationServiceDiagnosticsLog.PerfNavigateToScheduleAsyncViewModelResolvedInMs,
                     (DateTime.UtcNow - beforeVmTime).TotalMilliseconds);
@@ -270,7 +270,7 @@ public sealed partial class NavigationService(
         {
             var navigation = GetNavigation();
             await modalHandler.OpenPlaybackModalAsync(navigation, animated);
-        });
+        }, cancellationToken: cancellationTokenSource.Token);
     }
 
     public bool IsPlaybackModalOnScreen()
@@ -308,7 +308,7 @@ public sealed partial class NavigationService(
             {
                 await NavigationStackManager.PopAsync(navigation);
             });
-        });
+        }, cancellationToken: cancellationTokenSource.Token);
     }
 
     public async Task PopAsync()
@@ -320,7 +320,7 @@ public sealed partial class NavigationService(
             {
                 await NavigationStackManager.PopAsync(navigation);
             });
-        });
+        }, cancellationToken: cancellationTokenSource.Token);
     }
 
     private const uint PlaybackModalAnimationDurationMs = 300;
@@ -348,7 +348,7 @@ public sealed partial class NavigationService(
 #endif
                 WindowSetupService.UpdateNavigationBarColors();
             });
-        });
+        }, cancellationToken: cancellationTokenSource.Token);
     }
 
     private static Page? FindPlaybackModalInStack(INavigation navigation)

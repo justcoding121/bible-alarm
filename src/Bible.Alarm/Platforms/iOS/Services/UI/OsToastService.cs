@@ -26,7 +26,7 @@ public class OsToastService : ToastService
     {
         CancelActiveCts();
 
-        await @lock.WaitAsync();
+        await @lock.WaitAsync(CancellationToken.None);
         try
         {
             await MainThread.InvokeOnMainThreadAsync(async () =>

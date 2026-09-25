@@ -101,7 +101,6 @@ internal sealed class TestModeSeeder
             string.Join(", ", testLanguages));
 
         var publicationCodes = await db.PublicationLanguages
-            .Include(pl => pl.Language)
             .Where(pl => pl.Language != null && pl.Language.LanguageCode != AppConstants.Media.DefaultLanguageCode)
             .Select(pl => pl.PublicationCode)
             .Distinct()
@@ -386,7 +385,6 @@ internal sealed class TestModeSeeder
             publicationCode, testLanguageCode, sectionsElapsed.TotalMilliseconds);
 
         var sectionCodes = await db.SectionLanguages
-            .Include(sl => sl.Language)
             .Where(sl => sl.PublicationCode == normalizedPublicationCode &&
                        sl.Language != null &&
                        sl.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode)

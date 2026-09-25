@@ -67,7 +67,7 @@ public sealed partial class CategorySelectionModal : BaseContentPage, IDisposabl
         isSelectingCategory = true;
 
         categoryItem.IsNavigating = true;
-        await Task.Delay(50);
+        await Task.Delay(50, cancellationTokenSource.Token);
 
         try
         {

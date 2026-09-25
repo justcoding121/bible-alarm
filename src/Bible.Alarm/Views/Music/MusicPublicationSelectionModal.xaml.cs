@@ -49,7 +49,7 @@ public sealed partial class MusicPublicationSelectionModal : BaseContentPage, ID
                     {
                         try
                         {
-                            await Task.Delay(500);
+                            await Task.Delay(500, cancellationTokenSource.Token);
                             await navigationService.PopModalAsync();
                         }
                         catch (InvalidOperationException ex)
@@ -100,7 +100,7 @@ public sealed partial class MusicPublicationSelectionModal : BaseContentPage, ID
         isSelectingPublication = true;
 
         publicationItem.IsNavigating = true;
-        await Task.Delay(50);
+        await Task.Delay(50, cancellationTokenSource.Token);
 
         try
         {
@@ -115,7 +115,7 @@ public sealed partial class MusicPublicationSelectionModal : BaseContentPage, ID
         }
         catch (Exception ex) when (ModalScrollHelper.IsFetchFailure(ex))
         {
-            await Task.Delay(500);
+            await Task.Delay(500, cancellationTokenSource.Token);
             await navigationService.PopModalAsync();
             await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
         }

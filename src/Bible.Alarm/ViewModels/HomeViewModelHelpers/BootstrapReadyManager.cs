@@ -92,7 +92,7 @@ public sealed partial class BootstrapReadyManager : IDisposable
                     }
                 });
             }
-        });
+        }, waitCancellation.Token);
     }
 
     /// <summary>

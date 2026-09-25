@@ -42,6 +42,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.Tracks)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
+                .AsSplitQuery()
                 .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                     && x.LanguageId == null
                     && x.PublicationCode == publicationCode)
@@ -138,6 +139,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                     .ThenInclude(s => s.Tracks)
                     .ThenInclude(t => t.TrackUrl)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
+                .AsSplitQuery()
                 .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                     && x.LanguageId == null
                     && x.PublicationCode == publicationCode)
@@ -195,6 +197,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
                 .Include(x => x.Sections)
                     .ThenInclude(s => s.Tracks)
                     .ThenInclude(t => t.TrackUrl)
+                .AsSplitQuery()
                 .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                     && x.LanguageId == null
                     && x.PublicationCode == publicationCode)

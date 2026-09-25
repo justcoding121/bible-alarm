@@ -68,7 +68,6 @@ public sealed class TrackNavigatorSectionCataloger
 
             var sectionCodes = await db.SectionLanguages
                 .AsNoTracking()
-                .Include(sl => sl.Language)
                 .Where(sl => sl.PublicationCode == publicationCodeForDb &&
                            sl.Language != null &&
                            sl.Language.LanguageCode == normalizedLanguageCode)
@@ -221,7 +220,7 @@ public sealed class TrackNavigatorSectionCataloger
             publicationCode,
             languageCode,
             publicationProgress,
-            CancellationToken.None);
+            sectionFetchProgress?.CancellationToken ?? CancellationToken.None);
 
         if (!publicationExists)
         {
@@ -246,7 +245,8 @@ public sealed class TrackNavigatorSectionCataloger
                 .FirstOrDefaultAsync(
                     bp => bp.PublicationCode == publicationCodeForDb &&
                           bp.Language != null &&
-                          bp.Language.LanguageCode == normalizedLanguageCode);
+                          bp.Language.LanguageCode == normalizedLanguageCode,
+                    sectionFetchProgress?.CancellationToken ?? CancellationToken.None);
 
             if (publication == null)
             {
@@ -278,7 +278,7 @@ public sealed class TrackNavigatorSectionCataloger
             publicationCode,
             sectionCode,
             languageCode,
-            cancellationToken: CancellationToken.None);
+            cancellationToken: sectionFetchProgress?.CancellationToken ?? CancellationToken.None);
 
         sectionFetchProgress?.UpdateProgress(1.0);
 
@@ -307,7 +307,7 @@ public sealed class TrackNavigatorSectionCataloger
             {
                 logger.Debug(ex, "SaveChanges locked (attempt {Attempt}/{Max}) for {Context}, retrying",
                     attempt, maxAttempts, context);
-                await Task.Delay(100 * attempt);
+                await Task.Delay(100 * attempt, CancellationToken.None);
             }
         }
     }

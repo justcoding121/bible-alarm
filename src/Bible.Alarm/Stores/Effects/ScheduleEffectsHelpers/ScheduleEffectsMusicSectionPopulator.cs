@@ -68,10 +68,6 @@ public static class ScheduleEffectsMusicSectionPopulator
 
             var sectionInfo = await dbContext.BiblePublicationTracks
                 .AsNoTracking()
-                .Include(t => t.Section)
-                    .ThenInclude(s => s!.BiblePublication)
-                        .ThenInclude(p => p.BiblePublicationCategories)
-                        .ThenInclude(bpc => bpc.Category)
                 .Where(t => t.BiblePublicationSectionId != null
                     && t.TrackCode == trackCode
                     && t.Publication.PublicationCode == scheduleStateItem.MusicPublicationCode

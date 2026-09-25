@@ -98,7 +98,7 @@ public sealed partial class SchedulerService(
     {
         try
         {
-            var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, includeMusic: true, includeBiblePublication: true);
+            var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, includeMusic: true, includeBiblePublication: true, cancellationTokenSource.Token);
 
             if (schedule != null && schedule.IsEnabled)
             {

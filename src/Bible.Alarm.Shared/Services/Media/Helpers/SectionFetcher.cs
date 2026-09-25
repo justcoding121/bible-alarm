@@ -73,6 +73,7 @@ internal sealed class SectionFetcher
             .Include(bp => bp.Sections)
             .Include(bp => bp.BiblePublicationCategories)
             .ThenInclude(bpc => bpc.Category)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(
                 bp => bp.PublicationCode == normalizedPublicationCode &&
                       bp.LanguageId == language.Id,

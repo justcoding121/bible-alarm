@@ -137,7 +137,7 @@ public sealed partial class BiblePublicationSectionSelectionViewModel : Observab
     private async Task CancelFetchAsync()
     {
         IsCancelBusy = true;
-        await Task.Delay(50);
+        await Task.Delay(50, fetchCts?.Token ?? CancellationToken.None);
 
         try
         {
@@ -194,7 +194,7 @@ public sealed partial class BiblePublicationSectionSelectionViewModel : Observab
 
         // Serialize RefreshFromState calls - if a refresh is in progress, wait for it to complete
         // This fixes the race condition where fire-and-forget initialization races with ModalScrollHelper's refresh call
-        await refreshSemaphore.WaitAsync();
+        await refreshSemaphore.WaitAsync(fetchCts?.Token ?? CancellationToken.None);
         try
         {
             await RefreshFromStateInternal();

@@ -175,14 +175,14 @@ public sealed partial class PlaylistService : IPlaylistService
         var effectiveMetadata = trackMetadata;
         if (scheduleToUse?.BiblePublicationSchedule != null
             && trackMetadata.PlayType == PlayType.Bible
-            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.BiblePublicationSchedule.PublicationCode))
+            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.BiblePublicationSchedule.PublicationCode, cancellationTokenSource.Token))
         {
             var preservedLang = GetPreservedLanguageForNoLanguageBibleSchedule((int)trackMetadata.ScheduleId, scheduleToUse.BiblePublicationSchedule.LanguageCode);
             effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
         }
         else if (scheduleToUse?.Music != null
             && trackMetadata.PlayType == PlayType.Music
-            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.Music.PublicationCode))
+            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.Music.PublicationCode, cancellationTokenSource.Token))
         {
             var preservedLang = GetPreservedLanguageForNoLanguageMusicSchedule((int)trackMetadata.ScheduleId, scheduleToUse.Music.LanguageCode);
             effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
@@ -203,14 +203,14 @@ public sealed partial class PlaylistService : IPlaylistService
         var effectiveMetadata = trackMetadata;
         if (scheduleToUse?.BiblePublicationSchedule != null
             && trackMetadata.PlayType == PlayType.Bible
-            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.BiblePublicationSchedule.PublicationCode))
+            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.BiblePublicationSchedule.PublicationCode, cancellationTokenSource.Token))
         {
             var preservedLang = GetPreservedLanguageForNoLanguageBibleSchedule((int)trackMetadata.ScheduleId, scheduleToUse.BiblePublicationSchedule.LanguageCode);
             effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
         }
         else if (scheduleToUse?.Music != null
             && trackMetadata.PlayType == PlayType.Music
-            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.Music.PublicationCode))
+            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.Music.PublicationCode, cancellationTokenSource.Token))
         {
             var preservedLang = GetPreservedLanguageForNoLanguageMusicSchedule((int)trackMetadata.ScheduleId, scheduleToUse.Music.LanguageCode);
             effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
@@ -244,14 +244,14 @@ public sealed partial class PlaylistService : IPlaylistService
         var effectiveMetadata = trackMetadata;
         if (scheduleToUse?.BiblePublicationSchedule != null
             && trackMetadata.PlayType == PlayType.Bible
-            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.BiblePublicationSchedule.PublicationCode))
+            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.BiblePublicationSchedule.PublicationCode, cancellationTokenSource.Token))
         {
             var preservedLang = GetPreservedLanguageForNoLanguageBibleSchedule((int)trackMetadata.ScheduleId, scheduleToUse.BiblePublicationSchedule.LanguageCode);
             effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
         }
         else if (scheduleToUse?.Music != null
             && trackMetadata.PlayType == PlayType.Music
-            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.Music.PublicationCode))
+            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.Music.PublicationCode, cancellationTokenSource.Token))
         {
             var preservedLang = GetPreservedLanguageForNoLanguageMusicSchedule((int)trackMetadata.ScheduleId, scheduleToUse.Music.LanguageCode);
             effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
@@ -395,7 +395,7 @@ public sealed partial class PlaylistService : IPlaylistService
     {
         var trackInfo = await biblePublicationTrackBuilder.GetInitialTrackInfo(biblePublicationSchedule);
 
-        var isNoLanguagePublication = await BiblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode);
+        var isNoLanguagePublication = await BiblePublicationService.IsNoLanguagePublicationAsync(biblePublicationSchedule.PublicationCode, cancellationTokenSource.Token);
         string effectiveLanguageCode;
         if (isNoLanguagePublication)
         {

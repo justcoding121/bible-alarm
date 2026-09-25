@@ -130,7 +130,7 @@ public sealed partial class ScheduleStateService(ScheduleStateServiceDeps deps) 
 #if !ANDROID && !IOS
     private async Task<bool> CheckNotificationPermissionsAsync(int scheduleId)
     {
-        var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, false, false);
+        var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, false, false, cancellationTokenSource.Token);
         if (DeviceInfo.Platform == DevicePlatform.WinUI
             && schedule != null && schedule.NotificationEnabled
             && !await notificationService.CanScheduleAsync())

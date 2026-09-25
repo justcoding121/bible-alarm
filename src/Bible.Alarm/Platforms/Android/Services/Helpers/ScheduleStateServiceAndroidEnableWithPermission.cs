@@ -52,7 +52,7 @@ internal static class ScheduleStateServiceAndroidEnableWithPermission
         var handleSecurityExceptionAsync = req.HandleSecurityExceptionAsync;
         var cancellationToken = req.CancellationToken;
 
-        var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, false, false);
+        var schedule = await alarmScheduleService.GetScheduleByIdAsync(scheduleId, false, false, req.CancellationToken);
         if (schedule == null || !schedule.NotificationEnabled)
             return (false, null);
 

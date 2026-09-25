@@ -123,7 +123,7 @@ public sealed class TrackPlaybackHandler
             await audioPlayer.PlayAsync();
 
 #if IOS || ANDROID
-            await Task.Delay(seekPosition.HasValue ? 300 : 100);
+            await Task.Delay(seekPosition.HasValue ? 300 : 100, request.CancellationToken);
 
             if (seekPosition.HasValue && postPlayNeedsDurationRecheck)
             {

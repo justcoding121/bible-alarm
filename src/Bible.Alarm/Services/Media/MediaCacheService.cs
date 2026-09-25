@@ -144,7 +144,7 @@ public sealed partial class MediaCacheService : IMediaCacheService
             // Download with individual error handling - don't let one failure stop others
             try
             {
-                var cachedUrl = await DownloadAndCacheTrackWithRefetchOn404Async(playItem, scheduleId);
+                var cachedUrl = await DownloadAndCacheTrackWithRefetchOn404Async(playItem, scheduleId, cancellationTokenSource.Token);
                 if (cachedUrl == null)
                 {
                     // Download failed - log but continue with next track

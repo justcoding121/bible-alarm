@@ -275,6 +275,7 @@ internal sealed class SectionLanguageSeeder
             .Include(bp => bp.BiblePublicationCategories)
             .ThenInclude(bpc => bpc.Category)
             .Include(bp => bp.Sections)
+            .AsSplitQuery()
             .Where(bp => bp.LanguageId == null)
             .ToListAsync();
 

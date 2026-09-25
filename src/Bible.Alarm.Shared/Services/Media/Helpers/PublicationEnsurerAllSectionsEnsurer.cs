@@ -68,7 +68,6 @@ internal sealed class PublicationEnsurerAllSectionsEnsurer
                 // Use case-sensitive code for dramas when querying database
                 var availableSectionCodes = await db.SectionLanguages
                     .AsNoTracking()
-                    .Include(sl => sl.Language)
                     .Where(sl => sl.PublicationCode == publicationCodeForDb &&
                                  sl.Language != null &&
                                  sl.Language.LanguageCode == normalizedLanguageCode)

@@ -84,7 +84,7 @@ internal sealed class BiblePublicationSelectionPublicationChooser
             return null;
         }
 
-        BiblePublication? queriedPub = await biblePublicationService!.GetByLanguageAndCodeWithTracksAsync(language.Code, pubCode);
+        BiblePublication? queriedPub = await biblePublicationService!.GetByLanguageAndCodeWithTracksAsync(language.Code, pubCode, progress?.CancellationToken ?? CancellationToken.None);
         if (queriedPub != null)
         {
             Log.Debug(AppConstants.Logging.BiblePublicationSelectionPublicationChooserDiagnosticsLog.ChooseSelectedPublicationQueryableWithLanguage,
@@ -120,7 +120,7 @@ internal sealed class BiblePublicationSelectionPublicationChooser
 
             if (!isAlreadyCataloged)
             {
-                await languageContentService.EnsurePublicationExistsAsync(pubCode, language.Code, progress);
+                await languageContentService.EnsurePublicationExistsAsync(pubCode, language.Code, progress, progress?.CancellationToken ?? CancellationToken.None);
             }
             else
             {
@@ -128,7 +128,7 @@ internal sealed class BiblePublicationSelectionPublicationChooser
                     pubCode,
                     language.Code);
                 progress?.UpdateProgress(0.5);
-                await Task.Delay(100);
+                await Task.Delay(100, progress?.CancellationToken ?? CancellationToken.None);
             }
         }
         catch (Exception ex)

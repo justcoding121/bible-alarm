@@ -55,8 +55,6 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
 
                 var availablePublications = await db.PublicationLanguages
                     .AsNoTracking()
-                    .Include(pl => pl.Language)
-                    .Include(pl => pl.Category)
                     .Where(pl => pl.Language != null && pl.Language.LanguageCode == normalizedLanguageCode)
                     .Where(pl => categoryName == null || (pl.Category != null && pl.Category.CategoryCode == categoryName))
                     .Select(pl => pl.PublicationCode)
@@ -65,7 +63,6 @@ internal sealed class PublicationEnsurerAllPublicationsEnsurer
 
                 var existingPublications = await db.BiblePublications
                     .AsNoTracking()
-                    .Include(bp => bp.Language)
                     .Where(bp => bp.Language != null && bp.Language.LanguageCode == normalizedLanguageCode)
                     .Select(bp => bp.PublicationCode)
                     .Distinct()

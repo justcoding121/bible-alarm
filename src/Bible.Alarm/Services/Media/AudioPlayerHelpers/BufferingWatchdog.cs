@@ -63,7 +63,7 @@ public sealed partial class BufferingWatchdog : IDisposable
             {
                 // Buffering resolved normally before timeout
             }
-        });
+        }, watchdogCts.Token);
     }
 
     /// <summary>

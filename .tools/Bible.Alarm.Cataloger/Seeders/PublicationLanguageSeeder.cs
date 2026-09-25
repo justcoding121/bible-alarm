@@ -208,7 +208,6 @@ internal sealed class PublicationLanguageSeeder
     private async Task SeedEnglishForAllPublications(MediaDbContext db)
     {
         var englishPublications = await db.BiblePublications
-            .Include(bp => bp.Language)
             .Where(bp => bp.Language != null && bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode)
             .Select(bp => bp.PublicationCode)
             .Distinct()

@@ -195,6 +195,7 @@ internal static class CatalogValidator
             .Include(bp => bp.Language)
             .Include(bp => bp.Sections)
             .Include(bp => bp.Tracks)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(bp => bp.PublicationCode == codeForDb &&
                 bp.LanguageId != null &&
                 bp.Language != null &&
@@ -231,6 +232,7 @@ internal static class CatalogValidator
             .AsNoTracking()
             .Include(bp => bp.Sections)
             .Include(bp => bp.Tracks)
+            .AsSplitQuery()
             .FirstOrDefaultAsync(bp => bp.PublicationCode == iamCode && bp.LanguageId == null);
 
         if (iamPub == null)

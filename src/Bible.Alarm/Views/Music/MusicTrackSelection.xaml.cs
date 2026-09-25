@@ -91,7 +91,7 @@ public sealed partial class MusicTrackSelection : BaseContentPage, IDisposable
         }
 
         trackItem.IsNavigating = true;
-        await Task.Delay(50);
+        await Task.Delay(50, cancellationTokenSource.Token);
 
         try
         {

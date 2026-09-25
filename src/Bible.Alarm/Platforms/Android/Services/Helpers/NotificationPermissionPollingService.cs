@@ -74,10 +74,10 @@ public sealed class NotificationPermissionPollingService : IDisposable
             finally
             {
                 // Reset flag after a delay to allow user time to respond
-                await Task.Delay(3000);
+                await Task.Delay(3000, cancellationTokenSource.Token);
                 justRequestedPermission = false;
             }
-        });
+        }, cancellationTokenSource.Token);
 
         _ = Task.Run(async () =>
         {

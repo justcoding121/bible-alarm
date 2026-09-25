@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System;
 using System.Windows.Input;
 using AutoMapper;
@@ -241,7 +241,7 @@ public sealed partial class ScheduleListItemViewModel : ObservableObject, ICompa
         StartSpinnerTimeout();
         try
         {
-            await Task.Delay(50);
+            await Task.Delay(50, spinnerTimeoutCts?.Token ?? CancellationToken.None);
             await MainThread.InvokeOnMainThreadAsync(async () =>
             {
                 try
@@ -804,7 +804,7 @@ public sealed partial class ScheduleListItemViewModel : ObservableObject, ICompa
                     }
                 }
             });
-        });
+        }, cts.Token);
     }
 
     private void CancelSpinnerTimeout()

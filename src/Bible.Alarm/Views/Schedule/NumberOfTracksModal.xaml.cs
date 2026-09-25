@@ -36,7 +36,7 @@ public sealed partial class NumberOfTracksModal : BaseContentPage, IDisposable
         await SafeTeardown.CancelAsyncNoThrow(cancellationTokenSource);
 
         trackItem.IsNavigating = true;
-        await Task.Delay(50);
+        await Task.Delay(50, cancellationTokenSource.Token);
 
         try
         {

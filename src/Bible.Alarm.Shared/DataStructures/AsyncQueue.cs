@@ -76,7 +76,7 @@ public sealed class AsyncQueue<T> : IDisposable
             }
 
             consumer = new TaskCompletionSource<T>();
-            taskCancellationToken.Register(() => consumer.TrySetCanceled());
+            taskCancellationToken.Register(() => consumer.TrySetCanceled(taskCancellationToken));
             consumerQueue.Enqueue(consumer);
         }
         finally

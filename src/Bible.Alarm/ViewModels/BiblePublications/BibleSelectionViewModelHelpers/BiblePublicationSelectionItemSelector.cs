@@ -311,7 +311,7 @@ public sealed class BiblePublicationSelectionItemSelector
                 var ensured = await languageContentService.EnsurePublicationExistsAsync(
                     pl.PublicationCode,
                     language.Code,
-                    progress);
+                    progress, progress?.CancellationToken ?? CancellationToken.None);
                 if (!ensured)
                 {
                     return null;
@@ -335,7 +335,7 @@ public sealed class BiblePublicationSelectionItemSelector
         BiblePublication? candidate;
         if (biblePublicationService != null)
         {
-            candidate = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(language.Code, publicationCodeForDb);
+            candidate = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(language.Code, publicationCodeForDb, progress?.CancellationToken ?? CancellationToken.None);
         }
         else
         {
@@ -345,7 +345,7 @@ public sealed class BiblePublicationSelectionItemSelector
                 .Where(bp => bp.PublicationCode == publicationCodeForDb &&
                          bp.Language != null &&
                          bp.Language.LanguageCode == normalizedLanguageCode)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(progress?.CancellationToken ?? CancellationToken.None);
         }
 
         if (candidate == null)

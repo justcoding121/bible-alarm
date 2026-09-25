@@ -164,6 +164,7 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
                 .ThenInclude(x => x.Category)
                 .Include(x => x.Language)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
+                .AsSplitQuery()
                 .Where(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                     && x.LanguageId != null
                     && x.Language!.LanguageCode == languageCode

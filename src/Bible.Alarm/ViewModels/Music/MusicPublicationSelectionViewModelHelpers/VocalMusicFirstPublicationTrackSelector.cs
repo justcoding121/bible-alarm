@@ -103,7 +103,7 @@ internal sealed class VocalMusicFirstPublicationTrackSelector
         try
         {
             var fetchSuccess = await languageContentService.EnsurePublicationExistsAsync(
-                firstPublicationCode, language.Code, progress);
+                firstPublicationCode, language.Code, progress, progress?.CancellationToken ?? CancellationToken.None);
 
             if (!fetchSuccess)
             {

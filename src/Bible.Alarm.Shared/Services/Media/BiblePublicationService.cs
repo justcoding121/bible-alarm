@@ -101,6 +101,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             .Include(x => x.Sections)
                 .ThenInclude(s => s.Tracks)
                     .ThenInclude(t => t.TrackUrl)
+            .AsSplitQuery()
             .Where(x => x.PublicationCode == publicationCode && x.Language != null && x.Language.LanguageCode == normalizedLanguageCode)
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -171,6 +172,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
             .ThenInclude(x => x.Category)
             .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
                 .ThenInclude(t => t.TrackUrl)
+            .AsSplitQuery()
             .Where(x => x.PublicationCode == publicationCodeForDb && x.Language != null && x.Language.LanguageCode == normalizedLanguageCode)
             .FirstOrDefaultAsync(cancellationToken);
 

@@ -112,7 +112,7 @@ public sealed partial class BiblePublicationSectionSelection : BaseContentPage, 
         sectionItem.IsNavigating = true;
 
         // Wait 50ms to ensure UI thread renders the update before doing backend work
-        await Task.Delay(50);
+        await Task.Delay(50, cancellationTokenSource.Token);
 
         try
         {

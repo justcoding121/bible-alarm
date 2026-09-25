@@ -110,14 +110,14 @@ public sealed class TrackNavigatorNonSectionedHelper
             return null;
         }
 
-        var categoryInfo = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, publicationCode);
+        var categoryInfo = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, publicationCode, sectionFetchProgress?.CancellationToken ?? CancellationToken.None);
         if (ShouldSkipCrossPublicationNavigation(categoryInfo))
         {
             return null;
         }
 
         var info = categoryInfo!.Value;
-        var orderedPubCodes = await biblePublicationService.GetPublicationCodesInCategoryOrderAsync(languageCode, info.CategoryCode!);
+        var orderedPubCodes = await biblePublicationService.GetPublicationCodesInCategoryOrderAsync(languageCode, info.CategoryCode!, sectionFetchProgress?.CancellationToken ?? CancellationToken.None);
         var pubIndex = orderedPubCodes.FindIndex(c => string.Equals(c, publicationCode, StringComparison.OrdinalIgnoreCase));
         if (pubIndex < 0)
         {
@@ -163,7 +163,7 @@ public sealed class TrackNavigatorNonSectionedHelper
                 ? (pubIndex + step) % orderedPubCodes.Count
                 : (pubIndex - step + orderedPubCodes.Count) % orderedPubCodes.Count;
             var adjacentPubCode = orderedPubCodes[adjacentIndex];
-            var adjacentInfo = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, adjacentPubCode);
+            var adjacentInfo = await biblePublicationService.GetPublicationCategoryInfoAsync(languageCode, adjacentPubCode, sectionFetchProgress?.CancellationToken ?? CancellationToken.None);
             if (adjacentInfo is { } adj && adj.IsMusic)
             {
                 continue;

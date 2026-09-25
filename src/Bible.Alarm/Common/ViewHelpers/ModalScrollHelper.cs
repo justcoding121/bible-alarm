@@ -302,7 +302,7 @@ public static class ModalScrollHelper
         var tcs = new TaskCompletionSource<bool>();
         var startTime = Environment.TickCount;
 
-        using var registration = cancellationToken.Register(() => tcs.TrySetCanceled());
+        using var registration = cancellationToken.Register(() => tcs.TrySetCanceled(cancellationToken));
 
         EventHandler? sizeChangedHandler = null;
 

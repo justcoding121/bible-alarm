@@ -462,7 +462,7 @@ public sealed class TrackNavigator
         string publicationCode,
         IFetchProgress? sectionFetchProgress)
     {
-        var pubWithTracks = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
+        var pubWithTracks = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode, sectionFetchProgress?.CancellationToken ?? CancellationToken.None);
         var ordered = TryOrderPublicationTracks(pubWithTracks);
         if (ordered != null)
         {
@@ -479,7 +479,7 @@ public sealed class TrackNavigator
             if (ensured)
             {
                 biblePublicationService.InvalidatePublicationCaches(languageCode, publicationCode);
-                pubWithTracks = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
+                pubWithTracks = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode, sectionFetchProgress?.CancellationToken ?? CancellationToken.None);
                 return TryOrderPublicationTracks(pubWithTracks);
             }
         }

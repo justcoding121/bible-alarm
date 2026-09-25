@@ -98,12 +98,13 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
                 .Include(x => x.BiblePublicationCategories)
                 .ThenInclude(bpc => bpc.Category)
                 .Include(x => x.Tracks.Where(t => t.BiblePublicationSectionId == null))
+                .AsSplitQuery()
                 .Where(x => x.PublicationCode == publicationCode && x.LanguageId == null)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync(progress?.CancellationToken ?? CancellationToken.None);
         }
         else
         {
-            publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
+            publication = await biblePublicationService.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode, progress?.CancellationToken ?? CancellationToken.None);
         }
 
         Log.Debug(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.LoadedPublicationNameAndTracksCount,
@@ -185,7 +186,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             .Where(x => x.PublicationCode == publicationCode &&
                        x.Language != null &&
                        x.Language.LanguageCode == normalizedLanguageCode)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(progress?.CancellationToken ?? CancellationToken.None);
 
         var tracks = QueryTracksFromPublicationForLanguage(pub, firstSection, publicationCode, languageCode);
 
@@ -257,7 +258,8 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         var fetchSuccess = await languageContentService.FetchSectionTracksAsync(
             publicationCode,
             firstSectionSectionCode,
-            languageCode);
+            languageCode,
+            cancellationToken: progress?.CancellationToken ?? CancellationToken.None);
 
         if (!fetchSuccess)
         {
@@ -289,13 +291,13 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         if (!string.IsNullOrEmpty(languageCode) && languageContentService != null)
         {
             progress?.UpdateProgress(0.6);
-            var catalogSuccess = await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode, progress);
+            var catalogSuccess = await languageContentService.EnsurePublicationExistsAsync(publicationCode, languageCode, progress, progress?.CancellationToken ?? CancellationToken.None);
 
             if (catalogSuccess)
             {
                 Log.Debug(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.PublicationCatalogedSuccessfullyRequeryingTracks);
                 progress?.UpdateProgress(0.8);
-                return await biblePublicationService!.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode);
+                return await biblePublicationService!.GetByLanguageAndCodeWithTracksAsync(languageCode, publicationCode, progress?.CancellationToken ?? CancellationToken.None);
             }
 
             Log.Warning(AppConstants.Logging.BiblePublicationSelectionSectionTrackResolverDiagnosticsLog.FailedToCatalogPublicationForLanguage,
@@ -355,7 +357,6 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
             // Get first section code from SectionLanguages (comparer must run in-memory; EF cannot translate it)
             var sectionCodes = await db.SectionLanguages
                 .AsNoTracking()
-                .Include(sl => sl.Language)
                 .Where(sl => sl.PublicationCode == publicationCodeForDb &&
                            sl.Language != null &&
                            sl.Language.LanguageCode == normalizedLanguageCode)

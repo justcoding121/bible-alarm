@@ -1,4 +1,4 @@
-#nullable enable
+﻿#nullable enable
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -161,7 +161,7 @@ public sealed class BiblePublicationSelectionDataProvider
         }
 
         var (publicationVMs, newMapping, defaultPublication) =
-            await Task.Run(() => BuildPublicationPopulateResultAsync(languageCode, currentCategoryName, downloadAll, progress));
+            await Task.Run(() => BuildPublicationPopulateResultAsync(languageCode, currentCategoryName, downloadAll, progress), progress?.CancellationToken ?? CancellationToken.None);
 
         publicationVMsMapping.Clear();
         foreach (var kvp in newMapping)

@@ -30,7 +30,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
 
         if (!MainThread.IsMainThread)
         {
-            await Task.Delay(0)
+            await Task.Delay(0, CancellationToken.None)
                 .ContinueWith(async _ =>
                     await ShowAlert(message, seconds), taskScheduler);
         }
@@ -44,7 +44,7 @@ public sealed partial class WindowsToastService(TaskScheduler taskScheduler, ILo
     {
         var cts = new CancellationTokenSource();
 
-        await @lock.WaitAsync();
+        await @lock.WaitAsync(cts.Token);
         try
         {
             activeCts = cts;

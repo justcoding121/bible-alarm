@@ -52,7 +52,9 @@ public sealed class PlaybackInitializer
 
         try
         {
-            return await Task.Run(async () => await preparePlaybackService.PrepareTracksAsync(scheduleId, cancellationToken));
+            return await Task.Run(
+                async () => await preparePlaybackService.PrepareTracksAsync(scheduleId, cancellationToken),
+                cancellationToken);
         }
         catch (OperationCanceledException ex)
         {
