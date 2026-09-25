@@ -165,6 +165,8 @@ public sealed class PlaylistServiceTests
 
     private sealed class StubBiblePublicationService : IBiblePublicationService
     {
+        public HashSet<string> NoLanguagePublicationCodes { get; } = new(StringComparer.OrdinalIgnoreCase);
+
         public void Dispose()
         {
         }
@@ -188,7 +190,7 @@ public sealed class PlaylistServiceTests
             Task.FromResult<string?>(null);
 
         public Task<bool> IsNoLanguagePublicationAsync(string publicationCode, CancellationToken cancellationToken = default) =>
-            Task.FromResult(false);
+            Task.FromResult(NoLanguagePublicationCodes.Contains(publicationCode));
 
         public Task<(string? CategoryCode, bool IsMusic)?> GetPublicationCategoryInfoAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default) =>
             Task.FromResult<(string? CategoryCode, bool IsMusic)?>(null);
@@ -908,7 +910,8 @@ public sealed class PlaylistServiceTests
     private static PlaylistService CreateSutWithDispatcher(
         FakeAlarmScheduleService alarm,
         RecordingDispatcher dispatcher,
-        IMediaService? media = null) =>
+        IMediaService? media = null,
+        IBiblePublicationService? bible = null) =>
         new(new PlaylistServiceDeps(
             TestLogging.CreateLogger(),
             media ?? new IdleCatalogMediaService(),
@@ -916,7 +919,79 @@ public sealed class PlaylistServiceTests
             new FakeApplicationState(new ApplicationState()),
             alarm,
             new FakeGeneralSettingsService(),
-            new StubBiblePublicationService(),
+            bible ?? new StubBiblePublicationService(),
             new StubUrlRefresh(),
             new StubUrlConstruction()));
+
+    [Fact]
+    public async Task PersistSchedulePointerToFinishedTrackAsync_preserves_language_for_no_language_bible()
+    {
+        const int scheduleId = 31;
+        const string pubCode = "iam";
+        var alarm = new FakeAlarmScheduleService();
+        alarm.ById[scheduleId] = new AlarmSchedule
+        {
+            Id = scheduleId,
+            BiblePublicationSchedule = new BiblePublicationSchedule
+            {
+                PublicationCode = pubCode,
+                LanguageCode = "E",
+                TrackCode = "1",
+            },
+        };
+        var bible = new StubBiblePublicationService();
+        bible.NoLanguagePublicationCodes.Add(pubCode);
+        var dispatcher = new RecordingDispatcher();
+        using var sut = CreateSutWithDispatcher(alarm, dispatcher, bible: bible);
+        var metadata = new TrackMetadata
+        {
+            ScheduleId = scheduleId,
+            IsBibleContent = true,
+            LanguageCode = "MY",
+            PublicationCode = pubCode,
+            TrackCode = "2",
+        };
+
+        await sut.PersistSchedulePointerToFinishedTrackAsync(metadata);
+
+        Assert.Equal("2", alarm.ById[scheduleId].BiblePublicationSchedule!.TrackCode);
+        Assert.IsType<UpdateScheduleAction>(Assert.Single(dispatcher.Actions));
+    }
+
+    [Fact]
+    public async Task PersistSchedulePointerToFinishedTrackAsync_preserves_language_for_no_language_music()
+    {
+        const int scheduleId = 32;
+        const string pubCode = "iam";
+        var alarm = new FakeAlarmScheduleService();
+        alarm.ById[scheduleId] = new AlarmSchedule
+        {
+            Id = scheduleId,
+            Music = new AlarmMusic
+            {
+                LanguageCode = "E",
+                PublicationCode = pubCode,
+                TrackCode = "1",
+            },
+        };
+        var bible = new StubBiblePublicationService();
+        bible.NoLanguagePublicationCodes.Add(pubCode);
+        var dispatcher = new RecordingDispatcher();
+        using var sut = CreateSutWithDispatcher(alarm, dispatcher, bible: bible);
+        var metadata = new TrackMetadata
+        {
+            ScheduleId = scheduleId,
+            IsBibleContent = false,
+            LanguageCode = "MY",
+            PublicationCode = pubCode,
+            TrackCode = "4",
+            DownloadCode = "iam-1",
+        };
+
+        await sut.PersistSchedulePointerToFinishedTrackAsync(metadata);
+
+        Assert.Equal("4", alarm.ById[scheduleId].Music!.TrackCode);
+        Assert.Equal("iam-1", alarm.ById[scheduleId].Music!.SectionCode);
+        Assert.IsType<UpdateScheduleAction>(Assert.Single(dispatcher.Actions));
+    }
 }
