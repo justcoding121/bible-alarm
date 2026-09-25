@@ -315,6 +315,7 @@ jobs:
   # ----- iOS device-test pass via xharness on a macOS runner ------------------------------------
   test-ios:
     runs-on: macos-latest
+    timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -391,8 +392,8 @@ jobs:
             dotnet xharness apple test \
               --app="$APP_PATH" \
               --target=ios-simulator-64 \
-              --launch-timeout=00:20:00 \
-              --timeout=02:00:00 \
+              --launch-timeout=00:10:00 \
+              --timeout=00:15:00 \
               --output-directory="$GITHUB_WORKSPACE/artifacts/xharness-ios-logs"
           }
           if run_xharness; then
