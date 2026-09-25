@@ -71,6 +71,24 @@ public sealed class ScheduleListItemViewModelPropertyTests
     }
 
     [Fact]
+    public void GetPropertiesFromSchedule_null_name_becomes_empty_string()
+    {
+        var schedule = new AlarmSchedule
+        {
+            Name = null!,
+            Hour = 9,
+            Minute = 0,
+        };
+
+        var tuple = ScheduleListItemViewModel.GetPropertiesFromSchedule(schedule);
+
+        Assert.Equal(string.Empty, tuple.name);
+        Assert.Equal("09", tuple.hour);
+        Assert.Equal("00", tuple.minute);
+        Assert.Equal("AM", tuple.meridianText);
+    }
+
+    [Fact]
     public async Task HandleIsEnabledChanged_calls_properties_when_update_succeeds()
     {
         var state = new FakeScheduleStateService(succeed: true);

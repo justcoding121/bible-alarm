@@ -154,6 +154,7 @@ public sealed class DisplayMetadataService(
         
         // Fallback if no publication found
         meta.Title = $"{FallbackTrackTitlePrefix}{trackMetadata.TrackCode}";
+        meta.Artist = DisplayMetadataPublisherStrings.JwOrgLabel;
     }
 
     private async Task SetBiblePublicationSectionMetadataAsync(TrackMetadata trackMetadata, MetaData meta, BiblePublicationSection section)

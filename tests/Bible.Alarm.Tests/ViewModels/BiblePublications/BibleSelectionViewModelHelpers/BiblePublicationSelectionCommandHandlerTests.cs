@@ -318,6 +318,91 @@ public sealed class BiblePublicationSelectionCommandHandlerTests
         Assert.Equal(AppConstants.Media.DefaultLanguageCode, code);
     }
 
+    [Fact]
+    public void ResolveLanguageCodeForSectionPublicationTap_falls_back_to_publication_language_code()
+    {
+        var method = typeof(BiblePublicationSelectionCommandHandler).GetMethod(
+            "ResolveLanguageCodeForSectionPublicationTap",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(method);
+
+        var publication = new PublicationListViewItemModel(new BiblePublication
+        {
+            PublicationCode = "nwt",
+            Name = "NWT",
+            LanguageId = 1,
+            Id = 2,
+            Language = new Language { LanguageCode = "F" },
+        });
+        var schedule = new ScheduleStateItem { Id = 1, BiblePublicationLanguageCode = null };
+        var selectors = CreateSelectors(null);
+
+        var code = (string)method!.Invoke(null, [publication, schedule, selectors])!;
+        Assert.Equal("F", code);
+    }
+
+    [Fact]
+    public void CreateBiblePublicationItemFromSelection_preserves_category_and_maps_track_fields()
+    {
+        var method = typeof(BiblePublicationSelectionCommandHandler).GetMethod(
+            "CreateBiblePublicationItemFromSelection",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(method);
+
+        var publication = new PublicationListViewItemModel(new BiblePublication
+        {
+            PublicationCode = "nwt",
+            Name = "Holy Scriptures",
+            Id = 1,
+        });
+        var language = new LanguageListViewItemModel(
+            new Language { Id = 1, LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight },
+            "English");
+        var schedule = new ScheduleStateItem
+        {
+            Id = 5,
+            BiblePublicationCategoryId = 2,
+            BiblePublicationCategoryName = AppConstants.Media.BiblePublicationCategoryBible,
+        };
+
+        var item = Assert.IsType<BiblePublicationStateItem>(
+            method!.Invoke(null, [publication, "1", "3", "Genesis", "Chapter 3", language, schedule])!);
+
+        Assert.Equal("nwt", item.PublicationCode);
+        Assert.Equal("E", item.LanguageCode);
+        Assert.Equal("1", item.SectionCode);
+        Assert.Equal("3", item.TrackCode);
+        Assert.Equal("Genesis", item.SectionName);
+        Assert.Equal("Chapter 3", item.TrackTitle);
+        Assert.Equal(AppConstants.Media.BiblePublicationCategoryBible, item.CategoryName);
+        Assert.Equal(2, item.CategoryId);
+    }
+
+    [Fact]
+    public void CreateBiblePublicationItemForLanguageSelection_maps_language_and_publication_fields()
+    {
+        var method = typeof(BiblePublicationSelectionCommandHandler).GetMethod(
+            "CreateBiblePublicationItemForLanguageSelection",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(method);
+
+        var language = new LanguageListViewItemModel(
+            new Language { Id = 3, LanguageCode = "S", Direction = AppConstants.Media.TextDirectionLeftToRight },
+            "Spanish");
+
+        var item = Assert.IsType<BiblePublicationStateItem>(
+            method!.Invoke(null, [language, "nwt", "40", "1", "Matthew", "NWT", "Matthew 1"])!);
+
+        Assert.Equal("S", item.LanguageCode);
+        Assert.Equal("nwt", item.PublicationCode);
+        Assert.Equal("40", item.SectionCode);
+        Assert.Equal("1", item.TrackCode);
+        Assert.Equal("Spanish", item.LanguageName);
+        Assert.Equal("Matthew", item.SectionName);
+        Assert.Equal("NWT", item.PublicationName);
+        Assert.Equal("Matthew 1", item.TrackTitle);
+    }
+
     private static BiblePublicationSelectionCommandHandler CreateCommandHandler(
         RecordingNavigationService navigation,
         ScheduleStateItem? schedule = null,

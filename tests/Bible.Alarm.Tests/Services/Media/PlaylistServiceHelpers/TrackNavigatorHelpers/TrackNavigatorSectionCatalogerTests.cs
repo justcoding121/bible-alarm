@@ -375,4 +375,117 @@ public sealed class TrackNavigatorSectionCatalogerTests
 
         Assert.False(ok);
     }
+
+    [Fact]
+    public async Task EnsureSectionCatalogedAsync_no_language_publication_succeeds_when_section_in_cache()
+    {
+        var sections = new SortedDictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase)
+        {
+            [AppConstants.Media.MelodyMusicPublicationCodeIam + "-1"] = new BiblePublicationSection
+            {
+                SectionCode = AppConstants.Media.MelodyMusicPublicationCodeIam + "-1",
+                Name = "Disc 1",
+                BiblePublicationId = 1,
+            },
+        };
+
+        var (connection, options) = await CreateConnectionAndOptionsAsync();
+        await using (connection)
+        {
+            await using (var seed = new MediaDbContext(options))
+            {
+                seed.BiblePublications.Add(new BiblePublication
+                {
+                    PublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam,
+                    LanguageId = null,
+                    Name = "Melodies",
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var sut = new TrackNavigatorSectionCataloger(
+                new IdleMediaService(),
+                languageContentService: new StubLanguageContentService(),
+                scopeFactory: new SqliteScopeFactory(options),
+                TestLogging.CreateLogger(),
+                (_, _) => Task.FromResult(sections));
+
+            var ok = await sut.EnsureSectionCatalogedAsync(
+                "E",
+                AppConstants.Media.MelodyMusicPublicationCodeIam,
+                AppConstants.Media.MelodyMusicPublicationCodeIam + "-1",
+                sectionFetchProgress: null,
+                clearSectionsCache: () => { },
+                clearTracksCache: () => { });
+
+            Assert.True(ok);
+        }
+    }
+
+    [Fact]
+    public async Task GetDiscoveredSectionCodesAsync_falls_back_to_delegate_when_db_query_fails()
+    {
+        var sut = new TrackNavigatorSectionCataloger(
+            new IdleMediaService(),
+            languageContentService: null,
+            scopeFactory: new ThrowingScopeFactory(),
+            TestLogging.CreateLogger(),
+            (_, _) => Task.FromResult(new SortedDictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["fallback-only"] = new BiblePublicationSection { SectionCode = "fallback-only", Name = "Fallback", BiblePublicationId = 1 },
+            }));
+
+        var codes = await sut.GetDiscoveredSectionCodesAsync("E", "nwt");
+
+        Assert.Single(codes);
+        Assert.Equal("fallback-only", codes[0]);
+    }
+
+    [Fact]
+    public async Task IsPublicationWithoutLanguageAsync_true_when_publication_has_null_language_in_db()
+    {
+        var (connection, options) = await CreateConnectionAndOptionsAsync();
+        await using (connection)
+        {
+            await using (var seed = new MediaDbContext(options))
+            {
+                seed.BiblePublications.Add(new BiblePublication
+                {
+                    PublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam,
+                    LanguageId = null,
+                    Name = "Melodies",
+                });
+                await seed.SaveChangesAsync();
+            }
+
+            var sut = new TrackNavigatorSectionCataloger(
+                new IdleMediaService(),
+                languageContentService: null,
+                scopeFactory: new SqliteScopeFactory(options),
+                TestLogging.CreateLogger(),
+                (_, _) => Task.FromResult(new SortedDictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase)));
+
+            Assert.True(await sut.IsPublicationWithoutLanguageAsync(AppConstants.Media.MelodyMusicPublicationCodeIam));
+        }
+    }
+
+    private sealed class ThrowingScopeFactory : IServiceScopeFactory
+    {
+        public IServiceScope CreateScope() => new ThrowingScope();
+
+        private sealed class ThrowingScope : IServiceScope
+        {
+            public IServiceProvider ServiceProvider { get; } = new ThrowingServiceProvider();
+
+            public void Dispose()
+            {
+            }
+        }
+
+        private sealed class ThrowingServiceProvider : IServiceProvider
+        {
+            public object? GetService(Type serviceType) =>
+                throw new InvalidOperationException("simulated db failure");
+        }
+    }
 }

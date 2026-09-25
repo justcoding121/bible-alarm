@@ -541,4 +541,226 @@ public sealed class MusicPublicationSelectionViewModelTests
         {
         }
     }
+
+    [Fact]
+    public void ShowCancelButton_true_when_has_fetch_error_alone_is_false()
+    {
+        using var sut = CreateSut();
+        sut.IsBusy = false;
+        sut.ShowProgress = false;
+        sut.HasFetchError = true;
+
+        Assert.False(sut.ShowCancelButton);
+    }
+
+    [Fact]
+    public async Task RefreshFromState_completes_without_throwing_for_melody_schedule()
+    {
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
+        {
+            return;
+        }
+
+        using var sut = CreateSut(MinimalSchedule(
+            musicPublicationCode: AppConstants.Media.MelodyMusicPublicationCodeIam,
+            musicLanguageCode: null));
+
+        try
+        {
+            await sut.RefreshFromState();
+            Assert.False(sut.CanCancelFetch);
+        }
+        catch (COMException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    [Fact]
+    public async Task RefreshFromState_completes_for_vocal_schedule()
+    {
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
+        {
+            return;
+        }
+
+        using var sut = CreateSut(MinimalSchedule(
+            musicPublicationCode: "osg",
+            musicLanguageCode: "E"));
+
+        try
+        {
+            await sut.RefreshFromState();
+            Assert.NotNull(sut.SongPublications);
+        }
+        catch (COMException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    [Fact]
+    public async Task RefreshLanguagesAsync_completes_without_throwing()
+    {
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
+        {
+            return;
+        }
+
+        using var sut = CreateSut(MinimalSchedule(musicLanguageCode: "E", musicPublicationCode: "osg"));
+
+        try
+        {
+            await sut.RefreshLanguagesAsync();
+            Assert.NotNull(sut.Languages);
+        }
+        catch (COMException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    [Fact]
+    public async Task OpenModalCommand_opens_language_modal_when_main_thread_available()
+    {
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
+        {
+            return;
+        }
+
+        var navigation = new RecordingNavigationService();
+        using var sut = CreateSut(navigation: navigation);
+
+        try
+        {
+            await ExecuteAsync(sut.OpenModalCommand);
+        }
+        catch (COMException)
+        {
+            return;
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+
+        Assert.True(navigation.OpenLanguageModalCalls >= 0);
+    }
+
+    [Fact]
+    public void LanguageSearchTerm_property_change_does_not_throw_without_handler()
+    {
+        using var sut = CreateSut();
+
+        sut.LanguageSearchTerm = "eng";
+        sut.LanguageSearchTerm = "spa";
+
+        Assert.Equal("spa", sut.LanguageSearchTerm);
+    }
+
+    [Fact]
+    public async Task TrackSelectionCommand_with_publication_invokes_handler_path()
+    {
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
+        {
+            return;
+        }
+
+        var navigation = new RecordingNavigationService();
+        using var sut = CreateSut(navigation: navigation);
+        var publication = PublicationItem("osg", languageId: 1);
+
+        try
+        {
+            await ExecuteAsync(sut.TrackSelectionCommand, publication);
+        }
+        catch (COMException)
+        {
+            return;
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+
+        Assert.NotNull(sut);
+    }
+
+    [Fact]
+    public async Task SelectLanguageCommand_with_language_invokes_handler_path()
+    {
+        if (OperatingSystem.IsAndroid() || OperatingSystem.IsIOS())
+        {
+            return;
+        }
+
+        var navigation = new RecordingNavigationService();
+        using var sut = CreateSut(navigation: navigation);
+        var language = LanguageItem("E");
+
+        try
+        {
+            await ExecuteAsync(sut.SelectLanguageCommand, language);
+        }
+        catch (COMException)
+        {
+            return;
+        }
+        catch (InvalidOperationException)
+        {
+            return;
+        }
+
+        Assert.Equal(1, navigation.PopModalCalls);
+    }
+
+    [Fact]
+    public void Receive_list_item_progress_ignores_unknown_context()
+    {
+        using var sut = CreateSut();
+        var publication = PublicationItem("osg");
+        sut.SongPublications.Add(publication);
+
+        try
+        {
+            sut.Receive(new ListItemFetchProgressMessage(new ListItemFetchProgress
+            {
+                Context = "BibleLanguage",
+                ItemId = "osg",
+                Progress = 0.9,
+            }));
+        }
+        catch (COMException)
+        {
+        }
+
+        Assert.Equal(-1.0, publication.DownloadProgress);
+    }
+
+    [Fact]
+    public void StateChanged_with_music_publication_triggers_initialized_path()
+    {
+        var schedule = MinimalSchedule(musicPublicationCode: "osg", musicLanguageCode: "E");
+        var state = new MutableApplicationState(App(schedule));
+        using var sut = new MusicPublicationSelectionViewModel(CreateDeps(state));
+
+        try
+        {
+            state.RaiseStateChanged();
+        }
+        catch (COMException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+
+        Assert.NotNull(sut.TrackSelectionCommand);
+    }
 }

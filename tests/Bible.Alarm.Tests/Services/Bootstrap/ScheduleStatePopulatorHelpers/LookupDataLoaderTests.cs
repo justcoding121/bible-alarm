@@ -3,11 +3,17 @@
 using Bible.Alarm.Services.Bootstrap.ScheduleStatePopulatorHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Shared.Constants;
+using Bible.Alarm.Shared.Database;
 using Bible.Alarm.Shared.Helpers;
+using Bible.Alarm.Shared.Models.Enums;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Bible.Alarm.Tests.Support;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Bible.Alarm.Tests;
 
@@ -184,6 +190,479 @@ public sealed class LookupDataLoaderTests
         var data = await sut.LoadAllAsync(keys);
 
         Assert.Empty(data.Publications);
+    }
+
+    [Fact]
+    public async Task LoadAllAsync_drops_section_entry_when_section_name_fetch_throws()
+    {
+        var keys = EmptyKeys();
+        keys.SectionKeys.Add(("E", AppConstants.Media.BiblePublicationCodeNwt, "40"));
+
+        var sut = new LookupDataLoader(
+            BiblePublicationService: null,
+            biblePublicationSectionService: new ThrowingBiblePublicationSectionService(),
+            mediaService: null,
+            vocalMusicService: null,
+            scopeFactory: null);
+
+        var data = await sut.LoadAllAsync(keys);
+
+        Assert.Empty(data.Sections);
+    }
+
+    [Fact]
+    public async Task LoadAllAsync_returns_empty_vocal_releases_when_vocal_service_throws()
+    {
+        var osg = AppConstants.Media.MusicPublicationCodeOsg;
+        var keys = EmptyKeys();
+        keys.VocalMusicKeys.Add(("E", osg));
+
+        var sut = new LookupDataLoader(
+            BiblePublicationService: null,
+            biblePublicationSectionService: null,
+            mediaService: null,
+            vocalMusicService: new ThrowingVocalMusicService(),
+            scopeFactory: null);
+
+        var data = await sut.LoadAllAsync(keys);
+
+        Assert.Empty(data.VocalReleases);
+    }
+
+    [Fact]
+    public async Task LoadAllAsync_returns_empty_vocal_tracks_when_media_service_throws()
+    {
+        var osg = AppConstants.Media.MusicPublicationCodeOsg;
+        var keys = EmptyKeys();
+        keys.VocalTrackKeys.Add(("E", osg));
+
+        var sut = new LookupDataLoader(
+            BiblePublicationService: null,
+            biblePublicationSectionService: null,
+            mediaService: new ThrowingLookupMediaService(),
+            vocalMusicService: null,
+            scopeFactory: null);
+
+        var data = await sut.LoadAllAsync(keys);
+
+        Assert.Empty(data.VocalTracks[("E", osg)]);
+    }
+
+    [Fact]
+    public async Task LoadAllAsync_returns_empty_melody_flat_tracks_when_media_service_throws()
+    {
+        var osg = AppConstants.Media.MusicPublicationCodeOsg;
+        var keys = EmptyKeys();
+        keys.MelodyPublicationCodes.Add(osg);
+
+        var sut = new LookupDataLoader(
+            BiblePublicationService: null,
+            biblePublicationSectionService: null,
+            mediaService: new ThrowingLookupMediaService(),
+            vocalMusicService: null,
+            scopeFactory: null);
+
+        var data = await sut.LoadAllAsync(keys);
+
+        Assert.Empty(data.MelodyTracksFlat[osg]);
+    }
+
+    [Fact]
+    public async Task LoadAllAsync_returns_empty_melody_section_tracks_when_media_service_throws()
+    {
+        var iam = AppConstants.Media.MelodyMusicPublicationCodeIam;
+        var keys = EmptyKeys();
+        keys.MelodySectionKeys.Add((iam, "iam-1"));
+
+        var sut = new LookupDataLoader(
+            BiblePublicationService: null,
+            biblePublicationSectionService: null,
+            mediaService: new ThrowingLookupMediaService(),
+            vocalMusicService: null,
+            scopeFactory: null);
+
+        var data = await sut.LoadAllAsync(keys);
+
+        Assert.Empty(data.MelodyTracksBySection[(iam, "iam-1")]);
+    }
+
+    [Fact]
+    public async Task LoadAllAsync_skips_flat_melody_fetch_for_sectioned_publication_codes()
+    {
+        var iam = AppConstants.Media.MelodyMusicPublicationCodeIam;
+        var keys = EmptyKeys();
+        keys.MelodyPublicationCodes.Add(iam);
+
+        var sut = new LookupDataLoader(
+            BiblePublicationService: null,
+            biblePublicationSectionService: null,
+            mediaService: new ThrowingLookupMediaService(),
+            vocalMusicService: null,
+            scopeFactory: null);
+
+        var data = await sut.LoadAllAsync(keys);
+
+        Assert.Empty(data.MelodyTracksFlat[iam]);
+    }
+
+    [Fact]
+    public async Task LoadAllAsync_omits_no_language_lookups_when_language_bound_publication_resolves()
+    {
+        var iam = AppConstants.Media.MelodyMusicPublicationCodeIam;
+        var publication = new BiblePublication
+        {
+            Id = 7,
+            PublicationCode = iam,
+            Name = "Resolved via language",
+            Sections = [],
+            Tracks = [],
+        };
+
+        var keys = EmptyKeys();
+        keys.PublicationKeys.Add(("E", iam));
+
+        var sut = new LookupDataLoader(
+            new FixedBiblePublicationService(publication),
+            biblePublicationSectionService: null,
+            mediaService: null,
+            vocalMusicService: null,
+            scopeFactory: null);
+
+        var data = await sut.LoadAllAsync(keys);
+
+        Assert.Same(publication, data.Publications[("E", iam)]);
+        Assert.Empty(data.NoLanguagePublications);
+    }
+
+    [Fact]
+    public async Task LoadAllAsync_loads_no_language_publication_section_and_track_from_media_db()
+    {
+        var iam = AppConstants.Media.MelodyMusicPublicationCodeIam;
+        var sectionCode = "iam-1";
+        var trackCode = "3";
+
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+
+        await using (var init = new MediaDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        await using (var seed = new MediaDbContext(options))
+        {
+            var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+            var publication = new BiblePublication
+            {
+                Name = "Kingdom Melodies",
+                PublicationCode = iam,
+                LanguageId = null,
+                IsVideo = false,
+                IsMusic = true,
+                CatalogType = CatalogType.Sectioned,
+            };
+            publication.BiblePublicationCategories.Add(new BiblePublicationCategory
+            {
+                BiblePublication = publication,
+                Category = musicCat,
+            });
+            seed.Categories.Add(musicCat);
+            seed.BiblePublications.Add(publication);
+            await seed.SaveChangesAsync();
+
+            var section = new BiblePublicationSection
+            {
+                BiblePublicationId = publication.Id,
+                BiblePublication = publication,
+                SectionCode = sectionCode,
+                Name = "Disc 1",
+            };
+            seed.BiblePublicationSections.Add(section);
+            await seed.SaveChangesAsync();
+
+            seed.BiblePublicationTracks.Add(new BiblePublicationTrack
+            {
+                BiblePublicationId = publication.Id,
+                Publication = publication,
+                BiblePublicationSectionId = section.Id,
+                Section = section,
+                TrackCode = trackCode,
+                Title = "Melody Three",
+            });
+            seed.BiblePublicationTracks.Add(new BiblePublicationTrack
+            {
+                BiblePublicationId = publication.Id,
+                Publication = publication,
+                BiblePublicationSectionId = section.Id,
+                Section = section,
+                TrackCode = "99",
+                Title = "Unrequested track",
+            });
+            await seed.SaveChangesAsync();
+        }
+
+        var keys = EmptyKeys();
+        keys.PublicationKeys.Add(("E", iam));
+        keys.BibleTrackKeys.Add(("E", iam, sectionCode, trackCode));
+
+        var sut = new LookupDataLoader(
+            new NullBiblePublicationService(),
+            biblePublicationSectionService: null,
+            mediaService: null,
+            vocalMusicService: null,
+            scopeFactory: new MediaTestScopeFactory(options));
+
+        var data = await sut.LoadAllAsync(keys);
+
+        Assert.Equal("Kingdom Melodies", data.NoLanguagePublications[iam].Name);
+        Assert.True(data.NoLanguagePublications[iam].IsMusic);
+        Assert.Equal("Disc 1", data.NoLanguageSections[(iam, sectionCode)]);
+        Assert.Equal("Melody Three", data.NoLanguageTrackTitles[(iam, sectionCode, trackCode)]);
+        Assert.False(data.NoLanguageTrackTitles.ContainsKey((iam, sectionCode, "99")));
+    }
+
+    [Fact]
+    public async Task LoadAllAsync_returns_empty_no_language_when_missing_publication_absent_from_media_db()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+
+        await using (var init = new MediaDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        var keys = EmptyKeys();
+        keys.PublicationKeys.Add(("E", "missing-pub"));
+
+        var sut = new LookupDataLoader(
+            new NullBiblePublicationService(),
+            biblePublicationSectionService: null,
+            mediaService: null,
+            vocalMusicService: null,
+            scopeFactory: new MediaTestScopeFactory(options));
+
+        var data = await sut.LoadAllAsync(keys);
+
+        Assert.Empty(data.NoLanguagePublications);
+        Assert.Empty(data.NoLanguageSections);
+        Assert.Empty(data.NoLanguageTrackTitles);
+    }
+
+    [Fact]
+    public async Task LoadAllAsync_skips_no_language_sections_with_blank_names()
+    {
+        var iam = AppConstants.Media.MelodyMusicPublicationCodeIam;
+
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+
+        await using (var init = new MediaDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        await using (var seed = new MediaDbContext(options))
+        {
+            var musicCat = new Category { CategoryCode = AppConstants.Media.BiblePublicationCategoryMusic };
+            var publication = new BiblePublication
+            {
+                Name = "Kingdom Melodies",
+                PublicationCode = iam,
+                LanguageId = null,
+                IsVideo = false,
+                IsMusic = true,
+                CatalogType = CatalogType.Sectioned,
+            };
+            publication.BiblePublicationCategories.Add(new BiblePublicationCategory
+            {
+                BiblePublication = publication,
+                Category = musicCat,
+            });
+            seed.Categories.Add(musicCat);
+            seed.BiblePublications.Add(publication);
+            await seed.SaveChangesAsync();
+
+            seed.BiblePublicationSections.Add(new BiblePublicationSection
+            {
+                BiblePublicationId = publication.Id,
+                BiblePublication = publication,
+                SectionCode = "iam-1",
+                Name = "   ",
+            });
+            await seed.SaveChangesAsync();
+        }
+
+        var keys = EmptyKeys();
+        keys.PublicationKeys.Add(("E", iam));
+
+        var sut = new LookupDataLoader(
+            new NullBiblePublicationService(),
+            biblePublicationSectionService: null,
+            mediaService: null,
+            vocalMusicService: null,
+            scopeFactory: new MediaTestScopeFactory(options));
+
+        var data = await sut.LoadAllAsync(keys);
+
+        Assert.Single(data.NoLanguagePublications);
+        Assert.Empty(data.NoLanguageSections);
+    }
+
+    private sealed class ThrowingBiblePublicationSectionService : IBiblePublicationSectionService
+    {
+        public void Dispose()
+        {
+        }
+
+        public Task<string?> GetSectionNameAsync(string languageCode, string publicationCode, string sectionCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromException<string?>(new InvalidOperationException("Simulated section load failure"));
+
+        public Task<SortedDictionary<string, BiblePublicationSection>> GetSectionsByPublicationAsync(string languageCode,
+            string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new SortedDictionary<string, BiblePublicationSection>());
+
+        public Task<SortedDictionary<string, BiblePublicationSection>> GetSectionsByPublicationWithoutLanguageAsync(
+            string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new SortedDictionary<string, BiblePublicationSection>());
+
+        public Task<BiblePublicationSection?> GetSectionAsync(string languageCode, string publicationCode, string sectionCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublicationSection?>(null);
+    }
+
+    private sealed class ThrowingVocalMusicService : IVocalMusicService
+    {
+        public void Dispose()
+        {
+        }
+
+        public Task<VocalMusic?> GetByLanguageAndCodeAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<VocalMusic?>(null);
+
+        public Task<Dictionary<string, VocalMusic>> GetByLanguageCodeAsync(string languageCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromException<Dictionary<string, VocalMusic>>(new InvalidOperationException("Simulated vocal release failure"));
+
+        public Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<string, Language>());
+
+        public Task<SortedDictionary<int, MusicTrack>> GetTracksByLanguageAndCodeAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new SortedDictionary<int, MusicTrack>());
+
+        public Task UpdateTrackUrlAsync(string languageCode, string publicationCode, string trackCode, string url,
+            CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+    }
+
+    private sealed class ThrowingLookupMediaService : IdleCatalogMediaService
+    {
+        public override Task<SortedDictionary<int, MusicTrack>> GetVocalMusicTracks(string languageCode, string publicationCode) =>
+            Task.FromException<SortedDictionary<int, MusicTrack>>(new InvalidOperationException("Simulated vocal tracks failure"));
+
+        public override Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracks(string publicationCode) =>
+            Task.FromException<SortedDictionary<int, MusicTrack>>(new InvalidOperationException("Simulated melody flat failure"));
+
+        public override Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracksBySection(string publicationCode, string sectionCode) =>
+            Task.FromException<SortedDictionary<int, MusicTrack>>(new InvalidOperationException("Simulated melody section failure"));
+    }
+
+    private sealed class NullBiblePublicationService : IBiblePublicationService
+    {
+        public void Dispose()
+        {
+        }
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithSectionsAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublication?>(null);
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithTracksAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublication?>(null);
+
+        public Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase));
+
+        public Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<string, Language>());
+
+        public Task<List<string>> GetAvailablePublicationCodesAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<string>());
+
+        public Task<string?> GetFirstPublicationCodeByOrderAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult<string?>(null);
+
+        public Task<bool> IsNoLanguagePublicationAsync(string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<(string? CategoryCode, bool IsMusic)?> GetPublicationCategoryInfoAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<(string? CategoryCode, bool IsMusic)?>(null);
+
+        public Task<List<string>> GetPublicationCodesInCategoryOrderAsync(string languageCode, string categoryCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<string>());
+
+        public void InvalidatePublicationCaches(string languageCode, string publicationCode)
+        {
+        }
+    }
+
+    private sealed class FixedBiblePublicationService(BiblePublication publication) : IBiblePublicationService
+    {
+        public void Dispose()
+        {
+        }
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithSectionsAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublication?>(publication);
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithTracksAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublication?>(publication);
+
+        public Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase));
+
+        public Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<string, Language>());
+
+        public Task<List<string>> GetAvailablePublicationCodesAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<string>());
+
+        public Task<string?> GetFirstPublicationCodeByOrderAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult<string?>(null);
+
+        public Task<bool> IsNoLanguagePublicationAsync(string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<(string? CategoryCode, bool IsMusic)?> GetPublicationCategoryInfoAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<(string? CategoryCode, bool IsMusic)?>(null);
+
+        public Task<List<string>> GetPublicationCodesInCategoryOrderAsync(string languageCode, string categoryCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<string>());
+
+        public void InvalidatePublicationCaches(string languageCode, string publicationCode)
+        {
+        }
     }
 
     private sealed class ThrowingBiblePublicationService : IBiblePublicationService

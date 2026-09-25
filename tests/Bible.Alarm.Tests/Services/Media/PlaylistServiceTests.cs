@@ -201,7 +201,7 @@ public sealed class PlaylistServiceTests
         }
     }
 
-    private sealed class StubMediaService : IMediaService
+    private class StubMediaService : IMediaService
     {
         public SortedDictionary<string, BiblePublicationTrack>? TracksToReturn { get; init; }
 
@@ -214,13 +214,13 @@ public sealed class PlaylistServiceTests
         public Task<Dictionary<string, Language>> GetBiblePublicationLanguages(string? categoryName = null, bool requireIsMusicForMusicCategory = false) =>
             Task.FromResult(new Dictionary<string, Language>());
 
-        public Task<SortedDictionary<string, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode, string? sectionCode) =>
+        public virtual Task<SortedDictionary<string, BiblePublicationTrack>> GetBiblePublicationTracks(string languageCode, string versionCode, string? sectionCode) =>
             Task.FromResult(TracksToReturn ?? new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer));
 
         public Task<Dictionary<string, BiblePublication>> GetBiblePublications(string languageCode, string? categoryName = null, bool downloadAll = false, IFetchProgress? progress = null, bool requireIsMusicForMusicCategory = false) =>
             Task.FromResult(new Dictionary<string, BiblePublication>());
 
-        public Task<SortedDictionary<string, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode, IFetchProgress? progress = null) =>
+        public virtual Task<SortedDictionary<string, BiblePublicationSection>> GetBiblePublicationSections(string languageCode, string versionCode, IFetchProgress? progress = null) =>
             Task.FromResult(new SortedDictionary<string, BiblePublicationSection>());
 
         public Task<SortedDictionary<string, BiblePublicationSection>> GetSectionsForPublicationWithoutLanguage(string publicationCode) =>
@@ -288,7 +288,8 @@ public sealed class PlaylistServiceTests
     private static PlaylistService CreateSut(
         FakeAlarmScheduleService alarm,
         FakeGeneralSettingsService settings,
-        IMediaService? media = null) =>
+        IMediaService? media = null,
+        IBiblePublicationService? bible = null) =>
         new(new PlaylistServiceDeps(
             TestLogging.CreateLogger(),
             media ?? new IdleCatalogMediaService(),
@@ -296,7 +297,7 @@ public sealed class PlaylistServiceTests
             new FakeApplicationState(new ApplicationState()),
             alarm,
             settings,
-            new StubBiblePublicationService(),
+            bible ?? new StubBiblePublicationService(),
             new StubUrlRefresh(),
             new StubUrlConstruction()));
 
@@ -556,6 +557,341 @@ public sealed class PlaylistServiceTests
 
         sut.Dispose();
         sut.Dispose();
+    }
+
+    [Fact]
+    public async Task GetRelevantScheduleToPlay_throws_when_no_schedules_exist()
+    {
+        using var sut = CreateSut(new FakeAlarmScheduleService(), new FakeGeneralSettingsService());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => sut.GetRelevantScheduleToPlay());
+    }
+
+    [Fact]
+    public async Task NextTracks_returns_music_only_when_bible_not_configured()
+    {
+        const int scheduleId = 18;
+        var alarm = new FakeAlarmScheduleService();
+        alarm.ById[scheduleId] = new AlarmSchedule
+        {
+            Id = scheduleId,
+            MusicEnabled = true,
+            Music = new AlarmMusic
+            {
+                LanguageCode = "E",
+                PublicationCode = "sjjc",
+                TrackCode = "1",
+            },
+            BiblePublicationSchedule = null,
+        };
+        var media = new StubMediaService
+        {
+            VocalTracks = new SortedDictionary<int, MusicTrack>
+            {
+                [1] = new MusicTrack { TrackCode = "1", Title = "Song" },
+            },
+        };
+        using var sut = CreateSut(alarm, new FakeGeneralSettingsService(), media);
+
+        var items = await sut.NextTracks(scheduleId);
+
+        var item = Assert.Single(items);
+        Assert.False(item.Metadata.IsBibleContent);
+    }
+
+    [Fact]
+    public async Task GetNextBiblePublicationTrack_delegates_to_track_navigator()
+    {
+        var pub = new BiblePublication
+        {
+            PublicationCode = "vod",
+            Tracks =
+            [
+                new BiblePublicationTrack { TrackCode = "1", Title = "A" },
+                new BiblePublicationTrack { TrackCode = "2", Title = "B" },
+            ],
+        };
+        using var sut = CreateSut(
+            new FakeAlarmScheduleService(),
+            new FakeGeneralSettingsService(),
+            bible: new TrackingBiblePublicationService(pub));
+
+        var next = await sut.GetNextBiblePublicationTrack("E", "vod", null, "1");
+
+        Assert.Equal("2", next.Track.TrackCode);
+    }
+
+    [Fact]
+    public async Task MoveToPreviousBiblePublicationTrack_throws_when_bible_schedule_missing()
+    {
+        const int scheduleId = 19;
+        var alarm = new FakeAlarmScheduleService();
+        alarm.ById[scheduleId] = new AlarmSchedule { Id = scheduleId, BiblePublicationSchedule = null };
+        var dispatcher = new RecordingDispatcher();
+        using var sut = CreateSutWithDispatcher(alarm, dispatcher);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => sut.MoveToPreviousBiblePublicationTrack(scheduleId));
+        Assert.Empty(dispatcher.Actions);
+    }
+
+    [Fact]
+    public async Task GetScheduleFinishedDurationAsync_returns_zero_when_schedule_missing()
+    {
+        using var sut = CreateSut(new FakeAlarmScheduleService(), new FakeGeneralSettingsService());
+
+        Assert.Equal(TimeSpan.Zero, await sut.GetScheduleFinishedDurationAsync(12345));
+    }
+
+    [Fact]
+    public async Task GetPreviousBiblePublicationTrack_delegates_to_track_navigator()
+    {
+        var pub = new BiblePublication
+        {
+            PublicationCode = "vod",
+            Tracks =
+            [
+                new BiblePublicationTrack { TrackCode = "1", Title = "A" },
+                new BiblePublicationTrack { TrackCode = "2", Title = "B" },
+            ],
+        };
+        using var sut = CreateSut(
+            new FakeAlarmScheduleService(),
+            new FakeGeneralSettingsService(),
+            bible: new TrackingBiblePublicationService(pub));
+
+        var prev = await sut.GetPreviousBiblePublicationTrack("E", "vod", null, "2");
+
+        Assert.Equal("1", prev.Track.TrackCode);
+    }
+
+    [Fact]
+    public async Task GetNextBiblePublicationSection_delegates_to_track_navigator()
+    {
+        var owningPub = new BiblePublication { PublicationCode = "nwt", Id = 1 };
+        var sections = new SortedDictionary<string, BiblePublicationSection>(Comparer<string>.Create((a, b) =>
+            SectionCodeHelper.SectionCodeComparer.Compare(a, b)))
+        {
+            ["10"] = new BiblePublicationSection { SectionCode = "10", Name = "Ten", BiblePublication = owningPub },
+            ["20"] = new BiblePublicationSection { SectionCode = "20", Name = "Twenty", BiblePublication = owningPub },
+        };
+        var media = new SectionedMediaStub
+        {
+            Sections = sections,
+            TracksBySection =
+            {
+                ["10"] = SingleTrackDict("1"),
+                ["20"] = SingleTrackDict("1"),
+            },
+        };
+        using var sut = CreateSut(new FakeAlarmScheduleService(), new FakeGeneralSettingsService(), media);
+
+        var next = await sut.GetNextBiblePublicationSection("E", "nwt", "10");
+
+        Assert.Equal("20", next.Key);
+    }
+
+    [Fact]
+    public async Task GetPreviousBiblePublicationSection_delegates_to_track_navigator()
+    {
+        var owningPub = new BiblePublication { PublicationCode = "nwt", Id = 1 };
+        var sections = new SortedDictionary<string, BiblePublicationSection>(Comparer<string>.Create((a, b) =>
+            SectionCodeHelper.SectionCodeComparer.Compare(a, b)))
+        {
+            ["10"] = new BiblePublicationSection { SectionCode = "10", Name = "Ten", BiblePublication = owningPub },
+            ["20"] = new BiblePublicationSection { SectionCode = "20", Name = "Twenty", BiblePublication = owningPub },
+        };
+        var media = new SectionedMediaStub
+        {
+            Sections = sections,
+            TracksBySection =
+            {
+                ["10"] = SingleTrackDict("1"),
+                ["20"] = SingleTrackDict("1"),
+            },
+        };
+        using var sut = CreateSut(new FakeAlarmScheduleService(), new FakeGeneralSettingsService(), media);
+
+        var prev = await sut.GetPreviousBiblePublicationSection("E", "nwt", "20");
+
+        Assert.Equal("10", prev.Key);
+    }
+
+    [Fact]
+    public async Task PersistSchedulePointerToFinishedTrackAsync_updates_music_track()
+    {
+        const int scheduleId = 20;
+        var alarm = new FakeAlarmScheduleService();
+        alarm.ById[scheduleId] = new AlarmSchedule
+        {
+            Id = scheduleId,
+            Music = new AlarmMusic
+            {
+                LanguageCode = "E",
+                PublicationCode = "sjjc",
+                TrackCode = "1",
+            },
+        };
+        var dispatcher = new RecordingDispatcher();
+        using var sut = CreateSutWithDispatcher(alarm, dispatcher);
+        var metadata = new TrackMetadata
+        {
+            ScheduleId = scheduleId,
+            IsBibleContent = false,
+            LanguageCode = "E",
+            PublicationCode = "sjjc",
+            TrackCode = "3",
+            DownloadCode = "disc-1",
+        };
+
+        await sut.PersistSchedulePointerToFinishedTrackAsync(metadata);
+
+        Assert.Equal("3", alarm.ById[scheduleId].Music!.TrackCode);
+        Assert.Equal("disc-1", alarm.ById[scheduleId].Music!.SectionCode);
+        Assert.IsType<UpdateScheduleAction>(Assert.Single(dispatcher.Actions));
+    }
+
+    [Fact]
+    public async Task NextTrack_throws_when_neither_music_nor_bible_configured()
+    {
+        const int scheduleId = 21;
+        var alarm = new FakeAlarmScheduleService();
+        alarm.ById[scheduleId] = new AlarmSchedule
+        {
+            Id = scheduleId,
+            MusicEnabled = false,
+            Music = null,
+            BiblePublicationSchedule = null,
+        };
+        using var sut = CreateSut(alarm, new FakeGeneralSettingsService());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => sut.NextTrack(scheduleId));
+    }
+
+    [Fact]
+    public async Task GetNextPlayItemAsync_music_throws_when_schedule_id_invalid()
+    {
+        using var sut = CreateSut(new FakeAlarmScheduleService(), new FakeGeneralSettingsService());
+        var metadata = new TrackMetadata
+        {
+            ScheduleId = 0,
+            IsBibleContent = false,
+            TrackCode = "1",
+            PublicationCode = "sjjc",
+            LanguageCode = "E",
+        };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => sut.GetNextPlayItemAsync(metadata));
+    }
+
+    [Fact]
+    public async Task GetPreviousPlayItemAsync_music_throws_when_music_missing()
+    {
+        const int scheduleId = 22;
+        var alarm = new FakeAlarmScheduleService();
+        alarm.ById[scheduleId] = new AlarmSchedule { Id = scheduleId, Music = null };
+        using var sut = CreateSut(alarm, new FakeGeneralSettingsService());
+        var metadata = new TrackMetadata
+        {
+            ScheduleId = scheduleId,
+            IsBibleContent = false,
+            TrackCode = "1",
+            PublicationCode = "sjjc",
+            LanguageCode = "E",
+        };
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => sut.GetPreviousPlayItemAsync(metadata));
+    }
+
+    [Fact]
+    public async Task GetScheduleFinishedDurationAsync_returns_zero_when_bible_schedule_null()
+    {
+        const int scheduleId = 23;
+        var alarm = new FakeAlarmScheduleService();
+        alarm.ById[scheduleId] = new AlarmSchedule { Id = scheduleId, BiblePublicationSchedule = null };
+        using var sut = CreateSut(alarm, new FakeGeneralSettingsService());
+
+        Assert.Equal(TimeSpan.Zero, await sut.GetScheduleFinishedDurationAsync(scheduleId));
+    }
+
+    [Fact]
+    public async Task NextBiblePublicationTrack_throws_for_missing_schedule()
+    {
+        using var sut = CreateSut(new FakeAlarmScheduleService(), new FakeGeneralSettingsService());
+
+        await Assert.ThrowsAsync<ArgumentException>(() => sut.NextBiblePublicationTrack(404));
+    }
+
+    private sealed class SectionedMediaStub : StubMediaService
+    {
+        public required SortedDictionary<string, BiblePublicationSection> Sections { get; init; }
+
+        public Dictionary<string, SortedDictionary<string, BiblePublicationTrack>> TracksBySection { get; } =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        public override Task<SortedDictionary<string, BiblePublicationSection>> GetBiblePublicationSections(
+            string languageCode, string versionCode, IFetchProgress? progress = null) =>
+            Task.FromResult(Sections);
+
+        public override Task<SortedDictionary<string, BiblePublicationTrack>> GetBiblePublicationTracks(
+            string languageCode, string versionCode, string? sectionCode)
+        {
+            var key = string.IsNullOrWhiteSpace(sectionCode) ? string.Empty : sectionCode;
+            if (TracksBySection.TryGetValue(key, out var tracks))
+            {
+                return Task.FromResult(tracks);
+            }
+
+            return Task.FromResult(new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer));
+        }
+    }
+
+    private sealed class TrackingBiblePublicationService(BiblePublication publication) : IBiblePublicationService
+    {
+        public void Dispose()
+        {
+        }
+
+        public void InvalidatePublicationCaches(string languageCode, string publicationCode)
+        {
+        }
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithTracksAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublication?>(
+                string.Equals(publication.PublicationCode, publicationCode, StringComparison.OrdinalIgnoreCase)
+                    ? publication
+                    : null);
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithSectionsAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublication?>(null);
+
+        public Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase));
+
+        public Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<string, Language>());
+
+        public Task<List<string>> GetAvailablePublicationCodesAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<string>());
+
+        public Task<string?> GetFirstPublicationCodeByOrderAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult<string?>(null);
+
+        public Task<bool> IsNoLanguagePublicationAsync(string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<(string? CategoryCode, bool IsMusic)?> GetPublicationCategoryInfoAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<(string? CategoryCode, bool IsMusic)?>(null);
+
+        public Task<List<string>> GetPublicationCodesInCategoryOrderAsync(string languageCode, string categoryCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<string>());
     }
 
 #pragma warning disable CS0067

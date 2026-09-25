@@ -3,6 +3,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq.Expressions;
+using System.Net.Http;
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
@@ -22,6 +23,10 @@ public sealed class MediaCacheCleanupTests
     {
         public Func<int, Task<List<PlayItem>>> NextTracksAsync { get; set; } =
             _ => Task.FromResult(new List<PlayItem>());
+
+        public Func<TrackMetadata, Task<PlayItem>>? GetNextPlayItemAsyncImpl { get; set; }
+
+        public Func<TrackMetadata, Task<PlayItem>>? GetPreviousPlayItemAsyncImpl { get; set; }
 
         public void Dispose()
         {
@@ -73,11 +78,15 @@ public sealed class MediaCacheCleanupTests
 
         public Task<PlayItem> GetNextPlayItemAsync(TrackMetadata currentTrackMetadata,
             IFetchProgress? sectionFetchProgress = null) =>
-            Task.FromResult(new PlayItem(ItemMeta(currentTrackMetadata.TrackCode), "u"));
+            GetNextPlayItemAsyncImpl != null
+                ? GetNextPlayItemAsyncImpl(currentTrackMetadata)
+                : Task.FromResult(new PlayItem(ItemMeta(currentTrackMetadata.TrackCode), "u"));
 
         public Task<PlayItem> GetPreviousPlayItemAsync(TrackMetadata currentTrackMetadata,
             IFetchProgress? sectionFetchProgress = null) =>
-            Task.FromResult(new PlayItem(ItemMeta("0"), "u"));
+            GetPreviousPlayItemAsyncImpl != null
+                ? GetPreviousPlayItemAsyncImpl(currentTrackMetadata)
+                : Task.FromResult(new PlayItem(ItemMeta("0"), "u"));
 
         public Task PersistSchedulePointerToFinishedTrackAsync(TrackMetadata trackMetadata) =>
             Task.CompletedTask;
@@ -101,8 +110,10 @@ public sealed class MediaCacheCleanupTests
 
         public List<string> DeletedFiles { get; } = [];
 
+        public List<string> DeletedDirectories { get; } = [];
+
         public string StorageRoot => "stor";
-        public string CacheRoot => "cache";
+        public string CacheRoot { get; init; } = "cache";
 
         public Task<bool> DirectoryExists(string path) =>
             Task.FromResult(DirectoryExistence.TryGetValue(path, out var ok) && ok);
@@ -138,7 +149,11 @@ public sealed class MediaCacheCleanupTests
             return Task.CompletedTask;
         }
 
-        public Task DeleteDirectory(string path) => Task.CompletedTask;
+        public Task DeleteDirectory(string path)
+        {
+            DeletedDirectories.Add(path);
+            return Task.CompletedTask;
+        }
 
         public Task<DirectoryInfo> CreateDirectory(string path) =>
             Task.FromResult(new DirectoryInfo(path));
@@ -302,5 +317,263 @@ public sealed class MediaCacheCleanupTests
                 CancellationToken.None));
 
         Assert.Empty(inbox);
+    }
+
+    [Fact]
+    public async Task GetUnusedCacheFilesAsync_skips_schedule_when_cache_folder_missing()
+    {
+        var storage = new CleanupStorageStub();
+        var playlist = new CleanupPlaylistStub();
+        List<AlarmSchedule> schedules = [new() { Id = 50, NumberOfTracksToPlay = 1 }];
+
+        var toDelete = await MediaCacheCleanup.GetUnusedCacheFilesAsync(
+            storage,
+            playlist,
+            id => Path.Combine("cache", id.ToString()),
+            lp => $"blob-{lp}",
+            schedules,
+            CancellationToken.None);
+
+        Assert.Empty(toDelete);
+    }
+
+    [Fact]
+    public async Task GetUnusedCacheFilesAsync_indefinite_schedule_keeps_neighbor_lookup_paths()
+    {
+        const int sid = 902;
+        var folder = Path.Combine("X:", "cache", sid.ToString());
+        static string CacheFilename(string lp) => $"blob-{lp}";
+
+        var playlist = new CleanupPlaylistStub
+        {
+            NextTracksAsync = _ => Task.FromResult(new List<PlayItem>
+            {
+                new(PlaylistMeta(sid, "anchor"), "u"),
+            }),
+            GetNextPlayItemAsyncImpl = _ => Task.FromResult(new PlayItem(PlaylistMeta(sid, "next-neighbor"), "u")),
+            GetPreviousPlayItemAsyncImpl = _ => Task.FromResult(new PlayItem(PlaylistMeta(sid, "prev-neighbor"), "u")),
+        };
+
+        var storage = new CleanupStorageStub();
+        storage.DirectoryExistence[folder] = true;
+        storage.FilesUnderDirectory[folder] =
+        [
+            Path.Combine(folder, CacheFilename("anchor")),
+            Path.Combine(folder, CacheFilename("next-neighbor")),
+            Path.Combine(folder, CacheFilename("prev-neighbor")),
+            Path.Combine(folder, "orphan.dat"),
+        ];
+
+        List<AlarmSchedule> schedules = [new() { Id = sid, NumberOfTracksToPlay = 0 }];
+
+        var toDelete = await MediaCacheCleanup.GetUnusedCacheFilesAsync(
+            storage,
+            playlist,
+            id => Path.Combine("X:", "cache", id.ToString()),
+            CacheFilename,
+            schedules,
+            CancellationToken.None);
+
+        var orphaned = Assert.Single(toDelete);
+        Assert.Equal(Path.Combine(folder, "orphan.dat"), orphaned);
+    }
+
+    [Fact]
+    public async Task DeleteScheduleCache_when_schedule_deleted_removes_entire_folder()
+    {
+        const int sid = 33;
+        var folder = Path.Combine("cache", sid.ToString());
+        var storage = new CleanupStorageStub();
+        storage.DirectoryExistence[folder] = true;
+        storage.FilesUnderDirectory[folder] = [Path.Combine(folder, "a.mp3"), Path.Combine(folder, "b.mp3")];
+
+        var alarm = new ScheduleLookupAlarmService();
+
+        await MediaCacheCleanup.DeleteScheduleCacheAsync(
+            new DeleteScheduleCacheArgs(
+                TestLogging.CreateLogger(),
+                storage,
+                new CleanupPlaylistStub(),
+                alarm,
+                new ConcurrentDictionary<string, Task<string?>>(),
+                _ => folder,
+                lp => lp,
+                sid,
+                CancellationToken.None));
+
+        Assert.Equal(2, storage.DeletedFiles.Count);
+        Assert.Contains(folder, storage.DeletedDirectories);
+    }
+
+    [Fact]
+    public async Task DeleteScheduleCache_when_playlist_fails_does_not_delete_files()
+    {
+        const int sid = 34;
+        var folder = Path.Combine("cache", sid.ToString());
+        var storage = new CleanupStorageStub();
+        storage.DirectoryExistence[folder] = true;
+        storage.FilesUnderDirectory[folder] = [Path.Combine(folder, "keep.mp3")];
+
+        var alarm = new ScheduleLookupAlarmService();
+        alarm.ById[sid] = new AlarmSchedule { Id = sid, NumberOfTracksToPlay = 1 };
+        var playlist = new CleanupPlaylistStub
+        {
+            NextTracksAsync = _ => throw new HttpRequestException("offline"),
+        };
+
+        await MediaCacheCleanup.DeleteScheduleCacheAsync(
+            new DeleteScheduleCacheArgs(
+                TestLogging.CreateLogger(),
+                storage,
+                playlist,
+                alarm,
+                new ConcurrentDictionary<string, Task<string?>>(),
+                _ => folder,
+                lp => $"blob-{lp}",
+                sid,
+                CancellationToken.None));
+
+        Assert.Empty(storage.DeletedFiles);
+    }
+
+    [Fact]
+    public async Task DeleteScheduleCache_when_schedule_exists_deletes_unreferenced_files()
+    {
+        const int sid = 35;
+        var folder = Path.Combine("cache", sid.ToString());
+        var storage = new CleanupStorageStub();
+        storage.DirectoryExistence[folder] = true;
+        storage.FilesUnderDirectory[folder] =
+        [
+            Path.Combine(folder, "blob-keep"),
+            Path.Combine(folder, "stale.dat"),
+        ];
+
+        var alarm = new ScheduleLookupAlarmService();
+        alarm.ById[sid] = new AlarmSchedule { Id = sid, NumberOfTracksToPlay = 1 };
+        var playlist = new CleanupPlaylistStub
+        {
+            NextTracksAsync = _ => Task.FromResult(new List<PlayItem>
+            {
+                new(PlaylistMeta(sid, "keep"), "u"),
+            }),
+        };
+
+        await MediaCacheCleanup.DeleteScheduleCacheAsync(
+            new DeleteScheduleCacheArgs(
+                TestLogging.CreateLogger(),
+                storage,
+                playlist,
+                alarm,
+                new ConcurrentDictionary<string, Task<string?>>(),
+                _ => folder,
+                lp => $"blob-{lp}",
+                sid,
+                CancellationToken.None));
+
+        var deleted = Assert.Single(storage.DeletedFiles);
+        Assert.Equal(Path.Combine(folder, "stale.dat"), deleted);
+    }
+
+    [Fact]
+    public async Task CleanUpOrphanedFoldersAsync_deletes_non_numeric_and_unknown_schedule_folders()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "bacache-" + Guid.NewGuid().ToString("N"));
+        var validId = 10;
+        Directory.CreateDirectory(Path.Combine(root, validId.ToString()));
+        Directory.CreateDirectory(Path.Combine(root, "orphan-99"));
+        Directory.CreateDirectory(Path.Combine(root, "not-a-number"));
+
+        var storage = new CleanupStorageStub { CacheRoot = root };
+        storage.DirectoryExistence[root] = true;
+        storage.DirectoryExistence[Path.Combine(root, validId.ToString())] = true;
+        storage.FilesUnderDirectory[Path.Combine(root, "orphan-99")] = [Path.Combine(root, "orphan-99", "x.dat")];
+        storage.FilesUnderDirectory[Path.Combine(root, "not-a-number")] = [];
+
+        try
+        {
+            await MediaCacheCleanup.CleanUpOrphanedFoldersAsync(
+                TestLogging.CreateLogger(),
+                storage,
+                root,
+                [new AlarmSchedule { Id = validId }],
+                paths => MediaCacheCleanup.DeleteFilesAsync(
+                    TestLogging.CreateLogger(),
+                    storage,
+                    new ConcurrentDictionary<string, Task<string?>>(),
+                    _ => _,
+                    paths));
+
+            Assert.Contains(Path.Combine(root, "orphan-99"), storage.DeletedDirectories);
+            Assert.Contains(Path.Combine(root, "not-a-number"), storage.DeletedDirectories);
+            Assert.DoesNotContain(Path.Combine(root, validId.ToString()), storage.DeletedDirectories);
+        }
+        finally
+        {
+            if (Directory.Exists(root))
+            {
+                Directory.Delete(root, recursive: true);
+            }
+        }
+    }
+
+    private sealed class ScheduleLookupAlarmService : IAlarmScheduleService
+    {
+        public Dictionary<int, AlarmSchedule> ById { get; } = [];
+
+        public void Dispose()
+        {
+        }
+
+        public Task<AlarmSchedule?> GetScheduleByIdAsync(int scheduleId, bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult(ById.GetValueOrDefault(scheduleId));
+
+        public Task<List<AlarmSchedule>> GetAllSchedulesAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<List<AlarmSchedule>> GetSchedulesAsync(
+            Expression<Func<AlarmSchedule, bool>>? predicate = null,
+            bool includeMusic = true,
+            bool includeBiblePublication = true,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<AlarmSchedule>());
+
+        public Task<AlarmSchedule?> GetFirstScheduleOrDefaultAsync(bool includeMusic = true,
+            bool includeBiblePublication = true, CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmSchedule?>(null);
+
+        public Task<AlarmSchedule> AddScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleAsync(AlarmSchedule schedule,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(schedule);
+
+        public Task<AlarmSchedule> UpdateScheduleByIdAsync(int scheduleId, Action<AlarmSchedule> updateAction,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new AlarmSchedule());
+
+        public Task DeleteScheduleAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public Task<bool> ScheduleExistsAsync(int scheduleId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(ById.ContainsKey(scheduleId));
+
+        public Task<bool> AnySchedulesExistAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(ById.Count > 0);
+
+        public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
+
+        public Task<AlarmMusic?> GetMusicByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<AlarmMusic?>(null);
+
+        public Task<BiblePublicationSchedule?> GetBiblePublicationByScheduleIdAsync(int scheduleId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublicationSchedule?>(null);
     }
 }

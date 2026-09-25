@@ -224,10 +224,32 @@ public sealed class MediaServiceTests
             throw new InvalidOperationException();
     }
 
-    private sealed class IdleScopeFactory : IServiceScopeFactory
+    /// <summary>
+    /// Empty in-memory Media DB scope. GetBiblePublications / GetVocalMusicReleases / track lookups
+    /// open scopes for placeholder and no-language queries even when stub services supply the main data.
+    /// </summary>
+    private sealed class EmptyMediaDbScopeFactory : IServiceScopeFactory, IDisposable
     {
-        public IServiceScope CreateScope() =>
-            throw new InvalidOperationException("Scope not used by GetVocalMusicLanguages");
+        private readonly SqliteConnection connection;
+        private readonly MediaTestScopeFactory factory;
+
+        public EmptyMediaDbScopeFactory()
+        {
+            connection = new SqliteConnection("Data Source=:memory:");
+            connection.Open();
+            var options = new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options;
+            using (var init = new MediaDbContext(options))
+            {
+                init.Database.EnsureCreated();
+            }
+
+            factory = new MediaTestScopeFactory(
+                new DbContextOptionsBuilder<MediaDbContext>().UseSqlite(connection).Options);
+        }
+
+        public IServiceScope CreateScope() => factory.CreateScope();
+
+        public void Dispose() => connection.Dispose();
     }
 
     private sealed class CountingMediaIndexService : IMediaIndexService
@@ -366,6 +388,61 @@ public sealed class MediaServiceTests
         }
     }
 
+    private sealed class CountingPublicationsBiblePublicationService : IBiblePublicationService
+    {
+        public int GetByLanguageCodeCalls { get; private set; }
+
+        public void Dispose()
+        {
+        }
+
+        public Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase));
+
+        public Task<List<string>> GetAvailablePublicationCodesAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<string>());
+
+        public Task<string?> GetFirstPublicationCodeByOrderAsync(string languageCode, string? categoryName = null,
+            bool filterIsMusicWhenMusicCategory = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult<string?>(null);
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithSectionsAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublication?>(null);
+
+        public Task<BiblePublication?> GetByLanguageAndCodeWithTracksAsync(string languageCode, string publicationCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<BiblePublication?>(null);
+
+        public Task<Dictionary<string, BiblePublication>> GetByLanguageCodeAsync(string languageCode,
+            string? categoryName = null, bool filterIsMusicForMusicCategory = false,
+            CancellationToken cancellationToken = default)
+        {
+            GetByLanguageCodeCalls++;
+            return Task.FromResult(new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["nwt"] = new BiblePublication { Id = 1, PublicationCode = "nwt", Name = "New World Translation" },
+            });
+        }
+
+        public Task<bool> IsNoLanguagePublicationAsync(string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
+
+        public Task<(string? CategoryCode, bool IsMusic)?> GetPublicationCategoryInfoAsync(string languageCode,
+            string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult<(string? CategoryCode, bool IsMusic)?>(null);
+
+        public Task<List<string>> GetPublicationCodesInCategoryOrderAsync(string languageCode, string categoryCode,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(new List<string>());
+
+        public void InvalidatePublicationCaches(string languageCode, string publicationCode)
+        {
+        }
+    }
+
     private sealed class DistinctLanguagesBiblePublicationService : IBiblePublicationService
     {
         private readonly Dictionary<string, Language> languages;
@@ -435,7 +512,7 @@ public sealed class MediaServiceTests
             melody ?? new UnusedMelodyMusicService(),
             vocal ?? new UnusedVocalMusicService(),
             languageContent ?? new UnusedLanguageContentService(),
-            scopeFactory ?? new IdleScopeFactory()));
+            scopeFactory ?? new EmptyMediaDbScopeFactory()));
 
     private static MediaService CreateSutForVocalLanguages(EmptyDistinctLanguagesBiblePublicationService biblePubs) =>
         CreateSut(biblePubs: biblePubs);
@@ -669,5 +746,287 @@ public sealed class MediaServiceTests
         Assert.Equal("1", section!.SectionCode);
         Assert.NotNull(track);
         Assert.Equal("5", track!.TrackCode);
+    }
+
+    [Fact]
+    public async Task GetBiblePublications_uses_in_memory_cache_for_repeat_read_only_requests()
+    {
+        var bible = new CountingPublicationsBiblePublicationService();
+        var index = new CountingMediaIndexService();
+        var sut = CreateSut(index: index, biblePubs: bible);
+
+        var first = await sut.GetBiblePublications("E", "Bible");
+        var second = await sut.GetBiblePublications("E", "Bible");
+
+        Assert.Single(first);
+        Assert.Single(second);
+        Assert.Equal(1, bible.GetByLanguageCodeCalls);
+        // Verify runs inside the cached load path, so a cache hit does not re-verify.
+        Assert.Equal(1, index.VerifyCount);
+    }
+
+    [Fact]
+    public async Task GetMelodyMusicTracks_delegates_to_melody_service()
+    {
+        var melody = new ConfigurableMelodyMusicService
+        {
+            TracksByCode = new SortedDictionary<int, MusicTrack>
+            {
+                [1] = new MusicTrack { TrackCode = "1", Title = "M1", Url = "", LookUpPath = "" },
+            },
+        };
+        var index = new CountingMediaIndexService();
+        var sut = CreateSut(index: index, melody: melody);
+
+        var result = await sut.GetMelodyMusicTracks("iam");
+
+        Assert.Equal(1, index.VerifyCount);
+        Assert.Single(result);
+        Assert.Equal("1", result[1].TrackCode);
+    }
+
+    [Fact]
+    public async Task GetMelodyMusicTracksBySection_delegates_to_melody_service()
+    {
+        var melody = new ConfigurableMelodyMusicService
+        {
+            TracksBySection = new SortedDictionary<int, MusicTrack>
+            {
+                [105] = new MusicTrack { TrackCode = "105", Title = "M105", Url = "", LookUpPath = "" },
+            },
+        };
+        var sut = CreateSut(melody: melody);
+
+        var result = await sut.GetMelodyMusicTracksBySection("iam", "iam-1");
+
+        Assert.Single(result);
+        Assert.Equal("105", result[105].TrackCode);
+    }
+
+    [Fact]
+    public async Task GetVocalMusicTracks_delegates_to_vocal_service()
+    {
+        var vocal = new ConfigurableVocalMusicService
+        {
+            Tracks = new SortedDictionary<int, MusicTrack>
+            {
+                [2] = new MusicTrack { TrackCode = "2", Title = "V2", Url = "", LookUpPath = "" },
+            },
+        };
+        var sut = CreateSut(vocal: vocal);
+
+        var result = await sut.GetVocalMusicTracks("E", "osg");
+
+        Assert.Single(result);
+        Assert.Equal("2", result[2].TrackCode);
+    }
+
+    [Fact]
+    public async Task UpdateBiblePublicationTrackUrl_delegates_to_track_service()
+    {
+        var tracks = new RecordingBiblePublicationTrackService();
+        var sut = CreateSut(tracks: tracks);
+
+        await sut.UpdateBiblePublicationTrackUrl("E", "nwt", "1", "5", "https://cdn.example/a.mp3");
+
+        Assert.Equal(("E", "nwt", "1", "5", "https://cdn.example/a.mp3"), tracks.LastUpdate);
+    }
+
+    [Fact]
+    public async Task UpdateVocalTrackUrl_delegates_to_vocal_service()
+    {
+        var vocal = new RecordingVocalMusicService();
+        var sut = CreateSut(vocal: vocal);
+
+        await sut.UpdateVocalTrackUrl("E", "osg", "3", "https://cdn.example/v.mp3");
+
+        Assert.Equal(("E", "osg", "3", "https://cdn.example/v.mp3"), vocal.LastUpdate);
+    }
+
+    [Fact]
+    public async Task UpdateMelodyTrackUrl_delegates_to_melody_service()
+    {
+        var melody = new RecordingMelodyMusicService();
+        var sut = CreateSut(melody: melody);
+
+        await sut.UpdateMelodyTrackUrl("iam", "190", "https://cdn.example/m.mp3");
+
+        Assert.Equal(("iam", "190", "https://cdn.example/m.mp3"), melody.LastUpdate);
+    }
+
+    [Fact]
+    public async Task GetBiblePublicationTracks_uses_language_bound_path_when_not_no_language()
+    {
+        var tracks = new RecordingBiblePublicationTrackService();
+        var sut = CreateSut(tracks: tracks);
+
+        var result = await sut.GetBiblePublicationTracks("E", "nwt", "1");
+
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetBiblePublications_with_progress_bypasses_cache()
+    {
+        var bible = new CountingPublicationsBiblePublicationService();
+        var index = new CountingMediaIndexService();
+        var sut = CreateSut(index: index, biblePubs: bible);
+        var progress = new ImmediateFetchProgress();
+
+        var first = await sut.GetBiblePublications("E", "Bible", downloadAll: false, progress: progress);
+        var second = await sut.GetBiblePublications("E", "Bible", downloadAll: false, progress: progress);
+
+        Assert.Single(first);
+        Assert.Single(second);
+        Assert.Equal(2, bible.GetByLanguageCodeCalls);
+    }
+
+    [Fact]
+    public async Task GetBiblePublications_downloadAll_invalidates_cache_after_fetch()
+    {
+        var bible = new CountingPublicationsBiblePublicationService();
+        var index = new CountingMediaIndexService();
+        var sut = CreateSut(index: index, biblePubs: bible);
+
+        await sut.GetBiblePublications("E", "Bible", downloadAll: true);
+        await sut.GetBiblePublications("E", "Bible", downloadAll: false);
+
+        Assert.Equal(2, bible.GetByLanguageCodeCalls);
+    }
+
+    [Fact]
+    public async Task GetExpectedSectionCountAsync_returns_zero_for_empty_db()
+    {
+        using var db = new NoLanguagePublicationDbScope("iam-count");
+        var sut = CreateSut(scopeFactory: db.Factory);
+
+        var count = await sut.GetExpectedSectionCountAsync("E", "nwt");
+
+        Assert.Equal(0, count);
+    }
+
+    [Fact]
+    public async Task GetExpectedPublicationCountAsync_returns_zero_for_empty_category()
+    {
+        using var db = new NoLanguagePublicationDbScope("iam-count2");
+        var sut = CreateSut(scopeFactory: db.Factory);
+
+        var count = await sut.GetExpectedPublicationCountAsync("E", "Bible");
+
+        Assert.Equal(0, count);
+    }
+
+    [Fact]
+    public async Task GetExpectedSectionCountForNoLanguagePublicationAsync_returns_zero_when_none()
+    {
+        using var db = new NoLanguagePublicationDbScope("iam-count3");
+        var sut = CreateSut(scopeFactory: db.Factory);
+
+        var count = await sut.GetExpectedSectionCountForNoLanguagePublicationAsync("iam-count3");
+
+        Assert.Equal(0, count);
+    }
+
+    [Fact]
+    public async Task GetVocalMusicReleases_returns_helper_result()
+    {
+        var vocal = new ConfigurableVocalMusicService
+        {
+            Releases = new Dictionary<string, VocalMusic>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["osg"] = new BiblePublication { Id = 1, PublicationCode = "osg", Name = "Sing Out" },
+            },
+        };
+        var bible = new CountingPublicationsBiblePublicationService();
+        var sut = CreateSut(biblePubs: bible, vocal: vocal);
+
+        var result = await sut.GetVocalMusicReleases("E");
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task GetBiblePublicationSections_for_english_skips_ensure_all_sections()
+    {
+        var sections = new StubBiblePublicationSectionService
+        {
+            ByPublicationResult = new SortedDictionary<string, BiblePublicationSection>
+            {
+                ["1"] = new() { SectionCode = "1", Name = "Genesis" },
+            },
+        };
+        var sut = CreateSut(sections: sections);
+
+        var result = await sut.GetBiblePublicationSections("E", "nwt", progress: new ImmediateFetchProgress());
+
+        Assert.Single(result);
+        Assert.Equal(1, sections.GetSectionsByPublicationCallCount);
+    }
+
+    private sealed class ConfigurableMelodyMusicService : IMelodyMusicService
+    {
+        public SortedDictionary<int, MusicTrack> TracksByCode { get; set; } = [];
+        public SortedDictionary<int, MusicTrack> TracksBySection { get; set; } = [];
+
+        public void Dispose()
+        {
+        }
+
+        public Task<MelodyMusic?> GetByCodeWithTracksAsync(string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult<MelodyMusic?>(null);
+
+        public Task<Dictionary<string, MelodyMusic>> GetAllAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<string, MelodyMusic>());
+
+        public Task<SortedDictionary<int, MusicTrack>> GetTracksByCodeAsync(string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(TracksByCode);
+
+        public Task<SortedDictionary<int, MusicTrack>> GetTracksBySectionCodeAsync(string publicationCode, string sectionCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(TracksBySection);
+
+        public Task UpdateTrackUrlAsync(string publicationCode, string trackCode, string url, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+    }
+
+    private sealed class ConfigurableVocalMusicService : IVocalMusicService
+    {
+        public SortedDictionary<int, MusicTrack> Tracks { get; set; } = [];
+        public Dictionary<string, VocalMusic> Releases { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
+        public void Dispose()
+        {
+        }
+
+        public Task<VocalMusic?> GetByLanguageAndCodeAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult<VocalMusic?>(null);
+
+        public Task<Dictionary<string, VocalMusic>> GetByLanguageCodeAsync(string languageCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Releases);
+
+        public Task<Dictionary<string, Language>> GetDistinctLanguagesAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult(new Dictionary<string, Language>());
+
+        public Task<SortedDictionary<int, MusicTrack>> GetTracksByLanguageAndCodeAsync(string languageCode, string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Tracks);
+
+        public Task UpdateTrackUrlAsync(string languageCode, string publicationCode, string trackCode, string url, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+    }
+
+    private sealed class ImmediateFetchProgress : IFetchProgress
+    {
+        public CancellationToken CancellationToken => CancellationToken.None;
+
+        public void UpdateProgress(double progress)
+        {
+        }
+
+        public void UpdateProgressText(string text)
+        {
+        }
+
+        public void SetIsVisible(bool isVisible)
+        {
+        }
     }
 }

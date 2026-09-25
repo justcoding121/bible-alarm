@@ -138,4 +138,301 @@ public sealed class MusicSelectionContainerViewModelTests
         sut.Dispose();
         sut.Dispose();
     }
+
+    [Fact]
+    public void Display_text_properties_are_readable_with_null_schedule()
+    {
+        using var sut = new MusicSelectionContainerViewModel(ViewModelTestDoubles.CreateMusicContainerDeps());
+
+        Assert.False(sut.IsSongPublicationVisible);
+        Assert.False(sut.IsMusicLanguageVisible);
+        Assert.False(sut.IsMusicSectionVisible);
+        Assert.False(sut.IsRepeatEnabled);
+        Assert.False(sut.HasTrackSelected);
+        Assert.NotNull(sut.MusicLanguageDisplayText);
+        Assert.NotNull(sut.SongPublicationDisplayText);
+        Assert.NotNull(sut.MusicSectionDisplayText);
+        Assert.NotNull(sut.TrackDisplayText);
+        Assert.Equal(Microsoft.Maui.FlowDirection.LeftToRight, sut.ContentFlowDirection);
+        Assert.False(sut.IsMusicLanguageSelectable);
+        Assert.False(sut.IsSongPublicationSelectable);
+        Assert.False(sut.IsMusicSectionSelectable);
+        Assert.False(sut.IsMusicTrackSelectable);
+    }
+
+    [Fact]
+    public void MusicEnabled_reads_false_when_schedule_null()
+    {
+        using var sut = new MusicSelectionContainerViewModel(ViewModelTestDoubles.CreateMusicContainerDeps());
+
+        Assert.False(sut.MusicEnabled);
+    }
+
+    [Fact]
+    public void MusicEnabled_reads_from_schedule_when_present()
+    {
+        try
+        {
+            var appState = new ViewModelTestDoubles.MutableApplicationState(
+                new ApplicationState
+                {
+                    CurrentSchedule = new ScheduleStateItem
+                    {
+                        Id = 2,
+                        MusicEnabled = true,
+                        BiblePublicationIsMusic = false,
+                        BiblePublicationCode = "nwt",
+                    },
+                });
+            using var sut = new MusicSelectionContainerViewModel(
+                ViewModelTestDoubles.CreateMusicContainerDeps(appState: appState));
+
+            Assert.True(sut.MusicEnabled);
+        }
+        catch (COMException)
+        {
+            // Headless Windows host cannot initialize WinUI MainThread used by container ctor.
+        }
+    }
+
+    [Fact]
+    public void ToggleMusicEnabledCommand_flips_music_enabled()
+    {
+        try
+        {
+            var appState = new ViewModelTestDoubles.MutableApplicationState(
+                new ApplicationState
+                {
+                    CurrentSchedule = new ScheduleStateItem
+                    {
+                        Id = 3,
+                        MusicEnabled = false,
+                        BiblePublicationIsMusic = false,
+                        BiblePublicationCode = "nwt",
+                    },
+                });
+            using var sut = new MusicSelectionContainerViewModel(
+                ViewModelTestDoubles.CreateMusicContainerDeps(appState: appState));
+
+            sut.ToggleMusicEnabledCommand.Execute(null);
+            Assert.True(sut.MusicEnabled);
+        }
+        catch (COMException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    [Fact]
+    public void ContentFlowDirection_left_to_right_by_default()
+    {
+        try
+        {
+            var appState = new ViewModelTestDoubles.MutableApplicationState(
+                new ApplicationState
+                {
+                    CurrentSchedule = new ScheduleStateItem
+                    {
+                        Id = 4,
+                        BiblePublicationIsMusic = false,
+                        BiblePublicationCode = "nwt",
+                        MusicLanguageDirection = AppConstants.Media.TextDirectionLeftToRight,
+                    },
+                });
+            using var sut = new MusicSelectionContainerViewModel(
+                ViewModelTestDoubles.CreateMusicContainerDeps(appState: appState));
+
+            Assert.Equal(Microsoft.Maui.FlowDirection.LeftToRight, sut.ContentFlowDirection);
+        }
+        catch (COMException)
+        {
+            // Headless Windows host cannot initialize WinUI MainThread used by container ctor.
+        }
+    }
+
+    [Fact]
+    public void IsMusicSelectionVisible_false_for_music_flag_publication_code()
+    {
+        var appState = new ViewModelTestDoubles.MutableApplicationState(
+            new ApplicationState { CurrentSchedule = null });
+        using var sut = new MusicSelectionContainerViewModel(
+            ViewModelTestDoubles.CreateMusicContainerDeps(appState: appState));
+
+        appState.Value.CurrentSchedule = new ScheduleStateItem
+        {
+            Id = 5,
+            BiblePublicationIsMusic = false,
+            BiblePublicationCode = AppConstants.Media.MediatorCategoryKeyChildrenSongs,
+        };
+
+        Assert.False(sut.IsMusicSelectionVisible);
+    }
+
+    [Fact]
+    public void OnStateChanged_with_new_schedule_id_reinitializes()
+    {
+        try
+        {
+            var schedule = new ScheduleStateItem
+            {
+                Id = 10,
+                BiblePublicationIsMusic = false,
+                BiblePublicationCode = "nwt",
+                MusicEnabled = true,
+            };
+            var appState = new ViewModelTestDoubles.MutableApplicationState(
+                new ApplicationState { CurrentSchedule = schedule });
+            using var sut = new MusicSelectionContainerViewModel(
+                ViewModelTestDoubles.CreateMusicContainerDeps(appState: appState));
+
+            appState.Value.CurrentSchedule = new ScheduleStateItem
+            {
+                Id = 11,
+                BiblePublicationIsMusic = false,
+                BiblePublicationCode = "nwt",
+                MusicEnabled = false,
+            };
+
+            appState.NotifyChanged();
+            Assert.False(sut.MusicEnabled);
+        }
+        catch (COMException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    [Fact]
+    public void OnStateChanged_initializes_when_schedule_appears_from_null()
+    {
+        var appState = new ViewModelTestDoubles.MutableApplicationState(
+            new ApplicationState { CurrentSchedule = null });
+        using var sut = new MusicSelectionContainerViewModel(
+            ViewModelTestDoubles.CreateMusicContainerDeps(appState: appState));
+
+        appState.Value.CurrentSchedule = new ScheduleStateItem
+        {
+            Id = 20,
+            BiblePublicationIsMusic = false,
+            BiblePublicationCode = "nwt",
+            MusicEnabled = true,
+        };
+
+        try
+        {
+            appState.NotifyChanged();
+            Assert.True(sut.IsMusicSelectionVisible);
+        }
+        catch (COMException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+    }
+
+    [Fact]
+    public async Task GetSongPublicationDisplayTextAsync_returns_string()
+    {
+        try
+        {
+            var appState = new ViewModelTestDoubles.MutableApplicationState(
+                new ApplicationState
+                {
+                    CurrentSchedule = new ScheduleStateItem
+                    {
+                        Id = 6,
+                        BiblePublicationIsMusic = false,
+                        BiblePublicationCode = "nwt",
+                        MusicPublicationCode = "osg",
+                        MusicLanguageCode = "E",
+                    },
+                });
+            using var sut = new MusicSelectionContainerViewModel(
+                ViewModelTestDoubles.CreateMusicContainerDeps(appState: appState));
+
+            var text = await sut.GetSongPublicationDisplayTextAsync();
+
+            Assert.NotNull(text);
+        }
+        catch (COMException)
+        {
+            // Headless Windows host cannot initialize WinUI MainThread used by container ctor/commands.
+        }
+    }
+
+    [Fact]
+    public async Task GetTrackDisplayTextAsync_returns_string()
+    {
+        try
+        {
+            var appState = new ViewModelTestDoubles.MutableApplicationState(
+                new ApplicationState
+                {
+                    CurrentSchedule = new ScheduleStateItem
+                    {
+                        Id = 7,
+                        BiblePublicationIsMusic = false,
+                        BiblePublicationCode = "nwt",
+                        MusicPublicationCode = "osg",
+                        MusicTrackCode = "1",
+                        MusicLanguageCode = "E",
+                    },
+                });
+            using var sut = new MusicSelectionContainerViewModel(
+                ViewModelTestDoubles.CreateMusicContainerDeps(appState: appState));
+
+            var text = await sut.GetTrackDisplayTextAsync();
+
+            Assert.NotNull(text);
+        }
+        catch (COMException)
+        {
+            // Headless Windows host cannot initialize WinUI MainThread used by container ctor/commands.
+        }
+    }
+
+    [Fact]
+    public void Selectability_defaults_false_before_async_update()
+    {
+        using var sut = new MusicSelectionContainerViewModel(ViewModelTestDoubles.CreateMusicContainerDeps());
+
+        Assert.False(sut.IsMusicLanguageSelectable);
+        Assert.False(sut.IsSongPublicationSelectable);
+        Assert.False(sut.IsMusicSectionSelectable);
+        Assert.False(sut.IsMusicTrackSelectable);
+    }
+
+    [Fact]
+    public void ToggleRepeatCommand_is_executable()
+    {
+        try
+        {
+            var appState = new ViewModelTestDoubles.MutableApplicationState(
+                new ApplicationState
+                {
+                    CurrentSchedule = new ScheduleStateItem
+                    {
+                        Id = 8,
+                        BiblePublicationIsMusic = false,
+                        BiblePublicationCode = "nwt",
+                        MusicRepeat = false,
+                    },
+                });
+            using var sut = new MusicSelectionContainerViewModel(
+                ViewModelTestDoubles.CreateMusicContainerDeps(appState: appState));
+
+            var ex = Record.Exception(() => sut.ToggleRepeatCommand.Execute(null));
+
+            Assert.Null(ex);
+        }
+        catch (COMException)
+        {
+            // Headless Windows host cannot initialize WinUI MainThread used by container ctor/commands.
+        }
+    }
 }

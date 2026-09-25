@@ -145,4 +145,51 @@ public sealed class ScheduleListItemBibleDisplayNameProviderTests
 
         Assert.Equal("Chapter 5", sut.GetBiblePublicationTrackName(9));
     }
+
+    [Fact]
+    public void GetBiblePublicationName_returns_empty_for_invalid_id()
+    {
+        var sut = new ScheduleListItemBibleDisplayNameProvider(
+            new FakeAppState(StateWithSchedule(new ScheduleStateItem { Id = 1, BiblePublicationName = "NWT" })),
+            new StubCategoryNameService());
+
+        Assert.Equal(string.Empty, sut.GetBiblePublicationName(0));
+    }
+
+    [Fact]
+    public void GetBiblePublicationName_reads_from_state()
+    {
+        var item = new ScheduleStateItem { Id = 4, BiblePublicationName = "New World Translation" };
+        var sut = new ScheduleListItemBibleDisplayNameProvider(
+            new FakeAppState(StateWithSchedule(item)),
+            new StubCategoryNameService());
+
+        Assert.Equal("New World Translation", sut.GetBiblePublicationName(4));
+    }
+
+    [Fact]
+    public void GetBiblePublicationSectionName_empty_when_publication_not_sectioned()
+    {
+        var item = new ScheduleStateItem
+        {
+            Id = 11,
+            BiblePublicationCode = AppConstants.Media.MusicPublicationCodeSjji,
+            BiblePublicationSectionName = "Ignored",
+        };
+        var sut = new ScheduleListItemBibleDisplayNameProvider(
+            new FakeAppState(StateWithSchedule(item)),
+            new StubCategoryNameService());
+
+        Assert.Equal(string.Empty, sut.GetBiblePublicationSectionName(11));
+    }
+
+    [Fact]
+    public void GetCategoryDisplayName_empty_when_category_code_missing()
+    {
+        var sut = new ScheduleListItemBibleDisplayNameProvider(
+            new FakeAppState(new ApplicationState()),
+            new StubCategoryNameService());
+
+        Assert.Equal(string.Empty, sut.GetCategoryDisplayName(1));
+    }
 }

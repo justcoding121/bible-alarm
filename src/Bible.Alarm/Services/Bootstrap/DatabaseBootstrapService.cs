@@ -55,7 +55,7 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
 
         LogScheduleDatabaseVersionBranch(versionMatches, dbExists);
 
-        _ = await MigrateScheduleDatabaseOrRecoverAsync(scheduleDb, dbPath, versionMatches, scope.ServiceProvider);
+        await MigrateScheduleDatabaseOrRecoverAsync(scheduleDb, dbPath, versionMatches);
 
         if (!versionMatches)
         {
@@ -113,21 +113,19 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
         }
     }
 
-    private async Task<ScheduleDbContext> MigrateScheduleDatabaseOrRecoverAsync(
+    private async Task MigrateScheduleDatabaseOrRecoverAsync(
         ScheduleDbContext scheduleDb,
         string dbPath,
-        bool versionMatches,
-        IServiceProvider scopedServices)
+        bool versionMatches)
     {
         try
         {
             await ApplyPendingScheduleMigrationsAsync(scheduleDb, versionMatches);
-            return scheduleDb;
         }
         catch (Exception ex)
         {
             Log.Logger.Warning(ex, "[BOOTSTRAP] Failed to check/apply migrations, attempting recovery with bundled database");
-            return await RecoverScheduleDatabaseAfterMigrationFailureAsync(scheduleDb, dbPath, scopedServices);
+            await RecoverScheduleDatabaseAfterMigrationFailureAsync(scheduleDb, dbPath);
         }
     }
 
@@ -152,10 +150,9 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
         }
     }
 
-    private async Task<ScheduleDbContext> RecoverScheduleDatabaseAfterMigrationFailureAsync(
+    private async Task RecoverScheduleDatabaseAfterMigrationFailureAsync(
         ScheduleDbContext scheduleDb,
-        string dbPath,
-        IServiceProvider scopedServices)
+        string dbPath)
     {
         try
         {
@@ -206,7 +203,10 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
                 throw new InvalidOperationException("Failed to copy bundled database during recovery");
             }
 
-            var freshDb = scopedServices.GetRequiredService<ScheduleDbContext>();
+            // The disposed scheduleDb was resolved from the caller's scope; DI would return the
+            // same disposed instance. Open a fresh scope so recovery uses a live DbContext.
+            await using var recoveryScope = scopeFactory.CreateAsyncScope();
+            var freshDb = recoveryScope.ServiceProvider.GetRequiredService<ScheduleDbContext>();
 
             var pendingAfterRecovery = await freshDb.Database.GetPendingMigrationsAsync();
             if (pendingAfterRecovery.Any())
@@ -221,8 +221,6 @@ public class DatabaseBootstrapService : IDatabaseBootstrapService
             {
                 Log.Logger.Information("[BOOTSTRAP] Schedule database recovery successful - bundled database had correct schema");
             }
-
-            return freshDb;
         }
         catch (Exception recoveryEx)
         {

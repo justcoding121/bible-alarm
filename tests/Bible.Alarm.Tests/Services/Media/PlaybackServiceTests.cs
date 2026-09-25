@@ -284,6 +284,19 @@ public sealed class PlaybackServiceTests
         public Task<AudioPlayerTrack?> GetFallbackAlarmTrackAsync() => Task.FromResult<AudioPlayerTrack?>(null);
     }
 
+    private sealed class RecordingFallbackAlarmSoundService : IFallbackAlarmSoundService
+    {
+        public int CallCount { get; private set; }
+
+        public AudioPlayerTrack? TrackToReturn { get; init; }
+
+        public Task<AudioPlayerTrack?> GetFallbackAlarmTrackAsync()
+        {
+            CallCount++;
+            return Task.FromResult(TrackToReturn);
+        }
+    }
+
     private sealed class NopCdnProbe : ICdnPlaybackUrlProbe
     {
         public Task<CdnUrlProbeOutcome> ProbeStreamingUrlAsync(string url, CancellationToken cancellationToken = default) =>
@@ -327,6 +340,9 @@ public sealed class PlaybackServiceTests
         public int PauseCallCount { get; private set; }
         public int PrepareCallCount { get; private set; }
         public int PlayCallCount { get; private set; }
+        public int ResumeCallCount { get; private set; }
+        public int StopCallCount { get; private set; }
+        public int SeekCallCount { get; private set; }
 
         public void Dispose()
         {
@@ -341,22 +357,38 @@ public sealed class PlaybackServiceTests
         public Task PlayAsync()
         {
             PlayCallCount++;
+            Status = PlayStatus.Playing;
             return Task.CompletedTask;
         }
 
         public Task PauseAsync()
         {
             PauseCallCount++;
+            Status = PlayStatus.Paused;
             return Task.CompletedTask;
         }
 
-        public Task ResumeAsync() => Task.CompletedTask;
+        public Task ResumeAsync()
+        {
+            ResumeCallCount++;
+            Status = PlayStatus.Playing;
+            return Task.CompletedTask;
+        }
 
-        public Task StopAsync() => Task.CompletedTask;
+        public Task StopAsync()
+        {
+            StopCallCount++;
+            Status = PlayStatus.Stopped;
+            return Task.CompletedTask;
+        }
 
         public Task ResetAsync() => Task.CompletedTask;
 
-        public Task SeekToAsync(TimeSpan position) => Task.CompletedTask;
+        public Task SeekToAsync(TimeSpan position)
+        {
+            SeekCallCount++;
+            return Task.CompletedTask;
+        }
 
         public Task SetMutedAsync(bool muted) => Task.CompletedTask;
 
@@ -364,11 +396,15 @@ public sealed class PlaybackServiceTests
         {
         }
 
+        public void RaiseMediaEnded() => MediaEnded?.Invoke(this, EventArgs.Empty);
+
+        public void RaiseMediaFailed() => MediaFailed?.Invoke(this, EventArgs.Empty);
+
         public Task SyncMetadataForTrackAsync(AudioPlayerTrack track) => Task.CompletedTask;
 
-        public TimeSpan? CurrentPosition => null;
+        public TimeSpan? CurrentPosition => TimeSpan.FromSeconds(10);
 
-        public TimeSpan Duration => TimeSpan.Zero;
+        public TimeSpan Duration => TimeSpan.FromMinutes(5);
 
         public PlayStatus Status { get; set; } = PlayStatus.Stopped;
 
@@ -383,11 +419,12 @@ public sealed class PlaybackServiceTests
     private static PlaybackServiceInjectionContext CreateInjection(
         IPreparePlaybackService? prepare = null,
         IPlaylistService? playlist = null,
-        IAlarmScheduleService? alarm = null) =>
+        IAlarmScheduleService? alarm = null,
+        IFallbackAlarmSoundService? fallback = null) =>
         new(
             prepare ?? new StubPreparePlaybackService(),
             playlist ?? new MinimalPlaylistService(),
-            new NopFallbackAlarmSoundService(),
+            fallback ?? new NopFallbackAlarmSoundService(),
             new NopMediaCacheService(),
             new NopCdnProbe(),
             new NopTrackCdnRefresher(),
@@ -684,5 +721,423 @@ public sealed class PlaybackServiceTests
         });
 
         Assert.True(done.Wait(TimeSpan.FromSeconds(5)));
+    }
+
+    [Fact]
+    public void Dispose_can_be_called_twice_without_throw()
+    {
+        var sut = CreateSut(new RecordingAudioPlayer(), new FakePlaybackState(new PlaybackState()));
+
+        sut.Dispose();
+        sut.Dispose();
+    }
+
+    [Fact]
+    public async Task SeekForwardAsync_SeekBackwardAsync_and_SeekToAsync_complete_when_idle()
+    {
+        using var sut = CreateSut(new RecordingAudioPlayer(), new FakePlaybackState(new PlaybackState()));
+
+        await sut.SeekForwardAsync();
+        await sut.SeekBackwardAsync();
+        var ex = await Record.ExceptionAsync(() => sut.SeekToAsync(TimeSpan.FromSeconds(30)));
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public async Task StopForTeardownAsync_completes_without_throw()
+    {
+        using var sut = CreateSut(new RecordingAudioPlayer(), new FakePlaybackState(new PlaybackState()));
+
+        var ex = await Record.ExceptionAsync(() => sut.StopForTeardownAsync());
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public async Task PrepareAndPlayAsync_alarm_sets_alarm_playback_session()
+    {
+        const int scheduleId = 77;
+        var track = CreatePreparedTrack(scheduleId);
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) => Task.FromResult<List<AudioPlayerTrack>?>([track]),
+        };
+        using var sut = CreateSut(
+            new RecordingAudioPlayer(),
+            new FakePlaybackState(new PlaybackState()),
+            injection: CreateInjection(prepare),
+            alarmSchedule: new ScheduleReturningAlarmService(scheduleId));
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: true);
+
+        Assert.True(sut.IsAlarmPlaybackSession);
+    }
+
+    [Fact]
+    public async Task PrepareAndPlayAsync_same_schedule_while_paused_resumes_without_second_prepare()
+    {
+        const int scheduleId = 88;
+        var player = new RecordingAudioPlayer();
+        var track = CreatePreparedTrack(scheduleId);
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) => Task.FromResult<List<AudioPlayerTrack>?>([track]),
+        };
+        using var sut = CreateSut(
+            player,
+            new FakePlaybackState(new PlaybackState()),
+            injection: CreateInjection(prepare),
+            alarmSchedule: new ScheduleReturningAlarmService(scheduleId));
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: false);
+        player.Status = PlayStatus.Paused;
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: false);
+
+        Assert.Equal(1, player.PrepareCallCount);
+        Assert.True(player.PlayCallCount >= 1);
+    }
+
+    [Fact]
+    public async Task PlayNextAsync_after_two_track_prepare_prepares_second_track()
+    {
+        const int scheduleId = 91;
+        var player = new RecordingAudioPlayer();
+        var first = CreatePreparedTrack(scheduleId);
+        var second = CreatePreparedTrack(scheduleId);
+        second.PlayItem.Metadata.TrackCode = "2";
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) => Task.FromResult<List<AudioPlayerTrack>?>([first, second]),
+        };
+        using var sut = CreateSut(
+            player,
+            new FakePlaybackState(new PlaybackState()),
+            injection: CreateInjection(prepare),
+            alarmSchedule: new ScheduleReturningAlarmService(scheduleId));
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: false);
+        await sut.PlayNextAsync();
+
+        Assert.Equal(2, player.PrepareCallCount);
+    }
+
+    [Fact]
+    public async Task ResetAndRetryAsync_reprepares_schedule()
+    {
+        const int scheduleId = 92;
+        var player = new RecordingAudioPlayer();
+        var prepareCalls = 0;
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) =>
+            {
+                prepareCalls++;
+                return Task.FromResult<List<AudioPlayerTrack>?>(prepareCalls >= 2 ? [CreatePreparedTrack(scheduleId)] : null);
+            },
+        };
+        using var sut = CreateSut(
+            player,
+            new FakePlaybackState(new PlaybackState()),
+            injection: CreateInjection(prepare),
+            alarmSchedule: new ScheduleReturningAlarmService(scheduleId));
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: false);
+        await sut.ResetAndRetryAsync(scheduleId);
+
+        Assert.True(prepareCalls >= 2);
+        Assert.True(player.PlayCallCount >= 1);
+    }
+
+    [Fact]
+    public void Receive_TogglePlayPauseMessage_when_stopped_does_not_throw()
+    {
+        var player = new RecordingAudioPlayer { Status = PlayStatus.Stopped };
+        using var sut = CreateSut(
+            player,
+            new FakePlaybackState(new PlaybackState { Status = PlayStatus.Stopped, DefaultScheduleId = 0 }),
+            injection: CreateInjection());
+
+        var ex = Record.Exception(() => sut.Receive(new TogglePlayPauseMessage()));
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public async Task MediaEnded_after_prepare_does_not_throw()
+    {
+        const int scheduleId = 93;
+        var player = new RecordingAudioPlayer();
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) => Task.FromResult<List<AudioPlayerTrack>?>([CreatePreparedTrack(scheduleId)]),
+        };
+        using var sut = CreateSut(
+            player,
+            new FakePlaybackState(new PlaybackState()),
+            injection: CreateInjection(prepare),
+            alarmSchedule: new ScheduleReturningAlarmService(scheduleId));
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: false);
+
+        var ex = Record.Exception(() => player.RaiseMediaEnded());
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public async Task PlayPreviousAsync_with_single_track_playlist_does_not_throw()
+    {
+        const int scheduleId = 94;
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) => Task.FromResult<List<AudioPlayerTrack>?>([CreatePreparedTrack(scheduleId)]),
+        };
+        using var sut = CreateSut(
+            new RecordingAudioPlayer(),
+            new FakePlaybackState(new PlaybackState()),
+            injection: CreateInjection(prepare),
+            alarmSchedule: new ScheduleReturningAlarmService(scheduleId));
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: false);
+
+        var ex = await Record.ExceptionAsync(() => sut.PlayPreviousAsync());
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public async Task PrepareAndPlayAsync_when_prepare_throws_wraps_in_InvalidOperationException()
+    {
+        const int scheduleId = 95;
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) => throw new HttpRequestException("offline"),
+        };
+        using var sut = CreateSut(
+            new RecordingAudioPlayer(),
+            new FakePlaybackState(new PlaybackState()),
+            injection: CreateInjection(prepare),
+            alarmSchedule: new ScheduleReturningAlarmService(scheduleId));
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.PrepareAndPlayAsync(scheduleId, isAlarm: false));
+
+        Assert.Contains("95", ex.Message, StringComparison.Ordinal);
+        Assert.IsType<HttpRequestException>(ex.InnerException);
+    }
+
+    [Fact]
+    public async Task PrepareAndPlayAsync_alarm_with_null_prepare_invokes_fallback_sound()
+    {
+        const int scheduleId = 96;
+        var fallback = new RecordingFallbackAlarmSoundService
+        {
+            TrackToReturn = CreatePreparedTrack(scheduleId),
+        };
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) => Task.FromResult<List<AudioPlayerTrack>?>(null),
+        };
+        using var sut = CreateSut(
+            new RecordingAudioPlayer(),
+            new FakePlaybackState(new PlaybackState()),
+            injection: CreateInjection(prepare, fallback: fallback),
+            alarmSchedule: new ScheduleReturningAlarmService(scheduleId));
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: true);
+
+        Assert.Equal(1, fallback.CallCount);
+    }
+
+    [Fact]
+    public async Task PauseAsync_after_prepare_invokes_player_pause()
+    {
+        const int scheduleId = 97;
+        var player = new RecordingAudioPlayer();
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) => Task.FromResult<List<AudioPlayerTrack>?>([CreatePreparedTrack(scheduleId)]),
+        };
+        using var sut = CreateSut(
+            player,
+            new FakePlaybackState(new PlaybackState()),
+            injection: CreateInjection(prepare),
+            alarmSchedule: new ScheduleReturningAlarmService(scheduleId));
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: false);
+        await sut.PauseAsync();
+
+        Assert.Equal(1, player.PauseCallCount);
+    }
+
+    [Fact]
+    public async Task SeekToAsync_after_prepare_invokes_player_seek()
+    {
+        const int scheduleId = 98;
+        var player = new RecordingAudioPlayer();
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) => Task.FromResult<List<AudioPlayerTrack>?>([CreatePreparedTrack(scheduleId)]),
+        };
+        using var sut = CreateSut(
+            player,
+            new FakePlaybackState(new PlaybackState()),
+            injection: CreateInjection(prepare),
+            alarmSchedule: new ScheduleReturningAlarmService(scheduleId));
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: false);
+        await sut.SeekToAsync(TimeSpan.FromSeconds(45));
+
+        Assert.Equal(1, player.SeekCallCount);
+    }
+
+    [Fact]
+    public async Task StopAsync_after_prepare_dispatches_playback_stopped()
+    {
+        const int scheduleId = 99;
+        var dispatcher = new RecordingDispatcher();
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) => Task.FromResult<List<AudioPlayerTrack>?>([CreatePreparedTrack(scheduleId)]),
+        };
+        using var sut = CreateSut(
+            new RecordingAudioPlayer(),
+            new FakePlaybackState(new PlaybackState()),
+            dispatcher,
+            CreateInjection(prepare),
+            new ScheduleReturningAlarmService(scheduleId));
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: false);
+        await sut.StopAsync();
+
+        Assert.Contains(dispatcher.Dispatched, a => a is PlaybackStoppedAction);
+    }
+
+    [Fact]
+    public async Task PlayAsync_after_prepare_when_status_stopped_does_not_throw()
+    {
+        const int scheduleId = 100;
+        var player = new RecordingAudioPlayer();
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) => Task.FromResult<List<AudioPlayerTrack>?>([CreatePreparedTrack(scheduleId)]),
+        };
+        using var sut = CreateSut(
+            player,
+            new FakePlaybackState(new PlaybackState()),
+            injection: CreateInjection(prepare),
+            alarmSchedule: new ScheduleReturningAlarmService(scheduleId));
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: false);
+        player.Status = PlayStatus.Stopped;
+
+        var ex = await Record.ExceptionAsync(() => sut.PlayAsync());
+
+        Assert.Null(ex);
+        Assert.True(player.PlayCallCount >= 1);
+    }
+
+    [Fact]
+    public async Task MediaFailed_after_prepare_does_not_throw()
+    {
+        const int scheduleId = 101;
+        var player = new RecordingAudioPlayer();
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) => Task.FromResult<List<AudioPlayerTrack>?>([CreatePreparedTrack(scheduleId)]),
+        };
+        using var sut = CreateSut(
+            player,
+            new FakePlaybackState(new PlaybackState()),
+            injection: CreateInjection(prepare),
+            alarmSchedule: new ScheduleReturningAlarmService(scheduleId));
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: false);
+
+        var ex = Record.Exception(() => player.RaiseMediaFailed());
+
+        Assert.Null(ex);
+    }
+
+    [Fact]
+    public async Task Receive_NextButtonPressedMessage_after_prepare_advances_track()
+    {
+        const int scheduleId = 102;
+        var player = new RecordingAudioPlayer();
+        var first = CreatePreparedTrack(scheduleId);
+        var second = CreatePreparedTrack(scheduleId);
+        second.PlayItem.Metadata.TrackCode = "2";
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) => Task.FromResult<List<AudioPlayerTrack>?>([first, second]),
+        };
+        using var sut = CreateSut(
+            player,
+            new FakePlaybackState(new PlaybackState()),
+            injection: CreateInjection(prepare),
+            alarmSchedule: new ScheduleReturningAlarmService(scheduleId));
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: false);
+        sut.Receive(new NextButtonPressedMessage());
+
+        Assert.True(WaitForPrepareCount(player, expected: 2, TimeSpan.FromSeconds(5)));
+    }
+
+    private static bool WaitForPrepareCount(RecordingAudioPlayer player, int expected, TimeSpan timeout)
+    {
+        var deadline = DateTime.UtcNow + timeout;
+        while (DateTime.UtcNow < deadline)
+        {
+            if (player.PrepareCallCount >= expected)
+            {
+                return true;
+            }
+
+            Thread.Sleep(25);
+        }
+
+        return false;
+    }
+
+    [Fact]
+    public async Task IsAlarmPlaybackSession_false_after_non_alarm_prepare()
+    {
+        const int scheduleId = 103;
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) => Task.FromResult<List<AudioPlayerTrack>?>([CreatePreparedTrack(scheduleId)]),
+        };
+        using var sut = CreateSut(
+            new RecordingAudioPlayer(),
+            new FakePlaybackState(new PlaybackState()),
+            injection: CreateInjection(prepare),
+            alarmSchedule: new ScheduleReturningAlarmService(scheduleId));
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: false);
+
+        Assert.False(sut.IsAlarmPlaybackSession);
+    }
+
+    [Fact]
+    public async Task SeekForwardAsync_after_prepare_does_not_throw()
+    {
+        const int scheduleId = 104;
+        var prepare = new StubPreparePlaybackService
+        {
+            PrepareTracksImpl = (_, _) => Task.FromResult<List<AudioPlayerTrack>?>([CreatePreparedTrack(scheduleId)]),
+        };
+        using var sut = CreateSut(
+            new RecordingAudioPlayer(),
+            new FakePlaybackState(new PlaybackState()),
+            injection: CreateInjection(prepare),
+            alarmSchedule: new ScheduleReturningAlarmService(scheduleId));
+
+        await sut.PrepareAndPlayAsync(scheduleId, isAlarm: false);
+
+        var ex = await Record.ExceptionAsync(() => sut.SeekForwardAsync());
+
+        Assert.Null(ex);
     }
 }

@@ -109,4 +109,67 @@ public sealed class ScheduleListItemStateHandlerTests
         Assert.NotNull(info);
         Assert.True(info.NameChanged);
     }
+
+    [Fact]
+    public void HandleApplicationStateChanged_sets_IsEnabledChanged_when_flag_differs()
+    {
+        var mapper = CreateMapper();
+        var id = 15;
+        var updated = StateItem(id, "Same");
+        updated.IsEnabled = false;
+        var sut = new ScheduleListItemStateHandler(
+            TestLogging.CreateLogger(),
+            mapper,
+            new FakeApplicationState(new ApplicationState(new ObservableHashSet<ScheduleStateItem> { updated })));
+
+        var current = mapper.Map<AlarmSchedule>(StateItem(id, "Same"));
+        current.IsEnabled = true;
+
+        var info = sut.HandleApplicationStateChanged(id, current);
+
+        Assert.NotNull(info);
+        Assert.True(info.IsEnabledChanged);
+    }
+
+    [Fact]
+    public void HandleApplicationStateChanged_sets_TimeChanged_when_hour_differs()
+    {
+        var mapper = CreateMapper();
+        var id = 16;
+        var updated = StateItem(id, "Same");
+        updated.Hour = 9;
+        var sut = new ScheduleListItemStateHandler(
+            TestLogging.CreateLogger(),
+            mapper,
+            new FakeApplicationState(new ApplicationState(new ObservableHashSet<ScheduleStateItem> { updated })));
+
+        var current = mapper.Map<AlarmSchedule>(StateItem(id, "Same"));
+        current.Hour = 7;
+
+        var info = sut.HandleApplicationStateChanged(id, current);
+
+        Assert.NotNull(info);
+        Assert.True(info.TimeChanged);
+    }
+
+    [Fact]
+    public void HandleApplicationStateChanged_sets_DaysOfWeekChanged_when_days_differ()
+    {
+        var mapper = CreateMapper();
+        var id = 17;
+        var updated = StateItem(id, "Same");
+        updated.DaysOfWeek = WeekDays.Friday;
+        var sut = new ScheduleListItemStateHandler(
+            TestLogging.CreateLogger(),
+            mapper,
+            new FakeApplicationState(new ApplicationState(new ObservableHashSet<ScheduleStateItem> { updated })));
+
+        var current = mapper.Map<AlarmSchedule>(StateItem(id, "Same"));
+        current.DaysOfWeek = WeekDays.Monday;
+
+        var info = sut.HandleApplicationStateChanged(id, current);
+
+        Assert.NotNull(info);
+        Assert.True(info.DaysOfWeekChanged);
+    }
 }

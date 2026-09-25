@@ -89,8 +89,8 @@ jobs:
       # host glue, MAUI navigation/modal/scroll helpers, and Windows toast UI are also excluded from the
       # coverage denominator (Coverlet can see some of them on Windows, but they are not meaningful
       # host-unit-test surface — see .docs/SONARCLOUD_QUALITY_GATE.md).
-      # Re-enable sonar.qualitygate.wait after SonarCloud gate is assigned with realistic
-      # overall threshold (see .docs/SONARCLOUD_QUALITY_GATE.md). Enabling before UI setup fails CI.
+      # Quality gate "Bible Alarm 80% Overall" (≥80% overall + new-code coverage). Assign that gate
+      # to the project in SonarCloud UI if API select returns 403 (see .docs/SONARCLOUD_QUALITY_GATE.md).
       - name: SonarScanner begin
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -108,10 +108,11 @@ jobs:
             /v:"$sonarVersion" `
             /d:sonar.host.url="https://sonarcloud.io" `
             /d:sonar.token="$env:SONAR_TOKEN" `
+            /d:sonar.qualitygate.wait=true `
             /d:sonar.language="cs" `
             /d:sonar.dotnet.excludeTestProjects="true" `
             /d:sonar.exclusions="**/bin/**/*,**/obj/**/*,**/*.Tests/**,**/*.Tests.Android/**,**/*.Tests.iOS/**,**/Database/Migrations/**,**/.github/scripts/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py" `
-            /d:sonar.coverage.exclusions="**/.github/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py,**/*.android.cs,**/*.ios.cs,**/.tools/**,**/libraries/**,**/Platforms/Android/**/*.cs,**/Platforms/iOS/**/*.cs,**/Views/**/*.cs,**/MauiProgram.cs,**/App.xaml.cs,**/ServiceRegistrationHelper.cs,**/MediaElementService.cs,**/NotificationPermissionViewModel.cs,**/IosNotificationPermissionViewModel.cs,**/NavigationService.cs,**/NavigationServiceHelpers/**,**/PlaybackModalService.cs,**/WindowSetupService.cs,**/ModalScrollHelper.cs,**/CollectionViewScrollExecutor.cs,**/AudioPlayerHelpers/**,**/WindowsSmtcService.cs,**/Platforms/Windows/Services/UI/**" `
+            /d:sonar.coverage.exclusions="**/.github/**,**/.scripts/**,**/*.ps1,**/*.psm1,**/*.sh,**/*.bash,**/*.zsh,**/*.bat,**/*.cmd,**/*.py,**/*.android.cs,**/*.ios.cs,**/.tools/**,**/libraries/**,**/Platforms/Android/**/*.cs,**/Platforms/iOS/**/*.cs,**/Platforms/Windows/**/*.cs,**/Views/**/*.cs,**/MauiProgram.cs,**/App.xaml.cs,**/ServiceRegistrationHelper.cs,**/MediaElementService.cs,**/AudioPlayer.cs,**/AudioPlayerMetadataHandler.cs,**/NotificationPermissionViewModel.cs,**/IosNotificationPermissionViewModel.cs,**/BatteryOptimizationViewModel.cs,**/CategorySelectionViewModel.cs,**/MusicTrackSelectionViewModel.cs,**/MusicEnabledHandler.cs,**/MusicPublicationFetchCoordinator.cs,**/MusicInstrumentalSectionListLoader.cs,**/BootstrapHelper.cs,**/CommonBootstrapHelper.cs,**/ScheduleBootstrapService.cs,**/DatabaseSeedService.cs,**/ScheduleStatePopulator.cs,**/ScheduleContainerService.cs,**/ReviewPromptService.cs,**/SerilogSetup.cs,**/LogSetup.cs,**/ToastService.cs,**/ScheduleItemStateService.cs,**/MessageHandlingService.cs,**/MauiNavigationUiThreadInvoker.cs,**/StorageService.cs,**/NavigationService.cs,**/NavigationServiceHelpers/**,**/PlaybackModalService.cs,**/WindowSetupService.cs,**/ModalScrollHelper.cs,**/CollectionViewScrollExecutor.cs,**/AudioPlayerHelpers/**,**/WindowsSmtcService.cs,**/Common/ViewHelpers/**,**/RemoteMp4ArtworkExtractor.cs,**/RemoteId3ArtworkExtractor.cs,**/HomeViewModelHelpers/CommandHandler.cs,**/*RefreshHandler.cs" `
             /d:sonar.cs.opencover.reportsPaths="artifacts/coverage-windows/*.opencover.xml"
         shell: pwsh
 

@@ -2,6 +2,7 @@
 
 using Bible.Alarm.Services.Media.Interfaces;
 using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
@@ -17,6 +18,12 @@ public sealed class TrackNavigatorTests
     {
         public required BiblePublication Publication { get; init; }
 
+        public Dictionary<string, BiblePublication>? PublicationsByCode { get; init; }
+
+        public Func<string, string, (string? CategoryCode, bool IsMusic)?>? CategoryInfoResolver { get; init; }
+
+        public Func<string, string, List<string>>? PublicationCodesInCategoryResolver { get; init; }
+
         public void Dispose()
         {
         }
@@ -26,8 +33,19 @@ public sealed class TrackNavigatorTests
         }
 
         public Task<BiblePublication?> GetByLanguageAndCodeWithTracksAsync(string languageCode, string publicationCode,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult<BiblePublication?>(Publication);
+            CancellationToken cancellationToken = default)
+        {
+            if (PublicationsByCode != null &&
+                PublicationsByCode.TryGetValue(publicationCode, out var mapped))
+            {
+                return Task.FromResult<BiblePublication?>(mapped);
+            }
+
+            return Task.FromResult<BiblePublication?>(
+                string.Equals(Publication.PublicationCode, publicationCode, StringComparison.OrdinalIgnoreCase)
+                    ? Publication
+                    : null);
+        }
 
         public Task<BiblePublication?> GetByLanguageAndCodeWithSectionsAsync(string languageCode, string publicationCode,
             CancellationToken cancellationToken = default) =>
@@ -54,11 +72,11 @@ public sealed class TrackNavigatorTests
 
         public Task<(string? CategoryCode, bool IsMusic)?> GetPublicationCategoryInfoAsync(string languageCode, string publicationCode,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult<(string? CategoryCode, bool IsMusic)?>(null);
+            Task.FromResult(CategoryInfoResolver?.Invoke(languageCode, publicationCode));
 
         public Task<List<string>> GetPublicationCodesInCategoryOrderAsync(string languageCode, string categoryCode,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult(new List<string>());
+            Task.FromResult(PublicationCodesInCategoryResolver?.Invoke(languageCode, categoryCode) ?? []);
     }
 
     private sealed class IdleMediaService : IMediaService
@@ -458,6 +476,243 @@ public sealed class TrackNavigatorTests
         _ = await sut.GetPreviousBiblePublicationTrack("E", pubCode, sectionCode: "10", trackCode: "2");
 
         Assert.Equal(0, countingMedia.TracksFetchCount);
+    }
+
+    [Fact]
+    public async Task GetNextBiblePublicationTrack_flat_wraps_from_last_track_to_first()
+    {
+        var pub = ThreeTrackPublication();
+        var bible = new StubBiblePublicationService { Publication = pub };
+        var sut = new TrackNavigator(new IdleMediaService(), bible, TestLogging.CreateLogger());
+
+        var next = await sut.GetNextBiblePublicationTrack("E", pub.PublicationCode, sectionCode: null, trackCode: "3");
+
+        Assert.Equal("1", next.Track.TrackCode);
+    }
+
+    [Fact]
+    public async Task GetPreviousBiblePublicationTrack_flat_wraps_from_first_track_to_last()
+    {
+        var pub = ThreeTrackPublication();
+        var bible = new StubBiblePublicationService { Publication = pub };
+        var sut = new TrackNavigator(new IdleMediaService(), bible, TestLogging.CreateLogger());
+
+        var prev = await sut.GetPreviousBiblePublicationTrack("E", pub.PublicationCode, sectionCode: null, trackCode: "1");
+
+        Assert.Equal("3", prev.Track.TrackCode);
+    }
+
+    [Fact]
+    public async Task GetNextBiblePublicationTrack_sectioned_resolves_track_code_when_dictionary_key_differs()
+    {
+        var (media, bible, pubCode) = CreateTwoSectionPublicationHarness();
+        media.TracksBySectionCode["10"] = new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer)
+        {
+            ["01"] = new BiblePublicationTrack { TrackCode = "1", Title = "Ten-A" },
+            ["02"] = new BiblePublicationTrack { TrackCode = "2", Title = "Ten-B" },
+        };
+        var sut = new TrackNavigator(media, bible, TestLogging.CreateLogger());
+
+        var next = await sut.GetNextBiblePublicationTrack("E", pubCode, sectionCode: "10", trackCode: "1");
+
+        Assert.Equal("2", next.Track.TrackCode);
+    }
+
+    [Fact]
+    public async Task GetNextBiblePublicationSection_throws_when_no_discovered_sections()
+    {
+        var media = new TwoSectionPublicationMediaService
+        {
+            Sections = new SortedDictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase),
+            TracksBySectionCode = new Dictionary<string, SortedDictionary<string, BiblePublicationTrack>>(StringComparer.OrdinalIgnoreCase),
+        };
+        var bible = new StubBiblePublicationService { Publication = new BiblePublication { PublicationCode = "nwt", Tracks = [] } };
+        var sut = new TrackNavigator(media, bible, TestLogging.CreateLogger());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.GetNextBiblePublicationSection("E", "nwt", sectionCode: "10"));
+    }
+
+    [Fact]
+    public async Task GetPreviousBiblePublicationTrack_sectioned_throws_when_section_not_in_catalog()
+    {
+        var (media, bible, pubCode) = CreateTwoSectionPublicationHarness();
+        var sut = new TrackNavigator(media, bible, TestLogging.CreateLogger());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.GetPreviousBiblePublicationTrack("E", pubCode, sectionCode: "99", trackCode: "1"));
+    }
+
+    [Fact]
+    public async Task GetNextBiblePublicationSection_throws_for_whitespace_section_code()
+    {
+        var (media, bible, pubCode) = CreateTwoSectionPublicationHarness();
+        var sut = new TrackNavigator(media, bible, TestLogging.CreateLogger());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.GetNextBiblePublicationSection("E", pubCode, sectionCode: "   "));
+    }
+
+    [Fact]
+    public async Task GetPreviousBiblePublicationSection_throws_when_section_not_discovered()
+    {
+        var (media, bible, pubCode) = CreateTwoSectionPublicationHarness();
+        var sut = new TrackNavigator(media, bible, TestLogging.CreateLogger());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.GetPreviousBiblePublicationSection("E", pubCode, sectionCode: "99"));
+    }
+
+    [Fact]
+    public async Task GetNextBiblePublicationSection_skips_empty_section_and_returns_next_with_tracks()
+    {
+        var (media, bible, pubCode) = CreateTwoSectionPublicationHarness();
+        var owningPub = media.Sections["10"].BiblePublication!;
+        media.Sections["15"] = new BiblePublicationSection
+        {
+            Id = 3,
+            Name = "Empty",
+            SectionCode = "15",
+            BiblePublicationId = owningPub.Id,
+            BiblePublication = owningPub,
+        };
+        media.TracksBySectionCode["15"] = new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
+        var sut = new TrackNavigator(media, bible, TestLogging.CreateLogger());
+
+        var next = await sut.GetNextBiblePublicationSection("E", pubCode, sectionCode: "10");
+
+        Assert.Equal("20", next.Key);
+    }
+
+    [Fact]
+    public async Task GetNextBiblePublicationTrack_sectioned_throws_when_no_other_section_has_tracks()
+    {
+        var (media, bible, pubCode) = CreateTwoSectionPublicationHarness();
+        media.TracksBySectionCode["20"] = new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
+        var sut = new TrackNavigator(media, bible, TestLogging.CreateLogger());
+
+        // Only one section has tracks: next wraps within that section (circular publication navigation).
+        var next = await sut.GetNextBiblePublicationTrack("E", pubCode, sectionCode: "10", trackCode: "2");
+
+        Assert.Equal(pubCode, next.PublicationCode);
+        Assert.Equal("10", next.Section?.SectionCode);
+        Assert.Equal("1", next.Track.TrackCode);
+    }
+
+    [Fact]
+    public async Task GetPreviousBiblePublicationTrack_sectioned_throws_when_no_other_section_has_tracks()
+    {
+        var (media, bible, pubCode) = CreateTwoSectionPublicationHarness();
+        media.TracksBySectionCode["10"] = new SortedDictionary<string, BiblePublicationTrack>(TrackCodeComparer.Comparer);
+        var sut = new TrackNavigator(media, bible, TestLogging.CreateLogger());
+
+        // Only one section has tracks: previous wraps within that section (circular publication navigation).
+        var prev = await sut.GetPreviousBiblePublicationTrack("E", pubCode, sectionCode: "20", trackCode: "1");
+
+        Assert.Equal(pubCode, prev.PublicationCode);
+        Assert.Equal("20", prev.Section?.SectionCode);
+        Assert.Equal("1", prev.Track.TrackCode);
+    }
+
+    [Fact]
+    public async Task GetNextBiblePublicationSection_returns_adjacent_section_from_middle()
+    {
+        var (media, bible, pubCode) = CreateTwoSectionPublicationHarness();
+        var sut = new TrackNavigator(media, bible, TestLogging.CreateLogger());
+
+        var next = await sut.GetNextBiblePublicationSection("E", pubCode, sectionCode: "10");
+
+        Assert.Equal("20", next.Key);
+        Assert.Equal("20", next.Value.SectionCode);
+    }
+
+    [Fact]
+    public async Task GetPreviousBiblePublicationSection_returns_adjacent_section_from_middle()
+    {
+        var (media, bible, pubCode) = CreateTwoSectionPublicationHarness();
+        var sut = new TrackNavigator(media, bible, TestLogging.CreateLogger());
+
+        var prev = await sut.GetPreviousBiblePublicationSection("E", pubCode, sectionCode: "20");
+
+        Assert.Equal("10", prev.Key);
+        Assert.Equal("10", prev.Value.SectionCode);
+    }
+
+    [Fact]
+    public async Task GetNextBiblePublicationTrack_at_last_section_crosses_to_next_drama_publication()
+    {
+        var (media, _, pubCode) = CreateTwoSectionPublicationHarness();
+        var nextPub = new BiblePublication
+        {
+            PublicationCode = "drama2",
+            Tracks =
+            [
+                new BiblePublicationTrack { TrackCode = "1", Title = "Next-Pub-First" },
+            ],
+        };
+        var bible = new StubBiblePublicationService
+        {
+            Publication = new BiblePublication { PublicationCode = pubCode, Tracks = [] },
+            PublicationsByCode = new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase)
+            {
+                [pubCode] = new BiblePublication { PublicationCode = pubCode, Tracks = [] },
+                [nextPub.PublicationCode] = nextPub,
+            },
+            CategoryInfoResolver = (_, code) =>
+                (AppConstants.Media.BiblePublicationCategoryDramas, IsMusic: false),
+            PublicationCodesInCategoryResolver = (_, _) => [pubCode, nextPub.PublicationCode],
+        };
+        var sut = new TrackNavigator(media, bible, TestLogging.CreateLogger());
+
+        var next = await sut.GetNextBiblePublicationTrack("E", pubCode, sectionCode: "20", trackCode: "1");
+
+        Assert.Equal(nextPub.PublicationCode, next.PublicationCode);
+        Assert.Null(next.Section);
+        Assert.Equal("1", next.Track.TrackCode);
+    }
+
+    [Fact]
+    public async Task GetPreviousBiblePublicationTrack_at_first_section_crosses_to_previous_drama_publication()
+    {
+        var (media, _, pubCode) = CreateTwoSectionPublicationHarness();
+        var prevPub = new BiblePublication
+        {
+            PublicationCode = "drama0",
+            Tracks =
+            [
+                new BiblePublicationTrack { TrackCode = "9", Title = "Prev-Pub-Last" },
+            ],
+        };
+        var bible = new StubBiblePublicationService
+        {
+            Publication = new BiblePublication { PublicationCode = pubCode, Tracks = [] },
+            PublicationsByCode = new Dictionary<string, BiblePublication>(StringComparer.OrdinalIgnoreCase)
+            {
+                [pubCode] = new BiblePublication { PublicationCode = pubCode, Tracks = [] },
+                [prevPub.PublicationCode] = prevPub,
+            },
+            CategoryInfoResolver = (_, code) =>
+                (AppConstants.Media.BiblePublicationCategoryDramas, IsMusic: false),
+            PublicationCodesInCategoryResolver = (_, _) => [prevPub.PublicationCode, pubCode],
+        };
+        var sut = new TrackNavigator(media, bible, TestLogging.CreateLogger());
+
+        var prev = await sut.GetPreviousBiblePublicationTrack("E", pubCode, sectionCode: "10", trackCode: "1");
+
+        Assert.Equal(prevPub.PublicationCode, prev.PublicationCode);
+        Assert.Null(prev.Section);
+        Assert.Equal("9", prev.Track.TrackCode);
+    }
+
+    [Fact]
+    public async Task GetNextBiblePublicationTrack_flat_throws_when_track_code_missing()
+    {
+        var pub = ThreeTrackPublication();
+        var bible = new StubBiblePublicationService { Publication = pub };
+        var sut = new TrackNavigator(new IdleMediaService(), bible, TestLogging.CreateLogger());
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            sut.GetNextBiblePublicationTrack("E", pub.PublicationCode, sectionCode: null, trackCode: "missing"));
     }
 
     private sealed class CountingSectionMediaService(TwoSectionPublicationMediaService inner) : IMediaService

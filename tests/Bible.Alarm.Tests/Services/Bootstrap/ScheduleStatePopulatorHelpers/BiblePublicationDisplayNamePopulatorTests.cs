@@ -244,4 +244,49 @@ public sealed class BiblePublicationDisplayNamePopulatorTests
         Assert.Equal("Bible", state.BiblePublicationCategoryName);
         Assert.False(state.BiblePublicationIsMusic);
     }
+
+    [Fact]
+    public void Populate_LanguageBoundFlatPublication_maps_track_title_and_category()
+    {
+        var bible = new BiblePublicationSchedule
+        {
+            PublicationCode = AppConstants.Media.MediatorPublicationCodeVODBibleTeachings,
+            LanguageCode = "E",
+            SectionCode = null,
+            TrackCode = "10",
+        };
+        var schedule = WithBibleSchedule(bible);
+        var category = new Category { CategoryCode = "Video" };
+        var publication = new BiblePublication
+        {
+            Name = "Bible Teachings",
+            PublicationCode = AppConstants.Media.MediatorPublicationCodeVODBibleTeachings,
+            IsMusic = false,
+            BiblePublicationCategories = [new BiblePublicationCategory { Category = category, CategoryId = 2 }],
+            Tracks =
+            [
+                new BiblePublicationTrack { TrackCode = "10", Title = "Teaching Ten" },
+            ],
+        };
+
+        var lookup = LookupTestData.EmptyLookup() with
+        {
+            Publications = new Dictionary<(string LanguageCode, string PublicationCode), BiblePublication>(
+                PublicationLookupKeyComparers.LanguagePublication.Instance)
+            {
+                [("E", AppConstants.Media.MediatorPublicationCodeVODBibleTeachings)] = publication,
+            },
+        };
+        var languagesDict = new Dictionary<string, Language>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["E"] = new Language { LanguageCode = "E", Direction = AppConstants.Media.TextDirectionLeftToRight },
+        };
+
+        var state = new ScheduleStateItem();
+        BiblePublicationDisplayNamePopulator.Populate(schedule, state, lookup, languagesDict);
+
+        Assert.Equal("Bible Teachings", state.BiblePublicationName);
+        Assert.Equal("Teaching Ten", state.BiblePublicationTrackTitle);
+        Assert.Equal("Video", state.BiblePublicationCategoryName);
+    }
 }

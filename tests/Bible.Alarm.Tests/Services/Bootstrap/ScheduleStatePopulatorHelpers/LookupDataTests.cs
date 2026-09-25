@@ -28,4 +28,27 @@ public sealed class LookupDataTests
         Assert.Empty(sut.Publications);
         Assert.Empty(sut.MelodyReleases);
     }
+
+    [Fact]
+    public void LookupData_exposes_assigned_no_language_publication_meta()
+    {
+        var meta = new LookupDataLoader.NoLanguagePublicationMeta("Kingdom Melodies", 9, "Music", true);
+        var sut = new LookupDataLoader.LookupData(
+            new Dictionary<(string LanguageCode, string PublicationCode), BiblePublication>(),
+            new Dictionary<(string LanguageCode, string PublicationCode, string SectionCode), string>(),
+            new Dictionary<string, LookupDataLoader.NoLanguagePublicationMeta>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["iam"] = meta,
+            },
+            new Dictionary<(string PublicationCode, string SectionCode), string>(),
+            new Dictionary<(string PublicationCode, string? SectionCode, string TrackCode), string>(),
+            new Dictionary<string, Language>(),
+            new Dictionary<(string LanguageCode, string PublicationCode), VocalMusic>(),
+            new Dictionary<(string LanguageCode, string PublicationCode), SortedDictionary<int, MusicTrack>>(),
+            new Dictionary<string, SortedDictionary<int, MusicTrack>>(),
+            new Dictionary<(string PublicationCode, string SectionCode), SortedDictionary<int, MusicTrack>>(),
+            new Dictionary<string, MelodyMusic>());
+
+        Assert.Same(meta, sut.NoLanguagePublications["iam"]);
+    }
 }

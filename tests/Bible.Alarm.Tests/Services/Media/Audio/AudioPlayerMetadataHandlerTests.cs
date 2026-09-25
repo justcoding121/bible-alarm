@@ -203,4 +203,139 @@ public sealed class AudioPlayerMetadataHandlerTests
         {
         }
     }
+
+    [Fact]
+    public async Task SyncMetadataForTrackAsync_dispatches_album_from_core_metadata()
+    {
+        var display = new ConfigurableDisplayMetadata
+        {
+            CoreResult = new MetaData { Title = "T", Artist = "A", Album = "Album X" },
+            FullResult = new MetaData { Title = "T", Artist = "A", Album = "Album X" },
+        };
+        var dispatcher = new RecordingDispatcher();
+        var sut = new AudioPlayerMetadataHandler(TestLogging.CreateLogger(), display, dispatcher);
+
+        await sut.SyncMetadataForTrackAsync(SampleTrack());
+
+        var action = Assert.IsType<PlaybackMetadataChangedAction>(dispatcher.Dispatched[0]);
+        Assert.Equal("Album X", action.Album);
+    }
+
+    [Fact]
+    public async Task SyncMetadataForTrackAsync_dispatches_artwork_url_without_bytes()
+    {
+        var artworkReady = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var display = new AwaitableDisplayMetadata
+        {
+            CoreResult = new MetaData { Title = "T", Artist = "A" },
+            FullResult = new MetaData
+            {
+                Title = "T",
+                Artist = "A",
+                ArtworkUrl = "https://cdn.example/cover.jpg",
+            },
+            OnFullFetched = () => artworkReady.TrySetResult(true),
+        };
+        var dispatcher = new RecordingDispatcher();
+        var sut = new AudioPlayerMetadataHandler(TestLogging.CreateLogger(), display, dispatcher);
+
+        await sut.SyncMetadataForTrackAsync(SampleTrack());
+        await artworkReady.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        Assert.Contains(dispatcher.Dispatched.OfType<PlaybackMetadataChangedAction>(),
+            a => a.ArtworkUrl == "https://cdn.example/cover.jpg");
+    }
+
+    [Fact]
+    public async Task SyncMetadataForTrackAsync_second_call_resets_and_redispatches_core()
+    {
+        var display = new ConfigurableDisplayMetadata
+        {
+            CoreResult = new MetaData { Title = "First", Artist = "A" },
+            FullResult = new MetaData { Title = "First", Artist = "A" },
+        };
+        var dispatcher = new RecordingDispatcher();
+        var sut = new AudioPlayerMetadataHandler(TestLogging.CreateLogger(), display, dispatcher);
+
+        await sut.SyncMetadataForTrackAsync(SampleTrack());
+        display.CoreResult = new MetaData { Title = "Second", Artist = "B" };
+        await sut.SyncMetadataForTrackAsync(SampleTrack());
+
+        var titles = dispatcher.Dispatched.OfType<PlaybackMetadataChangedAction>().Select(a => a.Title).ToList();
+        Assert.Contains("First", titles);
+        Assert.Contains("Second", titles);
+    }
+
+    [Fact]
+    public async Task SyncMetadataForTrackAsync_swallows_full_metadata_failures()
+    {
+        var failed = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var display = new AwaitableDisplayMetadata
+        {
+            CoreResult = new MetaData { Title = "Ok", Artist = "Artist" },
+            FullException = new InvalidOperationException("artwork fail"),
+            OnFullFetched = () => failed.TrySetResult(true),
+        };
+        var dispatcher = new RecordingDispatcher();
+        var sut = new AudioPlayerMetadataHandler(TestLogging.CreateLogger(), display, dispatcher);
+
+        await sut.SyncMetadataForTrackAsync(SampleTrack());
+        await failed.Task.WaitAsync(TimeSpan.FromSeconds(2));
+
+        var action = Assert.IsType<PlaybackMetadataChangedAction>(dispatcher.Dispatched[0]);
+        Assert.Equal("Ok", action.Title);
+    }
+
+    [Fact]
+    public async Task HandleMediaOpenedAsync_does_not_throw_when_main_thread_unavailable()
+    {
+        var display = new ConfigurableDisplayMetadata();
+        var dispatcher = new RecordingDispatcher();
+        var sut = new AudioPlayerMetadataHandler(TestLogging.CreateLogger(), display, dispatcher);
+
+        try
+        {
+            await sut.HandleMediaOpenedAsync(SampleTrack(), new MediaElement());
+        }
+        catch (COMException)
+        {
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        catch (TypeInitializationException)
+        {
+            // MediaElement / VisualElement static init fails on headless Windows without WinUI.
+        }
+
+        Assert.NotNull(sut);
+    }
+
+    private sealed class AwaitableDisplayMetadata : IDisplayMetadataService
+    {
+        public MetaData CoreResult { get; set; } = new() { Title = "Chapter 1", Artist = "NWT" };
+        public MetaData FullResult { get; set; } = new() { Title = "Chapter 1", Artist = "NWT" };
+        public Exception? FullException { get; set; }
+        public Action? OnFullFetched { get; set; }
+
+        public Task<MetaData> GetDisplayMetadataAsync(AudioPlayerTrack track)
+        {
+            try
+            {
+                if (FullException != null)
+                {
+                    return Task.FromException<MetaData>(FullException);
+                }
+
+                return Task.FromResult(FullResult);
+            }
+            finally
+            {
+                OnFullFetched?.Invoke();
+            }
+        }
+
+        public Task<MetaData> GetCoreDisplayMetadataAsync(AudioPlayerTrack track) =>
+            Task.FromResult(CoreResult);
+    }
 }

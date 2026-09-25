@@ -176,6 +176,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
         using var scope = scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<MediaDbContext>();
 
+        var normalizedLanguageCode = languageCode.ToUpperInvariant();
         var pub = await dbContext.BiblePublications
             .AsNoTracking()
             .Include(x => x.Language)
@@ -183,7 +184,7 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
                 .ThenInclude(s => s.Tracks)
             .Where(x => x.PublicationCode == publicationCode &&
                        x.Language != null &&
-                       string.Equals(x.Language.LanguageCode, languageCode, StringComparison.OrdinalIgnoreCase))
+                       x.Language.LanguageCode == normalizedLanguageCode)
             .FirstOrDefaultAsync();
 
         var tracks = QueryTracksFromPublicationForLanguage(pub, firstSection, publicationCode, languageCode);
@@ -351,16 +352,18 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
                 return false;
             }
 
-            // Get first section code from SectionLanguages
-            var firstSectionCode = await db.SectionLanguages
+            // Get first section code from SectionLanguages (comparer must run in-memory; EF cannot translate it)
+            var sectionCodes = await db.SectionLanguages
                 .AsNoTracking()
                 .Include(sl => sl.Language)
                 .Where(sl => sl.PublicationCode == publicationCodeForDb &&
                            sl.Language != null &&
                            sl.Language.LanguageCode == normalizedLanguageCode)
-                .OrderBy(sl => sl.SectionCode, SectionCodeHelper.SectionCodeComparer)
                 .Select(sl => sl.SectionCode)
-                .FirstOrDefaultAsync();
+                .ToListAsync();
+            var firstSectionCode = sectionCodes
+                .OrderBy(code => code, SectionCodeHelper.SectionCodeComparer)
+                .FirstOrDefault();
 
             if (string.IsNullOrEmpty(firstSectionCode))
             {

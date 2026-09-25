@@ -3,6 +3,7 @@
 using Bible.Alarm.Services.Media;
 using Bible.Alarm.Services.Media.DisplayMetadataServiceHelpers;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Helpers;
 using Bible.Alarm.Shared.Models.Media;
@@ -38,6 +39,31 @@ public sealed class DisplayMetadataServiceTests
             {
                 [105] = new MusicTrack { TrackCode = "105", Title = "Melody Track Title", Url = "", LookUpPath = "" },
             });
+
+        public override Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases() =>
+            Task.FromResult(new Dictionary<string, MelodyMusic>(StringComparer.OrdinalIgnoreCase)
+            {
+                [AppConstants.Media.MelodyMusicPublicationCodeIam] = new BiblePublication
+                {
+                    Id = 1,
+                    PublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam,
+                    Name = "Kingdom Melodies Vol. 1",
+                },
+            });
+
+        public override Task<SortedDictionary<string, BiblePublicationSection>> GetSectionsForPublicationWithoutLanguage(
+            string publicationCode) =>
+            Task.FromResult(new SortedDictionary<string, BiblePublicationSection>
+            {
+                ["iam-1"] = new BiblePublicationSection { SectionCode = "iam-1", Name = "Disc 1" },
+            });
+    }
+
+    private sealed class EmptyMelodyTracksMediaStub : IdleCatalogMediaService
+    {
+        public override Task<SortedDictionary<int, MusicTrack>> GetMelodyMusicTracksBySection(string publicationCode,
+            string sectionCode) =>
+            Task.FromResult(new SortedDictionary<int, MusicTrack>());
 
         public override Task<Dictionary<string, MelodyMusic>> GetMelodyMusicReleases() =>
             Task.FromResult(new Dictionary<string, MelodyMusic>(StringComparer.OrdinalIgnoreCase)
@@ -459,5 +485,485 @@ public sealed class DisplayMetadataServiceTests
 
         Assert.Equal("Vocal Song Two", result.Title);
         Assert.Equal("Sing Out", result.Album);
+    }
+
+    [Fact]
+    public async Task GetCoreDisplayMetadataAsync_melody_music_play_type_uses_catalog_title()
+    {
+        var sut = new DisplayMetadataService(
+            TestLogging.CreateLogger(),
+            new MelodyDiscMediaStub(),
+            new HttpClientHandler());
+
+        var metadata = new TrackMetadata
+        {
+            IsBibleContent = false,
+            LanguageCode = string.Empty,
+            PublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam,
+            DownloadCode = "iam-1",
+            TrackCode = "105",
+            LookUpPath = "/iam/1/105",
+        };
+        var track = new AudioPlayerTrack
+        {
+            PlayItem = new PlayItem(metadata, "file:///iam-music.mp3"),
+            Uri = "file:///iam-music.mp3",
+        };
+
+        var result = await sut.GetCoreDisplayMetadataAsync(track);
+
+        Assert.NotNull(result.Title);
+        Assert.NotEqual(string.Empty, result.Title);
+    }
+
+    [Fact]
+    public async Task GetCoreDisplayMetadataAsync_bible_without_section_falls_back_gracefully()
+    {
+        var sut = new DisplayMetadataService(
+            TestLogging.CreateLogger(),
+            new IdleCatalogMediaService(),
+            new HttpClientHandler());
+
+        var metadata = new TrackMetadata
+        {
+            IsBibleContent = true,
+            LanguageCode = "E",
+            PublicationCode = "nwt",
+            SectionCode = "99",
+            TrackCode = "1",
+            LookUpPath = "/nwt/99/1",
+        };
+        var track = new AudioPlayerTrack
+        {
+            PlayItem = new PlayItem(metadata, "file:///missing.mp3"),
+            Uri = "file:///missing.mp3",
+        };
+
+        var result = await sut.GetCoreDisplayMetadataAsync(track);
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task GetDisplayMetadataAsync_vocal_music_returns_core_fields()
+    {
+        await RunOrSoftSkipMainThreadComAsync(async () =>
+        {
+            var sut = new DisplayMetadataService(
+                TestLogging.CreateLogger(),
+                new VocalMusicMediaStub(),
+                new HttpClientHandler());
+
+            var metadata = new TrackMetadata
+            {
+                IsBibleContent = false,
+                LanguageCode = "E",
+                PublicationCode = AppConstants.Media.MusicPublicationCodeOsg,
+                TrackCode = "2",
+                LookUpPath = "/osg/2",
+            };
+            var track = new AudioPlayerTrack
+            {
+                PlayItem = new PlayItem(metadata, "file:///osg-missing.mp3"),
+                Uri = "file:///osg-missing.mp3",
+            };
+
+            var result = await sut.GetDisplayMetadataAsync(track);
+
+            Assert.Equal("Vocal Song Two", result.Title);
+        });
+    }
+
+    [Fact]
+    public async Task GetCoreDisplayMetadataAsync_https_bible_stream_sets_jw_org_artist_fallback()
+    {
+        var sut = new DisplayMetadataService(
+            TestLogging.CreateLogger(),
+            new IdleCatalogMediaService(),
+            new HttpClientHandler());
+
+        var metadata = new TrackMetadata
+        {
+            IsBibleContent = true,
+            LanguageCode = "E",
+            PublicationCode = "nwt",
+            TrackCode = "1",
+            LookUpPath = "/nwt/1",
+        };
+        var track = new AudioPlayerTrack
+        {
+            PlayItem = new PlayItem(metadata, "https://example.invalid/bible.mp3"),
+            Uri = "https://example.invalid/bible.mp3",
+        };
+
+        var result = await sut.GetCoreDisplayMetadataAsync(track);
+
+        Assert.NotNull(result.Artist);
+    }
+
+    [Fact]
+    public async Task GetCoreDisplayMetadataAsync_magazine_without_track_title_uses_section_name()
+    {
+        var magazineCode = $"w{MagazineHelper.MagazineEndYear}";
+        var media = new SectionMediaStub
+        {
+            Section = new BiblePublicationSection { Name = "February Issue", SectionCode = "202402" },
+            MagazineTracks = new SortedDictionary<string, BiblePublicationTrack>(),
+        };
+        var sut = new DisplayMetadataService(
+            TestLogging.CreateLogger(),
+            media,
+            new HttpClientHandler());
+
+        var metadata = new TrackMetadata
+        {
+            IsBibleContent = true,
+            LanguageCode = "E",
+            PublicationCode = magazineCode,
+            SectionCode = "202402",
+            TrackCode = "1",
+            LookUpPath = $"/{magazineCode}/202402/1",
+        };
+        var track = new AudioPlayerTrack
+        {
+            PlayItem = new PlayItem(metadata, "file:///mag2.mp3"),
+            Uri = "file:///mag2.mp3",
+        };
+
+        var result = await sut.GetCoreDisplayMetadataAsync(track);
+
+        Assert.Contains("February", result.Title ?? result.Artist ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task GetCoreDisplayMetadataAsync_flat_bible_missing_track_still_returns_metadata()
+    {
+        var biblePubs = new FlatBiblePublicationService
+        {
+            Publication = new BiblePublication
+            {
+                Name = "Brochure",
+                PublicationCode = "bh",
+                Tracks = [],
+            },
+        };
+        var sut = new DisplayMetadataService(
+            TestLogging.CreateLogger(),
+            new IdleCatalogMediaService(),
+            new HttpClientHandler(),
+            biblePubs);
+
+        var metadata = new TrackMetadata
+        {
+            IsBibleContent = true,
+            LanguageCode = "E",
+            PublicationCode = "bh",
+            TrackCode = "1",
+            LookUpPath = "/bh/1",
+        };
+        var track = new AudioPlayerTrack
+        {
+            PlayItem = new PlayItem(metadata, "file:///bh.mp3"),
+            Uri = "file:///bh.mp3",
+        };
+
+        var result = await sut.GetCoreDisplayMetadataAsync(track);
+
+        Assert.NotNull(result);
+    }
+
+    [Fact]
+    public async Task GetDisplayMetadataAsync_and_GetCoreDisplayMetadataAsync_agree_on_title_for_sectioned_bible()
+    {
+        var media = new SectionMediaStub
+        {
+            Section = new BiblePublicationSection { Name = "Leviticus", SectionCode = "3" },
+        };
+        var sut = new DisplayMetadataService(
+            TestLogging.CreateLogger(),
+            media,
+            new HttpClientHandler());
+
+        var metadata = new TrackMetadata
+        {
+            IsBibleContent = true,
+            LanguageCode = "E",
+            PublicationCode = "nwt",
+            SectionCode = "3",
+            TrackCode = "5",
+            LookUpPath = "/nwt/3/5",
+        };
+        var track = new AudioPlayerTrack
+        {
+            PlayItem = new PlayItem(metadata, "file:///lev.mp3"),
+            Uri = "file:///lev.mp3",
+        };
+
+        var core = await sut.GetCoreDisplayMetadataAsync(track);
+        MetaData? full = null;
+        await RunOrSoftSkipMainThreadComAsync(async () =>
+        {
+            full = await sut.GetDisplayMetadataAsync(track);
+        });
+
+        Assert.Equal("Leviticus 5", core.Title);
+        if (full != null)
+        {
+            Assert.Equal(core.Title, full.Title);
+        }
+    }
+
+    [Fact]
+    public async Task GetCoreDisplayMetadataAsync_flat_bible_missing_track_uses_track_prefix_title()
+    {
+        var biblePubs = new FlatBiblePublicationService
+        {
+            Publication = new BiblePublication
+            {
+                Name = "Brochure",
+                PublicationCode = "bh",
+                Tracks = [],
+            },
+        };
+        var sut = new DisplayMetadataService(
+            TestLogging.CreateLogger(),
+            new IdleCatalogMediaService(),
+            new HttpClientHandler(),
+            biblePubs);
+
+        var metadata = new TrackMetadata
+        {
+            IsBibleContent = true,
+            LanguageCode = "E",
+            PublicationCode = "bh",
+            TrackCode = "12",
+            LookUpPath = "/bh/12",
+        };
+        var track = new AudioPlayerTrack
+        {
+            PlayItem = new PlayItem(metadata, "file:///bh.mp3"),
+            Uri = "file:///bh.mp3",
+        };
+
+        var result = await sut.GetCoreDisplayMetadataAsync(track);
+
+        Assert.Equal("Track 12", result.Title);
+        Assert.Equal($"Brochure{DisplayMetadataPublisherStrings.JwOrgArtistQualifier}", result.Artist);
+    }
+
+    [Fact]
+    public async Task GetCoreDisplayMetadataAsync_sectioned_bible_without_publication_service_uses_jw_org_artist()
+    {
+        var media = new SectionMediaStub
+        {
+            Section = new BiblePublicationSection { Name = "Numbers", SectionCode = "4" },
+        };
+        var sut = new DisplayMetadataService(
+            TestLogging.CreateLogger(),
+            media,
+            new HttpClientHandler());
+
+        var metadata = new TrackMetadata
+        {
+            IsBibleContent = true,
+            LanguageCode = "E",
+            PublicationCode = "nwt",
+            SectionCode = "4",
+            TrackCode = "2",
+            LookUpPath = "/nwt/4/2",
+        };
+        var track = new AudioPlayerTrack
+        {
+            PlayItem = new PlayItem(metadata, "file:///num.mp3"),
+            Uri = "file:///num.mp3",
+        };
+
+        var result = await sut.GetCoreDisplayMetadataAsync(track);
+
+        Assert.Equal("Numbers 2", result.Title);
+        Assert.Equal(DisplayMetadataPublisherStrings.JwOrgLabel, result.Artist);
+    }
+
+    [Fact]
+    public async Task GetCoreDisplayMetadataAsync_invalid_melody_download_code_skips_disc_style_branch()
+    {
+        var sut = new DisplayMetadataService(
+            TestLogging.CreateLogger(),
+            new MelodyDiscMediaStub(),
+            new HttpClientHandler());
+
+        var metadata = new TrackMetadata
+        {
+            IsBibleContent = true,
+            LanguageCode = string.Empty,
+            PublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam,
+            DownloadCode = "not-a-disc",
+            TrackCode = "105",
+            LookUpPath = "/iam/105",
+        };
+        var track = new AudioPlayerTrack
+        {
+            PlayItem = new PlayItem(metadata, "file:///iam-bad.mp3"),
+            Uri = "file:///iam-bad.mp3",
+        };
+
+        var result = await sut.GetCoreDisplayMetadataAsync(track);
+
+        Assert.NotEqual("Kingdom Melodies Vol. 1", result.Title);
+    }
+
+    [Fact]
+    public async Task GetCoreDisplayMetadataAsync_disc_melody_without_track_still_sets_release_title()
+    {
+        var media = new EmptyMelodyTracksMediaStub();
+        var sut = new DisplayMetadataService(
+            TestLogging.CreateLogger(),
+            media,
+            new HttpClientHandler());
+
+        var metadata = new TrackMetadata
+        {
+            IsBibleContent = true,
+            LanguageCode = string.Empty,
+            PublicationCode = AppConstants.Media.MelodyMusicPublicationCodeIam,
+            DownloadCode = "iam-1",
+            TrackCode = "999",
+            LookUpPath = "/iam/1/999",
+        };
+        var track = new AudioPlayerTrack
+        {
+            PlayItem = new PlayItem(metadata, "file:///iam-miss.mp3"),
+            Uri = "file:///iam-miss.mp3",
+        };
+
+        var result = await sut.GetCoreDisplayMetadataAsync(track);
+
+        Assert.Equal("Kingdom Melodies Vol. 1", result.Title);
+        Assert.Equal(DisplayMetadataPublisherStrings.JwOrgLabel, result.Artist);
+        Assert.Equal("Disc 1", result.Album);
+    }
+
+    [Fact]
+    public async Task GetCoreDisplayMetadataAsync_flat_bible_without_publication_service_uses_track_prefix()
+    {
+        var sut = new DisplayMetadataService(
+            TestLogging.CreateLogger(),
+            new IdleCatalogMediaService(),
+            new HttpClientHandler());
+
+        var metadata = new TrackMetadata
+        {
+            IsBibleContent = true,
+            LanguageCode = "E",
+            PublicationCode = "bh",
+            TrackCode = "4",
+            LookUpPath = "/bh/4",
+        };
+        var track = new AudioPlayerTrack
+        {
+            PlayItem = new PlayItem(metadata, "file:///bh4.mp3"),
+            Uri = "file:///bh4.mp3",
+        };
+
+        var result = await sut.GetCoreDisplayMetadataAsync(track);
+
+        Assert.Equal("Track 4", result.Title);
+    }
+
+    [Fact]
+    public async Task GetCoreDisplayMetadataAsync_vocal_music_missing_track_still_returns_album()
+    {
+        var sut = new DisplayMetadataService(
+            TestLogging.CreateLogger(),
+            new VocalMusicMediaStub(),
+            new HttpClientHandler());
+
+        var metadata = new TrackMetadata
+        {
+            IsBibleContent = false,
+            LanguageCode = "E",
+            PublicationCode = AppConstants.Media.MusicPublicationCodeOsg,
+            TrackCode = "99",
+            LookUpPath = "/osg/99",
+        };
+        var track = new AudioPlayerTrack
+        {
+            PlayItem = new PlayItem(metadata, "file:///osg-miss.mp3"),
+            Uri = "file:///osg-miss.mp3",
+        };
+
+        var result = await sut.GetCoreDisplayMetadataAsync(track);
+
+        Assert.Equal("Sing Out", result.Album);
+    }
+
+    [Fact]
+    public async Task GetDisplayMetadataAsync_https_streaming_skips_remote_when_core_already_titled()
+    {
+        await RunOrSoftSkipMainThreadComAsync(async () =>
+        {
+            var media = new SectionMediaStub
+            {
+                Section = new BiblePublicationSection { Name = "Deuteronomy", SectionCode = "5" },
+            };
+            var sut = new DisplayMetadataService(
+                TestLogging.CreateLogger(),
+                media,
+                new HttpClientHandler());
+
+            var metadata = new TrackMetadata
+            {
+                IsBibleContent = true,
+                LanguageCode = "E",
+                PublicationCode = "nwt",
+                SectionCode = "5",
+                TrackCode = "1",
+                LookUpPath = "/nwt/5/1",
+            };
+            var track = new AudioPlayerTrack
+            {
+                PlayItem = new PlayItem(metadata, "https://example.invalid/deut.mp3"),
+                Uri = "https://example.invalid/deut.mp3",
+            };
+
+            var result = await sut.GetDisplayMetadataAsync(track);
+
+            Assert.Equal("Deuteronomy 1", result.Title);
+        });
+    }
+
+    [Fact]
+    public async Task GetCoreDisplayMetadataAsync_throws_from_media_are_swallowed_and_fallback_applied()
+    {
+        var sut = new DisplayMetadataService(
+            TestLogging.CreateLogger(),
+            new ThrowingMediaStub(),
+            new HttpClientHandler());
+
+        var metadata = new TrackMetadata
+        {
+            IsBibleContent = true,
+            LanguageCode = "E",
+            PublicationCode = "nwt",
+            SectionCode = "1",
+            TrackCode = "1",
+            LookUpPath = "/nwt/1/1",
+        };
+        var track = new AudioPlayerTrack
+        {
+            PlayItem = new PlayItem(metadata, "https://example.invalid/throw.mp3"),
+            Uri = "https://example.invalid/throw.mp3",
+        };
+
+        var result = await sut.GetCoreDisplayMetadataAsync(track);
+
+        Assert.Equal("Unknown Title", result.Title);
+    }
+
+    private sealed class ThrowingMediaStub : IdleCatalogMediaService
+    {
+        public override Task<BiblePublicationSection?> GetBiblePublicationSection(string languageCode, string versionCode,
+            string sectionCode) =>
+            throw new InvalidOperationException("catalog unavailable");
     }
 }

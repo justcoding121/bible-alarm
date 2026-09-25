@@ -235,6 +235,45 @@ public sealed class BiblePublicationSelectionContainerViewModelTests
     }
 
     [Fact]
+    public void OnStateChanged_updates_publication_display_when_publication_name_changes()
+    {
+        if (!MauiUiTestBootstrap.IsReady)
+        {
+            return;
+        }
+
+        var schedule = CreateBibleSchedule();
+        var appState = new ViewModelTestDoubles.MutableApplicationState(
+            new ApplicationState(new ObservableHashSet<ScheduleStateItem>(), schedule));
+        using var sut = CreateSut(appState, currentSchedule: schedule);
+        sut.SetScheduleId(schedule.Id, isNewSchedule: false);
+
+        try
+        {
+            schedule.BiblePublicationName = "Study Bible";
+            schedule.BiblePublicationCode = "nwtsty";
+            appState.NotifyChanged();
+            if (!MauiUiTestHostHelper.FlushMainThreadAsync().GetAwaiter().GetResult())
+            {
+                return;
+            }
+
+            Assert.Equal("Study Bible", sut.PublicationDisplayText);
+        }
+        catch (COMException)
+        {
+        }
+    }
+
+    [Fact]
+    public void IsSectionVisible_reflects_sectioned_publication_in_schedule()
+    {
+        using var sut = CreateSut(currentSchedule: CreateBibleSchedule());
+
+        Assert.True(sut.IsSectionVisible);
+    }
+
+    [Fact]
     public void OnStateChanged_updates_section_display_when_section_name_changes()
     {
         if (!MauiUiTestBootstrap.IsReady)

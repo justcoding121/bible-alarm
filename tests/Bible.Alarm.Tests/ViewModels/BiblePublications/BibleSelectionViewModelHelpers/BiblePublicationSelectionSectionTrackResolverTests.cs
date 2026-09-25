@@ -298,6 +298,112 @@ public sealed class BiblePublicationSelectionSectionTrackResolverTests
         Assert.Equal("Scene 3", result.TrackTitle);
     }
 
+    [Fact]
+    public async Task GetFirstSectionAndTrackFromSectionsAsync_returns_first_track_for_language_bound_publication_in_db()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var init = new MediaDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        await using (var seed = new MediaDbContext(options))
+        {
+            var language = new Language { LanguageCode = "E", Id = 0 };
+            var publication = new BiblePublication
+            {
+                Name = "NWT",
+                PublicationCode = "nwt",
+                Language = language,
+                IsVideo = false,
+                IsMusic = false,
+            };
+            var section = new BiblePublicationSection
+            {
+                Name = "Genesis",
+                SectionCode = "1",
+                BiblePublication = publication,
+            };
+            publication.Sections.Add(section);
+            section.Tracks.Add(new BiblePublicationTrack
+            {
+                TrackCode = "1",
+                Title = "Genesis 1",
+                Section = section,
+                Publication = publication,
+            });
+            seed.BiblePublications.Add(publication);
+            await seed.SaveChangesAsync();
+        }
+
+        var sections = new SortedDictionary<string, BiblePublicationSection>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["1"] = new BiblePublicationSection { SectionCode = "1", Name = "Genesis" },
+        };
+
+        var sut = new BiblePublicationSelectionSectionTrackResolver(
+            new StubMedia(),
+            new MediaTestScopeFactory(options),
+            biblePublicationService: null,
+            languageContentService: null);
+
+        var result = await sut.GetFirstSectionAndTrackFromSectionsAsync("E", "nwt", sections);
+
+        Assert.Equal("1", result.SectionCode);
+        Assert.Equal("1", result.TrackCode);
+        Assert.Equal("Genesis", result.SectionName);
+        Assert.Equal("Genesis 1", result.TrackTitle);
+    }
+
+    [Fact]
+    public async Task CheckIfPublicationWithFirstSectionCatalogedAsync_returns_true_for_flat_publication_with_tracks()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<MediaDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var init = new MediaDbContext(options))
+        {
+            await init.Database.EnsureCreatedAsync();
+        }
+
+        await using (var seed = new MediaDbContext(options))
+        {
+            var language = new Language { LanguageCode = "E", Id = 0 };
+            var publication = new BiblePublication
+            {
+                Name = "Drama",
+                PublicationCode = "sjjc",
+                Language = language,
+                IsVideo = false,
+                IsMusic = false,
+            };
+            publication.Tracks.Add(new BiblePublicationTrack
+            {
+                TrackCode = "1",
+                Title = "Scene 1",
+                Publication = publication,
+            });
+            seed.BiblePublications.Add(publication);
+            await seed.SaveChangesAsync();
+        }
+
+        var sut = new BiblePublicationSelectionSectionTrackResolver(
+            new StubMedia(),
+            new MediaTestScopeFactory(options),
+            biblePublicationService: null,
+            languageContentService: null);
+
+        Assert.True(await sut.CheckIfPublicationWithFirstSectionCatalogedAsync("sjjc", "E"));
+    }
+
     private sealed class FlatTrackBiblePublicationService : IBiblePublicationService
     {
         public void Dispose()

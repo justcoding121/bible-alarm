@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Reflection;
 using AutoMapper;
 using Bible.Alarm.Common.Extensions;
 using Bible.Alarm.Services.Media.Interfaces;
@@ -336,6 +337,24 @@ public sealed class ScheduleEffectsTests
             NotificationEnabled = true,
             MusicEnabled = false,
         };
+
+    private static ScheduleEffectsOptionalDeps CreateFullOptionalDeps(
+        IState<ApplicationState>? state = null,
+        IScheduleDisplayNameService? scheduleDisplayNameService = null,
+        IAlarmScheduleService? alarmScheduleService = null) =>
+        new(
+            AlarmScheduleService: alarmScheduleService ?? new IdleAlarmScheduleService(),
+            AlarmService: new IdleAlarmService(),
+            MediaCacheService: new IdleMediaCacheService(),
+            State: state ?? new FakeApplicationState(new ApplicationState([])),
+            ScheduleDisplayNameService: scheduleDisplayNameService ?? new IdleScheduleDisplayNameService());
+
+    private static void ClearAlarmScheduleService(ScheduleEffects sut)
+    {
+        typeof(ScheduleEffects).GetField(
+            "alarmScheduleService",
+            BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(sut, null);
+    }
 
     [Fact]
     public async Task HandleMusicSectionSelected_returns_without_dispatching_when_current_schedule_missing()
@@ -749,29 +768,27 @@ public sealed class ScheduleEffectsTests
         public Task Delete(int scheduleId) => Task.CompletedTask;
     }
 
-    [Fact(Skip = "ScheduleEffects field initializers require MauiApp or full OptionalDeps stubs")]
+    [Fact]
     public async Task HandleAddSchedule_skips_when_schedule_null()
     {
         var dispatcher = new RecordingDispatcher();
         var sut = new ScheduleEffects(
             CreateScheduleMapper(),
-            new ScheduleEffectsOptionalDeps(
-                ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+            CreateFullOptionalDeps(scheduleDisplayNameService: new IdleScheduleDisplayNameService()));
 
         await sut.HandleAddSchedule(new AddScheduleAction(null!), dispatcher);
 
         Assert.Empty(dispatcher.Dispatched);
     }
 
-    [Fact(Skip = "ScheduleEffects field initializers require MauiApp or full OptionalDeps stubs")]
+    [Fact]
     public async Task HandleAddSchedule_maps_entity_and_dispatches_success()
     {
         var dispatcher = new RecordingDispatcher();
         var entity = Alarm(88, "Added");
         var sut = new ScheduleEffects(
             CreateScheduleMapper(),
-            new ScheduleEffectsOptionalDeps(
-                ScheduleDisplayNameService: new RecordingScheduleDisplayNameService()));
+            CreateFullOptionalDeps(scheduleDisplayNameService: new RecordingScheduleDisplayNameService()));
 
         await sut.HandleAddSchedule(new AddScheduleAction(entity), dispatcher);
 
@@ -780,29 +797,27 @@ public sealed class ScheduleEffectsTests
         Assert.Equal("Section One", success.Schedule.BiblePublicationSectionName);
     }
 
-    [Fact(Skip = "ScheduleEffects field initializers require MauiApp or full OptionalDeps stubs")]
+    [Fact]
     public async Task HandleUpdateSchedule_skips_when_schedule_null()
     {
         var dispatcher = new RecordingDispatcher();
         var sut = new ScheduleEffects(
             CreateScheduleMapper(),
-            new ScheduleEffectsOptionalDeps(
-                ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+            CreateFullOptionalDeps(scheduleDisplayNameService: new IdleScheduleDisplayNameService()));
 
         await sut.HandleUpdateSchedule(new UpdateScheduleAction(null!), dispatcher);
 
         Assert.Empty(dispatcher.Dispatched);
     }
 
-    [Fact(Skip = "ScheduleEffects field initializers require MauiApp or full OptionalDeps stubs")]
+    [Fact]
     public async Task HandleUpdateSchedule_dispatches_update_success()
     {
         var dispatcher = new RecordingDispatcher();
         var entity = Alarm(89, "Updated");
         var sut = new ScheduleEffects(
             CreateScheduleMapper(),
-            new ScheduleEffectsOptionalDeps(
-                ScheduleDisplayNameService: new RecordingScheduleDisplayNameService()));
+            CreateFullOptionalDeps(scheduleDisplayNameService: new RecordingScheduleDisplayNameService()));
 
         await sut.HandleUpdateSchedule(new UpdateScheduleAction(entity), dispatcher);
 
@@ -810,13 +825,11 @@ public sealed class ScheduleEffectsTests
         Assert.Equal(89, success.Schedule.Id);
     }
 
-    [Fact(Skip = "ScheduleEffects field initializers require MauiApp or full OptionalDeps stubs")]
+    [Fact]
     public async Task HandleUpdateScheduleSuccess_dispatches_set_car_play_screen()
     {
         var dispatcher = new RecordingDispatcher();
-        var sut = new ScheduleEffects(
-            CreateIdleMapper(),
-            new ScheduleEffectsOptionalDeps());
+        var sut = new ScheduleEffects(CreateIdleMapper(), CreateFullOptionalDeps());
 
         await sut.HandleUpdateScheduleSuccess(
             new UpdateScheduleSuccessAction(new ScheduleStateItem { Id = 17 }),
@@ -825,16 +838,15 @@ public sealed class ScheduleEffectsTests
         Assert.IsType<SetCarPlayScreenAction>(Assert.Single(dispatcher.Dispatched));
     }
 
-    [Fact(Skip = "ScheduleEffects field initializers require MauiApp or full OptionalDeps stubs")]
+    [Fact]
     public async Task HandleUpdateScheduleFromViewModel_dispatches_failure_when_alarm_schedule_service_missing()
     {
         var dispatcher = new RecordingDispatcher();
         var vm = CreateScheduleMapper().Map<ScheduleStateItem>(Alarm(90, "No service"));
         var sut = new ScheduleEffects(
             CreateScheduleMapper(),
-            new ScheduleEffectsOptionalDeps(
-                AlarmScheduleService: null,
-                ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+            CreateFullOptionalDeps(scheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+        ClearAlarmScheduleService(sut);
 
         await sut.HandleUpdateScheduleFromViewModel(
             new UpdateScheduleFromViewModelAction(vm, shouldSave: true),
@@ -844,7 +856,7 @@ public sealed class ScheduleEffectsTests
         Assert.Equal("Service unavailable", fail.Error);
     }
 
-    [Fact(Skip = "ScheduleEffects field initializers require MauiApp or full OptionalDeps stubs")]
+    [Fact]
     public async Task HandleUpdateScheduleFromViewModelPopulateBibleDisplayNames_skips_when_current_schedule_id_mismatch()
     {
         var dispatcher = new RecordingDispatcher();
@@ -854,9 +866,9 @@ public sealed class ScheduleEffectsTests
         actionSchedule.Id = 92;
         var sut = new ScheduleEffects(
             CreateScheduleMapper(),
-            new ScheduleEffectsOptionalDeps(
-                State: new FakeApplicationState(new ApplicationState([], currentSchedule: current)),
-                ScheduleDisplayNameService: new RecordingScheduleDisplayNameService()));
+            CreateFullOptionalDeps(
+                state: new FakeApplicationState(new ApplicationState([], currentSchedule: current)),
+                scheduleDisplayNameService: new RecordingScheduleDisplayNameService()));
 
         await sut.HandleUpdateScheduleFromViewModelPopulateBibleDisplayNames(
             new UpdateScheduleFromViewModelAction(actionSchedule, biblePublicationUpdated: true, shouldSave: false),
@@ -865,7 +877,7 @@ public sealed class ScheduleEffectsTests
         Assert.Empty(dispatcher.Dispatched);
     }
 
-    [Fact(Skip = "ScheduleEffects field initializers require MauiApp or full OptionalDeps stubs")]
+    [Fact]
     public async Task HandleUpdateScheduleFromViewModelPopulateModalCounts_skips_when_action_schedule_id_mismatch()
     {
         var dispatcher = new RecordingDispatcher();
@@ -877,9 +889,9 @@ public sealed class ScheduleEffectsTests
         actionSchedule.Id = 94;
         var sut = new ScheduleEffects(
             CreateScheduleMapper(),
-            new ScheduleEffectsOptionalDeps(
-                State: new FakeApplicationState(new ApplicationState([], currentSchedule: current)),
-                ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+            CreateFullOptionalDeps(
+                state: new FakeApplicationState(new ApplicationState([], currentSchedule: current)),
+                scheduleDisplayNameService: new IdleScheduleDisplayNameService()));
 
         await sut.HandleUpdateScheduleFromViewModelPopulateModalCounts(
             new UpdateScheduleFromViewModelAction(actionSchedule, musicUpdated: true, shouldSave: false),
@@ -888,7 +900,7 @@ public sealed class ScheduleEffectsTests
         Assert.Empty(dispatcher.Dispatched);
     }
 
-    [Fact(Skip = "ScheduleEffects field initializers require MauiApp or full OptionalDeps stubs")]
+    [Fact]
     public async Task HandleBiblePublicationTrackSelected_dispatches_draft_update_when_current_schedule_present()
     {
         var dispatcher = new RecordingDispatcher();
@@ -896,9 +908,9 @@ public sealed class ScheduleEffectsTests
         current.Id = 95;
         var sut = new ScheduleEffects(
             CreateScheduleMapper(),
-            new ScheduleEffectsOptionalDeps(
-                State: new FakeApplicationState(new ApplicationState([], currentSchedule: current)),
-                ScheduleDisplayNameService: new RecordingScheduleDisplayNameService()));
+            CreateFullOptionalDeps(
+                state: new FakeApplicationState(new ApplicationState([], currentSchedule: current)),
+                scheduleDisplayNameService: new RecordingScheduleDisplayNameService()));
 
         await sut.HandleBiblePublicationTrackSelected(
             new BiblePublicationsTrackSelectedAction(new BiblePublicationStateItem()),
@@ -908,15 +920,15 @@ public sealed class ScheduleEffectsTests
         Assert.Equal("Section One", draft.Schedule.BiblePublicationSectionName);
     }
 
-    [Fact(Skip = "ScheduleEffects field initializers require MauiApp or full OptionalDeps stubs")]
+    [Fact]
     public async Task HandleBiblePublicationTrackSelected_no_op_when_current_schedule_missing()
     {
         var dispatcher = new RecordingDispatcher();
         var sut = new ScheduleEffects(
             CreateScheduleMapper(),
-            new ScheduleEffectsOptionalDeps(
-                State: new FakeApplicationState(new ApplicationState([])),
-                ScheduleDisplayNameService: new IdleScheduleDisplayNameService()));
+            CreateFullOptionalDeps(
+                state: new FakeApplicationState(new ApplicationState([])),
+                scheduleDisplayNameService: new IdleScheduleDisplayNameService()));
 
         await sut.HandleBiblePublicationTrackSelected(
             new BiblePublicationsTrackSelectedAction(new BiblePublicationStateItem()),
