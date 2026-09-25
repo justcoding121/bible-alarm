@@ -165,6 +165,37 @@ public sealed partial class PlaylistService : IPlaylistService
             : AppConstants.Media.DefaultLanguageCode;
     }
 
+    private async Task<TrackMetadata> ResolveEffectiveMetadataForNoLanguageAsync(
+        TrackMetadata trackMetadata,
+        AlarmSchedule? scheduleToUse)
+    {
+        if (scheduleToUse?.BiblePublicationSchedule != null
+            && trackMetadata.PlayType == PlayType.Bible
+            && await BiblePublicationService.IsNoLanguagePublicationAsync(
+                scheduleToUse.BiblePublicationSchedule.PublicationCode,
+                cancellationTokenSource.Token))
+        {
+            var preservedLang = GetPreservedLanguageForNoLanguageBibleSchedule(
+                (int)trackMetadata.ScheduleId,
+                scheduleToUse.BiblePublicationSchedule.LanguageCode);
+            return CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
+        }
+
+        if (scheduleToUse?.Music != null
+            && trackMetadata.PlayType == PlayType.Music
+            && await BiblePublicationService.IsNoLanguagePublicationAsync(
+                scheduleToUse.Music.PublicationCode,
+                cancellationTokenSource.Token))
+        {
+            var preservedLang = GetPreservedLanguageForNoLanguageMusicSchedule(
+                (int)trackMetadata.ScheduleId,
+                scheduleToUse.Music.LanguageCode);
+            return CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
+        }
+
+        return trackMetadata;
+    }
+
     private async Task<AlarmSchedule> UpdateScheduleForPlayedTrack(
         TrackMetadata trackMetadata,
         string? nextTrackCode,
@@ -172,21 +203,7 @@ public sealed partial class PlaylistService : IPlaylistService
     {
         var scheduleToUse = await alarmScheduleService.GetScheduleByIdAsync(
             (int)trackMetadata.ScheduleId, true, false, cancellationTokenSource.Token);
-        var effectiveMetadata = trackMetadata;
-        if (scheduleToUse?.BiblePublicationSchedule != null
-            && trackMetadata.PlayType == PlayType.Bible
-            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.BiblePublicationSchedule.PublicationCode, cancellationTokenSource.Token))
-        {
-            var preservedLang = GetPreservedLanguageForNoLanguageBibleSchedule((int)trackMetadata.ScheduleId, scheduleToUse.BiblePublicationSchedule.LanguageCode);
-            effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
-        }
-        else if (scheduleToUse?.Music != null
-            && trackMetadata.PlayType == PlayType.Music
-            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.Music.PublicationCode, cancellationTokenSource.Token))
-        {
-            var preservedLang = GetPreservedLanguageForNoLanguageMusicSchedule((int)trackMetadata.ScheduleId, scheduleToUse.Music.LanguageCode);
-            effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
-        }
+        var effectiveMetadata = await ResolveEffectiveMetadataForNoLanguageAsync(trackMetadata, scheduleToUse);
 
         return await alarmScheduleService.UpdateScheduleByIdAsync(
             (int)trackMetadata.ScheduleId,
@@ -200,21 +217,7 @@ public sealed partial class PlaylistService : IPlaylistService
 
         var scheduleToUse = await alarmScheduleService.GetScheduleByIdAsync(
             (int)trackMetadata.ScheduleId, true, false, cancellationTokenSource.Token);
-        var effectiveMetadata = trackMetadata;
-        if (scheduleToUse?.BiblePublicationSchedule != null
-            && trackMetadata.PlayType == PlayType.Bible
-            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.BiblePublicationSchedule.PublicationCode, cancellationTokenSource.Token))
-        {
-            var preservedLang = GetPreservedLanguageForNoLanguageBibleSchedule((int)trackMetadata.ScheduleId, scheduleToUse.BiblePublicationSchedule.LanguageCode);
-            effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
-        }
-        else if (scheduleToUse?.Music != null
-            && trackMetadata.PlayType == PlayType.Music
-            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.Music.PublicationCode, cancellationTokenSource.Token))
-        {
-            var preservedLang = GetPreservedLanguageForNoLanguageMusicSchedule((int)trackMetadata.ScheduleId, scheduleToUse.Music.LanguageCode);
-            effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
-        }
+        var effectiveMetadata = await ResolveEffectiveMetadataForNoLanguageAsync(trackMetadata, scheduleToUse);
 
         var updatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
             (int)trackMetadata.ScheduleId,
@@ -241,21 +244,7 @@ public sealed partial class PlaylistService : IPlaylistService
 
         var scheduleToUse = await alarmScheduleService.GetScheduleByIdAsync(
             (int)trackMetadata.ScheduleId, true, false, cancellationTokenSource.Token);
-        var effectiveMetadata = trackMetadata;
-        if (scheduleToUse?.BiblePublicationSchedule != null
-            && trackMetadata.PlayType == PlayType.Bible
-            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.BiblePublicationSchedule.PublicationCode, cancellationTokenSource.Token))
-        {
-            var preservedLang = GetPreservedLanguageForNoLanguageBibleSchedule((int)trackMetadata.ScheduleId, scheduleToUse.BiblePublicationSchedule.LanguageCode);
-            effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
-        }
-        else if (scheduleToUse?.Music != null
-            && trackMetadata.PlayType == PlayType.Music
-            && await BiblePublicationService.IsNoLanguagePublicationAsync(scheduleToUse.Music.PublicationCode, cancellationTokenSource.Token))
-        {
-            var preservedLang = GetPreservedLanguageForNoLanguageMusicSchedule((int)trackMetadata.ScheduleId, scheduleToUse.Music.LanguageCode);
-            effectiveMetadata = CloneTrackMetadataWithLanguage(trackMetadata, preservedLang);
-        }
+        var effectiveMetadata = await ResolveEffectiveMetadataForNoLanguageAsync(trackMetadata, scheduleToUse);
 
         var updatedSchedule = await alarmScheduleService.UpdateScheduleByIdAsync(
             (int)trackMetadata.ScheduleId,

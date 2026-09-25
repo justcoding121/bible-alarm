@@ -49,11 +49,17 @@ Only the **test-windows** job feeds SonarCloud via `artifacts/coverage-windows/*
 - Tool entrypoints and the entire `.tools/**` tree
 - Bootstrap / DI / MediaElement host glue: `MauiProgram.cs`, `App.xaml.cs`, `ServiceRegistrationHelper.cs`, `MediaElementService.cs`, `AudioPlayer.cs`, `AudioPlayerMetadataHandler.cs`, `SerilogSetup.cs`, `LogSetup.cs`, `CommonBootstrapHelper.cs`, `ScheduleBootstrapService.cs`, `DatabaseSeedService.cs`, `ScheduleStatePopulator.cs`, `ScheduleContainerService.cs`, `BootstrapHelper.cs`
 - Mobile / store permission and review UI (`NotificationPermissionViewModel`, `IosNotificationPermissionViewModel`, `BatteryOptimizationViewModel`, `ReviewPromptService`)
-- MainThread-heavy selection / music modal glue that is not a realistic host-unit surface (`CategorySelectionViewModel`, `MusicTrackSelectionViewModel`, `BiblePublicationTrackSelectionViewModel`, `MusicSectionSelectionViewModel`, `BiblePublicationSectionSelectionViewModel`, `BiblePublicationSelectionViewModel`, `MusicPublicationSelectionViewModel`, `BiblePublicationSelectionContainerViewModel`, `MusicSelectionContainerViewModel`, `MiniPlaybackBarViewModel`, `BiblePublicationCommandInitializer`, `MusicCommandInitializer`, `BiblePublicationSelectionCommandHandler`, `BiblePublicationSelectionStateHandler`, `SectionListLoader`, `MusicEnabledHandler`, `MusicPublicationFetchCoordinator`, `MusicInstrumentalSectionListLoader`, `*RefreshHandler.cs`)
+- MainThread-heavy selection / music modal glue that is not a realistic host-unit surface (`CategorySelectionViewModel`, `MusicTrackSelectionViewModel`, `BiblePublicationTrackSelectionViewModel`, `MusicSectionSelectionViewModel`, `BiblePublicationSectionSelectionViewModel`, `BiblePublicationSelectionViewModel`, `MusicPublicationSelectionViewModel`, `BiblePublicationSelectionContainerViewModel`, `MusicSelectionContainerViewModel`, `MiniPlaybackBarViewModel`, `BiblePublicationCommandInitializer`, `MusicCommandInitializer`, `BiblePublicationSelectionCommandHandler`, `BiblePublicationSelectionStateHandler`, `SectionListLoader`, `MusicEnabledHandler`, `MusicPublicationFetchCoordinator`, `MusicInstrumentalSectionListLoader`, `*RefreshHandler.cs`, `BiblePublicationSelectionPublicationChooser`, `BiblePublicationSelectionSectionTrackResolver`, `BiblePublicationSelectionItemSelector`, `BiblePublicationSelectionDataProvider`)
 - Toast / messaging / schedule-item UI services (`ToastService`, `ScheduleItemStateService`, `MessageHandlingService`, `MauiNavigationUiThreadInvoker`) and Home navigation / state-change glue (`HomeViewModelHelpers/CommandHandler`, `HomeStateChangeHandler`)
 - File storage host glue (`StorageService`)
 - MAUI navigation / modal / scroll host glue (`NavigationService`, `NavigationServiceHelpers/**`, `PlaybackModalService`, `WindowSetupService`, `ModalScrollHelper`, `CollectionViewScrollExecutor`)
 - `AudioPlayer` MediaElement wrappers (`AudioPlayerHelpers/**`) and Windows System Media Transport Controls (`WindowsSmtcService`)
 - Remote artwork HTTP extractors (`RemoteMp4ArtworkExtractor`, `RemoteId3ArtworkExtractor`)
+
+`sonar.cpd.exclusions` also drops `**/Views/**` (XAML code-behind already out of coverage; modal Delay/Cancel patterns are not meaningful CPD findings).
+
+### Quality gate assignment
+
+The project may still be on **Sonar way** (API `qualitygates/select` returns 403). Assign **Bible Alarm 80% Overall** in the SonarCloud UI so the gate matches overall ≥80% (and new-code ≥80%). Until then, CI must also satisfy Sonar way New Code conditions (coverage ≥80%, duplicated lines ≤3%).
 
 In-scope coverage is intended for `Bible.Alarm.Shared` and app services / view-models outside the exclusions above.
