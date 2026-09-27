@@ -373,7 +373,9 @@ adb pull /sdcard/Documents/test-results/. TestResults/android/
 
 # iOS equivalent — must run on macOS (maui-ios workload + Xcode). Code coverage is intentionally
 # NOT collected here — see the "iOS coverage" row above.
-# GitHub Actions matches build.yml: apple test with --launch-timeout=00:20:00 (exit 90 APP_LAUNCH_TIMEOUT on slow runners without it); no reset-simulator.
+# CI does not use this raw command. `.github/scripts/ci-ios-device-tests.sh` SIGKILLs xharness
+# at a wall-clock deadline (xharness --timeout does not stop a wedged CoreSimulator) and retries
+# once after resetting simulators. A job-level timeout cancel badges the workflow as failing.
 # When iterating locally and xharness keeps booting simulators, add --reset-simulator (see tests/run-tests.ps1 -Platform iOS).
 dotnet build tests/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \
     -c Debug -f net10.0-ios -p:BUILD_IOS_ONLY=true \
