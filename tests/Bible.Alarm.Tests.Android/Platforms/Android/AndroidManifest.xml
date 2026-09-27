@@ -23,7 +23,7 @@
 	  so the ACW's n_onCreate JNI binding is never registered and the process dies with
 	  UnsatisfiedLinkError. Tests are launched as TestRunnerActivity instead via:
 	      adb shell am start -W -n com.jthomas.info.Bible.Alarm.Tests/.TestRunnerActivity
-	  See [.cursor/rules/testing/multi-platform-tests.mdc] for the full rationale and the
+	  See [docs/testing/multi-platform-tests.mdc] for the full rationale and the
 	  on-device results contract under /sdcard/Documents/test-results/.
 	-->
 </manifest>

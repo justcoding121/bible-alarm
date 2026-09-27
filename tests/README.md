@@ -18,7 +18,7 @@ tests/Bible.Alarm.Tests.Android      net10.0-android (.apk)        xharness andr
 tests/Bible.Alarm.Tests.iOS          net10.0-ios     (.app)        xharness apple test  (simulator)
 ```
 
-Each host runs the *same* xunit fixtures plus its own platform-only smoke tests. Only the Windows host produces an OpenCover XML — SonarCloud reads `artifacts/coverage-windows/coverage-windows.xml` directly inside the `test-windows` CI job (the SonarScanner `begin`/`end` steps wrap that job's build + test pass; there is no separate `sonar` job). Android and iOS hosts intentionally do **not** emit coverage; see Hard rule #6 and the "Android/iOS coverage" rows in [`.cursor/rules/testing/multi-platform-tests.mdc`](../.cursor/rules/testing/multi-platform-tests.mdc) for the full rationale.
+Each host runs the *same* xunit fixtures plus its own platform-only smoke tests. Only the Windows host produces an OpenCover XML — SonarCloud reads `artifacts/coverage-windows/coverage-windows.xml` directly inside the `test-windows` CI job (the SonarScanner `begin`/`end` steps wrap that job's build + test pass; there is no separate `sonar` job). Android and iOS hosts intentionally do **not** emit coverage; see Hard rule #6 and the "Android/iOS coverage" rows in [`docs/testing/multi-platform-tests.mdc`](../docs/testing/multi-platform-tests.mdc) for the full rationale.
 
 ## Local prerequisites
 
@@ -86,7 +86,7 @@ ssh user@mac.local 'dotnet --info'
 
 # Everything (Windows + Android + iOS). Only the Windows pass emits coverage XML; the Android
 # and iOS slices are pass/fail-only (see Hard rule #6 in
-# .cursor/rules/testing/multi-platform-tests.mdc).
+# docs/testing/multi-platform-tests.mdc).
 ./tests/run-tests.ps1 -Platform All -MacHost user@mac.local
 ```
 
@@ -118,4 +118,4 @@ Baseline top-25 gaps from run 28003978806: `TestResults/coverage-baseline-top25.
 - **`xharness apple test --target=ios-simulator-64` exits with `Apple Simulator runtime missing`** — open Xcode → Settings → Components → install the iOS simulator runtime, then `xcrun simctl list runtimes` to confirm.
 - **Several booted simulators after repeating iOS tests locally** — `tests/run-tests.ps1 -Platform iOS` passes xharness `reset-simulator` on the networked Mac so each pass shuts down afterward. GitHub Actions uses plain `apple test` without reset (runners are ephemeral). For raw CLI like CI, omit `reset-simulator`.
 - **SSH hangs on `Verifying host fingerprint`** — first connection only; the script does not pass `-o StrictHostKeyChecking=no` so you have to accept the fingerprint once.
-- **Local merge prints `No OpenCover XML reports found`** — only the Windows pass produces coverage XML; if you ran `-Platform Android` or `-Platform iOS` standalone there is nothing to merge by design (Android/iOS hosts intentionally do not collect coverage — see Hard rule #6 in [`.cursor/rules/testing/multi-platform-tests.mdc`](../.cursor/rules/testing/multi-platform-tests.mdc)). Run `-Platform Windows` (or `-Platform All`) and confirm the Windows test pass actually finished. The Windows host uses `--collect:"XPlat Code Coverage;Format=opencover,cobertura"` (via `coverlet.collector`) automatically — there is no longer a `-p:CollectCoverage=true` knob to forget. Re-run with `-Verbose` to see the underlying commands.
+- **Local merge prints `No OpenCover XML reports found`** — only the Windows pass produces coverage XML; if you ran `-Platform Android` or `-Platform iOS` standalone there is nothing to merge by design (Android/iOS hosts intentionally do not collect coverage — see Hard rule #6 in [`docs/testing/multi-platform-tests.mdc`](../docs/testing/multi-platform-tests.mdc)). Run `-Platform Windows` (or `-Platform All`) and confirm the Windows test pass actually finished. The Windows host uses `--collect:"XPlat Code Coverage;Format=opencover,cobertura"` (via `coverlet.collector`) automatically — there is no longer a `-p:CollectCoverage=true` knob to forget. Re-run with `-Verbose` to see the underlying commands.

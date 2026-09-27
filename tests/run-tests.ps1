@@ -16,7 +16,7 @@
         Why no `xharness android test` here: the Mono runtime is not initialized when Android
         instantiates a custom Instrumentation, so its native methods crash with UnsatisfiedLinkError
         before any tests execute. The activity runs *after* Application.OnCreate, side-stepping the
-        race. See .cursor/rules/testing/multi-platform-tests.mdc for the full story.
+        race. See docs/testing/multi-platform-tests.mdc for the full story.
 
     .PARAMETER Platform
         Which test set to run. One of: Windows, Android, iOS, All.
@@ -242,7 +242,7 @@ function Run-AndroidTests {
     Ensure-AndroidEmulatorRunning -AndroidAvd $AndroidAvd
 
     # No coverage flags — code coverage is intentionally NOT collected from this device-test slice.
-    # See the "Android coverage" diagnostic row in [.cursor/rules/testing/multi-platform-tests.mdc].
+    # See the "Android coverage" diagnostic row in [docs/testing/multi-platform-tests.mdc].
     $deviceResultsDir = '/sdcard/Documents/test-results'
 
     Write-Output "Building Android test APK (-c $Configuration)..."
@@ -406,7 +406,7 @@ function Run-IOSTests {
     # bash. Newlines, quotes, and `$` substitution all round-trip cleanly.
     #
     # No coverage flags — code coverage is intentionally NOT collected from this device-test slice.
-    # See the "iOS coverage" diagnostic row in [.cursor/rules/testing/multi-platform-tests.mdc].
+    # See the "iOS coverage" diagnostic row in [docs/testing/multi-platform-tests.mdc].
     # --reset-simulator shuts down xharness sim after each pass so repeats do not stack booted sims;
     # this is a local-only nicety (CI omits it). --launch-timeout avoids xharness exit 90 after a
     # cold erase/boot on slower hosts.

@@ -180,7 +180,7 @@ Think in these axes:
 - **Catalog type** (Flat / Sectioned / MediatorSectioned)
 
 If you’re debugging “why did we build the wrong URL?” or “why is section missing?” see the explicit Media DB shape matrix:
-- `.cursor/rules/databases-and-migrations.mdc` → “Media DB shape matrix (publication ↔ language ↔ sections)”
+- `docs/data/databases-and-migrations.mdc` → “Media DB shape matrix (publication ↔ language ↔ sections)”
 
 ### Language-bound + Sectioned (common Bible pattern)
 

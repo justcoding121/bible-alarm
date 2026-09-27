@@ -9,7 +9,7 @@ name: Build
 # in a separate downstream job, eliminating ~9-12 min of duplicate workload-install + restore + build
 # work per CI run. SonarCloud reads only the Windows OpenCover XML (Android/iOS device hosts do not
 # emit coverage by design — see Hard rule #6 + the "Android/iOS coverage" rows in
-# .cursor/rules/testing/multi-platform-tests.mdc). Cross-platform business logic in
+# docs/testing/multi-platform-tests.mdc). Cross-platform business logic in
 # tests/Bible.Alarm.Tests/** runs on Windows, so the production code paths Android/iOS exercise are
 # already represented in the Windows coverage slice.
 #
@@ -79,12 +79,12 @@ jobs:
       # project OpenCover XML produced by `coverlet.collector` (the solution has 7+ test projects
       # contributing coverage; reading only one of them used to produce 0.4% — see "test-windows
       # SonarScanner reports 0% coverage" diagnostic row in
-      # [.cursor/rules/testing/multi-platform-tests.mdc]). The staged path is written by the
+      # [docs/testing/multi-platform-tests.mdc]). The staged path is written by the
       # `Stage coverage artifacts` step further down (before `SonarScanner end`).
       # Android/iOS device-host slices do NOT contribute coverage — see Hard rule #6.
       # `sonar.coverage.exclusions` drops orchestration scripts (.ps1, .sh, .py, etc.) from coverage
       # accounting; Android/iOS platform code and XAML code-behind are validated on device/Appium
-      # but never instrumented on the Windows OpenCover pass (see .cursor/rules/testing/multi-platform-tests.mdc Hard rule #6).
+      # but never instrumented on the Windows OpenCover pass (see docs/testing/multi-platform-tests.mdc Hard rule #6).
       # Vendored libraries/**, bootstrap MauiProgram/App.xaml.cs/ServiceRegistrationHelper, MediaElement
       # host glue, MAUI navigation/modal/scroll helpers, and Windows toast UI are also excluded from the
       # coverage denominator (Coverlet can see some of them on Windows, but they are not meaningful
@@ -217,7 +217,7 @@ jobs:
   # subclasses fail under .NET MAUI (Mono is not initialized when Android calls Instrumentation.onCreate
   # → UnsatisfiedLinkError on the ACW's n_onCreate). Tests are launched as TestRunnerActivity via
   # adb instead, with an on-device sentinel (done.txt) signalling completion. See
-  # .cursor/rules/testing/multi-platform-tests.mdc.
+  # docs/testing/multi-platform-tests.mdc.
   test-android:
     runs-on: ubuntu-latest
     # Required by the reactivecircus emulator runner action below: the action mounts /dev/kvm.
@@ -264,7 +264,7 @@ jobs:
       # failed instrumentation or broke runtime ACW typemap generation. SonarCloud reads only the
       # Windows OpenCover slice; the shared cross-platform tests in `tests/Bible.Alarm.Tests/**`
       # exercise the same production code paths there, so coverage of business logic is preserved.
-      # See "Android coverage" row in [.cursor/rules/testing/multi-platform-tests.mdc] for the
+      # See "Android coverage" row in [docs/testing/multi-platform-tests.mdc] for the
       # full decision history.
       - name: Build Android test APK
         run: |
@@ -366,7 +366,7 @@ jobs:
       # significant additional refactoring with uncertain payoff. SonarCloud reads only the Windows
       # OpenCover slice; the shared cross-platform tests in `tests/Bible.Alarm.Tests/**` cover the
       # same production code paths there. See the "iOS coverage" row in
-      # [.cursor/rules/testing/multi-platform-tests.mdc] for the full decision history.
+      # [docs/testing/multi-platform-tests.mdc] for the full decision history.
       - name: Build iOS test bundle
         run: |
           dotnet build tests/Bible.Alarm.Tests.iOS/Bible.Alarm.Tests.iOS.csproj \

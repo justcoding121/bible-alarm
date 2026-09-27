@@ -17,7 +17,7 @@ namespace Bible.Alarm.Tests.Android;
 /// <c>Bible.Alarm.Tests.Android.dll</c> is touched, so the JNI bindings for the ACW's
 /// <c>n_onCreate</c>/<c>n_onStart</c> have not been registered yet. Result: every run dies with
 /// <c>UnsatisfiedLinkError: No implementation found for ... TestInstrumentation.n_onCreate</c>
-/// before a single test executes. See [.cursor/rules/testing/multi-platform-tests.mdc] for the
+/// before a single test executes. See [docs/testing/multi-platform-tests.mdc] for the
 /// full rationale.
 ///
 /// Activities, by contrast, are constructed only after <c>Application.OnCreate</c> has run, so
@@ -31,7 +31,7 @@ namespace Bible.Alarm.Tests.Android;
 ///   /sdcard/Documents/test-results/error.txt        — present only on unhandled exception
 ///
 /// Code coverage is intentionally NOT collected from this slice — see the "Android coverage" row
-/// in [.cursor/rules/testing/multi-platform-tests.mdc] for the rationale.
+/// in [docs/testing/multi-platform-tests.mdc] for the rationale.
 /// </summary>
 // We deliberately do NOT use Theme="@android:style/Theme.NoDisplay" here. Theme.NoDisplay imposes
 // a hard contract: the activity must call Finish() synchronously inside OnCreate before onResume
