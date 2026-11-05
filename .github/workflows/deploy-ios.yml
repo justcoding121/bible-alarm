@@ -34,7 +34,7 @@ jobs:
         
     # Install MAUI workload so restore/build get all required workloads (ios, tizen manifest, etc.) without project-based workload restore.
     - name: Install workloads
-      run: dotnet workload install maui --skip-manifest-update
+      run: dotnet workload install maui
         
     # Xcode 26.0.x ships iphonesimulator SDK 23A339; .NET iOS 26 workload actool expects newer simulator runtimes (23B86+).
     # Pin 26.3 so CI matches installed Simulator 26.2 SDKs on macos-26 (see runner-images macos-26 Xcode table).

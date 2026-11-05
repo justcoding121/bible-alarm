@@ -34,7 +34,7 @@ jobs:
         global-json-file: global.json
         
     - name: Install MAUI workloads (Windows)
-      run: dotnet workload install maui --skip-manifest-update
+      run: dotnet workload install maui
 
     # Decode and install the code signing certificate
     - name: Install Certificate

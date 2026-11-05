@@ -57,10 +57,9 @@ jobs:
       - name: Install SonarScanner
         run: dotnet tool install --global dotnet-sonarscanner
 
-      # Explicit install matches test-android / test-ios and avoids dotnet workload restore NuGet
-      # resolution regressions on windows-latest (restore can exit 1 while setup-dotnet succeeds).
+      # Fresh workload manifest for SDK 10.0.403. --skip-manifest-update would keep the 10.0.1xx packs.
       - name: Install MAUI workloads (Windows)
-        run: dotnet workload install maui --skip-manifest-update
+        run: dotnet workload install maui
 
       - name: Restore dependencies
         run: dotnet restore Bible.Alarm.sln
@@ -245,7 +244,7 @@ jobs:
         uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
 
       - name: Install MAUI Android workload
-        run: dotnet workload install maui-android --skip-manifest-update
+        run: dotnet workload install maui-android
 
       - name: Restore (Android-only)
         run: dotnet restore tests/Bible.Alarm.Tests.Android/Bible.Alarm.Tests.Android.csproj -p:BUILD_ANDROID_ONLY=true
@@ -329,7 +328,7 @@ jobs:
           global-json-file: global.json
 
       - name: Install MAUI iOS workload
-        run: dotnet workload install maui-ios --skip-manifest-update
+        run: dotnet workload install maui-ios
 
       - name: Install xharness CLI
         run: |

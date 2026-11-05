@@ -136,7 +136,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.3" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.14" />
 		<!-- Note: Microsoft.EntityFrameworkCore.Design is NOT needed here - it's in .tools/Bible.Alarm.DbMigration -->
 		<!-- Design tools are only needed for creating migrations, which is done via the DbMigration project -->
 		<PackageReference Include="Microsoft.Maui.Controls" Version="10.0.41" />
@@ -145,7 +145,7 @@
 		<PackageReference Include="AutoMapper" Version="16.1.1" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="Fluxor" Version="6.9.0" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.3" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.14" />
 		<PackageReference Include="Polly" Version="8.6.5" />
 		<PackageReference Include="Quartz" Version="3.16.1" />
 		<PackageReference Include="Serilog" Version="4.3.0" />
