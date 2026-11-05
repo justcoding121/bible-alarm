@@ -208,6 +208,8 @@ public sealed class AlarmScheduleTests
         => Assert.Equal(expected, Create(days, hour: hour, minute: minute, second: second).CronExpression);
 
     /// <summary>
+    /// Quartz stays on 3.16.1. Quartz 4.7.2 moves the US spring-forward gap for
+    /// "0 30 2 ? * 1" in Eastern time from 2026-03-08 03:30 EDT to 03:00 EDT.
     /// Next-fire instants recorded from Quartz 3.16.1 with an explicit time zone,
     /// so the golden values do not depend on the machine's local zone.
     /// AlarmSchedule.NextFireDate uses the same CronExpression parser with TimeZoneInfo.Local.
