@@ -73,28 +73,28 @@
   <!-- Removed analyzer references - not needed for local build -->
 
   <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
-    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer" Version="1.9.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Media3.Common" Version="1.9.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Media3.UI" Version="1.9.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer.Rtsp" Version="1.9.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer.Hls" Version="1.9.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer.Dash" Version="1.9.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Media3.Session" Version="1.9.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer" Version="1.11.1" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.Common" Version="1.11.1" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.UI" Version="1.11.1" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer.Rtsp" Version="1.11.1" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer.Hls" Version="1.11.1" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.ExoPlayer.Dash" Version="1.11.1" />
+    <PackageReference Include="Xamarin.AndroidX.Media3.Session" Version="1.11.1" />
     <!-- Resolve version conflicts: Explicitly reference newer versions to satisfy dependencies -->
-    <PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData.Core" Version="2.10.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData" Version="2.10.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData.Core.Ktx" Version="2.10.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime" Version="2.10.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime.Ktx" Version="2.10.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime.Ktx.Android" Version="2.10.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Process" Version="2.10.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Common" Version="2.10.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModel" Version="2.10.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModel.Ktx" Version="2.10.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModelSavedState" Version="2.10.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModelSavedState.Android" Version="2.10.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.SavedState" Version="1.4.0.1" />
-    <PackageReference Include="Xamarin.AndroidX.SavedState.SavedState.Ktx" Version="1.4.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData.Core" Version="2.11.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData" Version="2.11.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.LiveData.Core.Ktx" Version="2.11.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime" Version="2.11.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime.Ktx" Version="2.11.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Runtime.Ktx.Android" Version="2.11.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Process" Version="2.11.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.Common" Version="2.11.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModel" Version="2.11.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModel.Ktx" Version="2.11.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModelSavedState" Version="2.11.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.Lifecycle.ViewModelSavedState.Android" Version="2.11.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.SavedState" Version="1.5.0.1" />
+    <PackageReference Include="Xamarin.AndroidX.SavedState.SavedState.Ktx" Version="1.5.0.1" />
 
     <!--include the textureview.xml needed for creating textureview in android-->
     <Folder Include="Platforms\Android\Resources\layout\" />
@@ -105,7 +105,7 @@
   <!-- The Android version is sufficient and including JVM causes duplicate Immutable class -->
   <!-- Add explicit PackageReference with ExcludeAssets to override transitive inclusion -->
   <ItemGroup Condition="$(TargetFramework.Contains('-android'))">
-    <PackageReference Include="Xamarin.AndroidX.Compose.Runtime.Annotation.Jvm" Version="1.10.0.1" ExcludeAssets="all" />
+    <PackageReference Include="Xamarin.AndroidX.Compose.Runtime.Annotation.Jvm" Version="1.12.1" ExcludeAssets="all" />
   </ItemGroup>
   
   <ItemGroup>
