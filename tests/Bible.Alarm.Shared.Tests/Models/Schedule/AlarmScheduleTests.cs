@@ -7,6 +7,7 @@ using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Models.Media.Music;
 using Bible.Alarm.Shared.Models.Schedule;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
+using Quartz;
 
 namespace Bible.Alarm.Shared.Tests;
 
@@ -188,6 +189,65 @@ public sealed class AlarmScheduleTests
         var sut = Create(WeekDays.Saturday, hour: 8, minute: 0, second: 0);
 
         Assert.Equal("0 0 8 ? * 7", sut.CronExpression);
+    }
+
+    /// <summary>
+    /// Locks the cron strings Quartz 3.16.1 produced for AlarmSchedule.
+    /// Quartz day numbers: Sunday = 1. Any change in Quartz 4 must keep these equal.
+    /// </summary>
+    [Theory]
+    [InlineData(WeekDays.Sunday, 8, 0, 0, "0 0 8 ? * 1")]
+    [InlineData(WeekDays.Saturday, 8, 0, 0, "0 0 8 ? * 7")]
+    [InlineData(WeekDays.All, 0, 0, 0, "0 0 0 ? * 1,2,3,4,5,6,7")]
+    [InlineData(WeekDays.All, 0, 0, 30, "30 0 0 ? * 1,2,3,4,5,6,7")]
+    [InlineData(WeekDays.Monday | WeekDays.Wednesday | WeekDays.Friday, 23, 0, 0, "0 0 23 ? * 2,4,6")]
+    [InlineData(WeekDays.Sunday, 12, 0, 30, "30 0 12 ? * 1")]
+    [InlineData(WeekDays.All, 23, 0, 0, "0 0 23 ? * 1,2,3,4,5,6,7")]
+    public void CronExpression_Golden_MatchesQuartz316Strings(
+        WeekDays days, int hour, int minute, int second, string expected)
+        => Assert.Equal(expected, Create(days, hour: hour, minute: minute, second: second).CronExpression);
+
+    /// <summary>
+    /// Next-fire instants recorded from Quartz 3.16.1 with an explicit time zone,
+    /// so the golden values do not depend on the machine's local zone.
+    /// AlarmSchedule.NextFireDate uses the same CronExpression parser with TimeZoneInfo.Local.
+    /// Includes the US spring-forward gap (2026-03-08) and fall-back overlap (2026-11-01).
+    /// </summary>
+    [Theory]
+    [InlineData("0 0 8 ? * 1", "UTC", "2026-03-01T08:00:00.0000000+00:00", "2026-03-08T08:00:00.0000000+00:00")]
+    [InlineData("0 0 8 ? * 1", "UTC", "2026-03-01T07:59:59.0000000+00:00", "2026-03-01T08:00:00.0000000+00:00")]
+    [InlineData("0 0 8 ? * 1,2,3,4,5,6,7", "UTC", "2026-03-07T08:00:00.0000000+00:00", "2026-03-08T08:00:00.0000000+00:00")]
+    [InlineData("0 0 23 ? * 2,4,6", "UTC", "2026-03-02T22:59:59.0000000+00:00", "2026-03-02T23:00:00.0000000+00:00")]
+    [InlineData("0 0 8 ? * 7", "UTC", "2026-03-07T08:00:00.0000000+00:00", "2026-03-14T08:00:00.0000000+00:00")]
+    [InlineData("30 0 0 ? * 1,2,3,4,5,6,7", "UTC", "2026-06-01T00:00:29.0000000+00:00", "2026-06-01T00:00:30.0000000+00:00")]
+    [InlineData("0 30 2 ? * 1", "Eastern Standard Time", "2026-03-07T12:00:00.0000000-05:00", "2026-03-08T07:30:00.0000000+00:00")]
+    [InlineData("0 0 8 ? * 1", "Eastern Standard Time", "2026-03-07T12:00:00.0000000-05:00", "2026-03-08T12:00:00.0000000+00:00")]
+    [InlineData("0 30 1 ? * 1", "Eastern Standard Time", "2026-10-31T12:00:00.0000000-04:00", "2026-11-01T05:30:00.0000000+00:00")]
+    [InlineData("0 0 8 ? * 1", "Pacific Standard Time", "2026-10-31T12:00:00.0000000-07:00", "2026-11-01T16:00:00.0000000+00:00")]
+    public void CronExpression_NextFire_MatchesQuartz316Golden(
+        string cronText, string timeZoneId, string afterText, string expectedText)
+    {
+        var cron = new CronExpression(cronText)
+        {
+            TimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId),
+        };
+
+        var next = cron.GetNextValidTimeAfter(DateTimeOffset.Parse(afterText));
+
+        Assert.Equal(DateTimeOffset.Parse(expectedText), next);
+    }
+
+    [Fact]
+    public void NextFireDate_MatchesLocalCronExpression()
+    {
+        var sut = Create(WeekDays.Sunday, hour: 8, minute: 0, second: 0);
+        var after = new DateTimeOffset(2030, 6, 1, 12, 0, 0, TimeSpan.Zero);
+        var cron = new CronExpression(sut.CronExpression)
+        {
+            TimeZone = TimeZoneInfo.Local,
+        };
+
+        Assert.Equal(cron.GetNextValidTimeAfter(after), sut.NextFireDate(after));
     }
 
     [Fact]
