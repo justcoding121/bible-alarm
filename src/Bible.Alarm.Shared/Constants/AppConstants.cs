@@ -1861,14 +1861,14 @@ public static class AppConstants
             public const string FailedToApplyLastPlayedMetadataToMediaSession =
                 "Failed to apply last played metadata to MediaSession";
 
-            public const string MediaSessionCompatCreatedSuccessfullyInitialBufferingActiveHasToken =
-                "MediaSessionCompat created successfully via MediaSessionHelper. Initial state: Buffering, Active: True, SessionToken available: {HasToken}";
+            public const string MediaSessionCreatedSuccessfullyInitialBufferingActiveHasToken =
+                "MediaSession created successfully via MediaSessionHelper. Initial state: Buffering, Active: True, SessionToken available: {HasToken}";
 
-            public const string CreatingSharedMediaSessionCompatInstance2025Standard =
-                "Creating shared MediaSessionCompat instance (2025 Standard)";
+            public const string CreatingSharedMediaSessionInstance2025Standard =
+                "Creating shared MediaSession instance (2025 Standard)";
 
-            public const string MediaSessionCompatSessionTokenNullAfterCreationShouldNotHappen =
-                "MediaSessionCompat.SessionToken is null after creation - this should not happen";
+            public const string MediaSessionSessionTokenNullAfterCreationShouldNotHappen =
+                "MediaSession.SessionToken is null after creation - this should not happen";
 
             public const string NoLastPlayedMetadataInPreferencesAlreadyBlankLoading =
                 "No last played metadata found in Preferences - already in blank loading state";
@@ -3233,17 +3233,17 @@ public static class AppConstants
             public const string AfterRetryMediaElementState = "After retry, MediaElement state: {State}";
         }
 
-        /// <summary>Android Auto media browser service (<c>LegacyMediaBrowserService</c>).</summary>
+        /// <summary>Android Auto media browser service (<c>BibleAlarmMediaLibraryService</c>).</summary>
         public static class LegacyMediaBrowserDiagnosticsLog
         {
             public const string OnCreateCalled =
-                "LegacyMediaBrowserService.OnCreate() called";
+                "BibleAlarmMediaLibraryService.OnCreate() called";
 
             public const string OnCreateRotationServiceNotAvailable =
-                "LegacyMediaBrowserService.OnCreate: rotation service not available (DI may not be ready)";
+                "BibleAlarmMediaLibraryService.OnCreate: rotation service not available (DI may not be ready)";
 
             public const string OnCreateErrorDuringInitialization =
-                "LegacyMediaBrowserService.OnCreate: error during initialization (foreground service is already running)";
+                "BibleAlarmMediaLibraryService.OnCreate: error during initialization (foreground service is already running)";
 
             public const string AndroidAutoClientValidatedMarkingConnected =
                 "Android Auto client validated - marking as connected";
@@ -3267,7 +3267,7 @@ public static class AppConstants
                 "No MediaItems to send for parent: {ParentId}";
 
             public const string ErrorLoadingChildrenForParent =
-                "Error loading children in LegacyMediaBrowserService for parent: {ParentId}. Bootstrap may not have completed or services may not be available.";
+                "Error loading children in BibleAlarmMediaLibraryService for parent: {ParentId}. Bootstrap may not have completed or services may not be available.";
 
             public const string PlaybackActiveOnCarConnectSkippingRefresh =
                 "Playback is active on car connect - skipping default metadata refresh";
@@ -3288,7 +3288,7 @@ public static class AppConstants
                 "Failed to send empty result for parent: {ParentId}. This may cause Android Auto connection issues.";
 
             public const string OnBindCalledWithIntent =
-                "✅ LegacyMediaBrowserService.OnBind() called with intent: {Action}";
+                "✅ BibleAlarmMediaLibraryService.OnBind() called with intent: {Action}";
 
             public const string IntentComponentPackageCategories =
                 "Intent component: {Component}, Package: {Package}, Categories: {Categories}";
@@ -3306,26 +3306,26 @@ public static class AppConstants
                 "Could not set SessionToken in OnBind() - bootstrap may still be running";
 
             public const string OnUnbindCalledClientDisconnected =
-                "⚠️ LegacyMediaBrowserService.OnUnbind() called - Client disconnected";
+                "⚠️ BibleAlarmMediaLibraryService.OnUnbind() called - Client disconnected";
 
             public const string OnUnbindFailedToStopRotationService =
-                "LegacyMediaBrowserService.OnUnbind: failed to stop rotation service";
+                "BibleAlarmMediaLibraryService.OnUnbind: failed to stop rotation service";
 
             public const string OnDestroyClearingLocalMediaSessionReference =
-                "✅ LegacyMediaBrowserService destroyed - Clearing local MediaSession reference";
+                "✅ BibleAlarmMediaLibraryService destroyed - Clearing local MediaSession reference";
 
             public const string OnDestroyFailedToStopRotationService =
-                "LegacyMediaBrowserService.OnDestroy: failed to stop rotation service";
+                "BibleAlarmMediaLibraryService.OnDestroy: failed to stop rotation service";
         }
 
         /// <summary>Legacy AA browse state subscription (<c>StateSubscriptionManager</c>).</summary>
         public static class LegacyMediaBrowserStateSubscriptionDiagnosticsLog
         {
             public const string BootstrapTimedOutOnCreateWillRetry =
-                "Bootstrap timed out in LegacyMediaBrowserService.OnCreate - will retry when schedules are loaded";
+                "Bootstrap timed out in BibleAlarmMediaLibraryService.OnCreate - will retry when schedules are loaded";
 
             public const string SubscribedToScheduleListChanges =
-                "✅ LegacyMediaBrowserService subscribed to schedule list changes";
+                "✅ BibleAlarmMediaLibraryService subscribed to schedule list changes";
 
             public const string ApplicationStateNotAvailable =
                 "IState<ApplicationState> not available - schedule updates will not refresh Android Auto UI";
@@ -3368,34 +3368,34 @@ public static class AppConstants
         public static class LegacyMediaBrowserMediaSessionInitializerDiagnosticsLog
         {
             public const string ErrorInitializingMediaSessionWillRetryWhenBound =
-                "Error initializing MediaSession in LegacyMediaBrowserService - will retry when service is bound";
+                "Error initializing MediaSession in BibleAlarmMediaLibraryService - will retry when service is bound";
 
             public const string MediaSessionManagerNullCannotCreateMediaSession =
                 "MediaSessionManager is null - cannot create MediaSession";
 
-            public const string MediaSessionCompatNullAfterGetOrCreateCannotSetSessionToken =
-                "MediaSessionCompat is null after GetOrCreate() - cannot set SessionToken";
+            public const string MediaSessionNullAfterGetOrCreateCannotSetSessionToken =
+                "MediaSession is null after GetOrCreate() - cannot set SessionToken";
 
-            public const string MediaSessionCompatSessionTokenNullMayNotBeInitialized =
-                "MediaSessionCompat.SessionToken is null - MediaSessionCompat may not be properly initialized";
+            public const string MediaSessionSessionTokenNullMayNotBeInitialized =
+                "MediaSession.SessionToken is null - MediaSession may not be properly initialized";
 
             public const string SessionTokenSuccessfullySet =
                 "SessionToken successfully set: {Token}";
 
             public const string OnCreateCompletedLegacyAaConnectingSessionTokenOk =
-                "✅ LegacyMediaBrowserService.OnCreate() completed - Legacy Android Auto is connecting! SessionToken set correctly.";
+                "✅ BibleAlarmMediaLibraryService.OnCreate() completed - Legacy Android Auto is connecting! SessionToken set correctly.";
 
             public const string OnCreateCompletedBootstrapInitializationStarted =
-                "✅ LegacyMediaBrowserService.OnCreate() completed - Bootstrap initialization started";
+                "✅ BibleAlarmMediaLibraryService.OnCreate() completed - Bootstrap initialization started";
 
             public const string BootstrapInitializationCompletedForLegacyMediaBrowser =
-                "Bootstrap initialization completed for LegacyMediaBrowserService";
+                "Bootstrap initialization completed for BibleAlarmMediaLibraryService";
 
             public const string ErrorInBootstrapInitialization =
                 "Error in bootstrap initialization";
 
             public const string ErrorInitializingBootstrapInLegacyMediaBrowser =
-                "Error initializing bootstrap in LegacyMediaBrowserService";
+                "Error initializing bootstrap in BibleAlarmMediaLibraryService";
         }
 
         /// <summary>Legacy AA browse tree (<c>MediaBrowser</c> helper).</summary>
@@ -4034,11 +4034,11 @@ public static class AppConstants
             public const string AlarmRingerReceiverOnReceiveFailed =
                 "AlarmRingerReceiver.OnReceive: failed to create MediaSession";
 
-            public const string LegacyMediaBrowserServiceOnCreateFailed =
-                "LegacyMediaBrowserService.OnCreate: failed to create MediaSession";
+            public const string BibleAlarmMediaLibraryServiceOnCreateFailed =
+                "BibleAlarmMediaLibraryService.OnCreate: failed to create MediaSession";
         }
 
-        /// <summary><c>MediaSessionCompat</c> sync (<c>MediaSessionEffect</c>).</summary>
+        /// <summary>Media session sync (<c>MediaSessionEffect</c>).</summary>
         public static class AndroidMediaSessionUpdateDiagnosticsLog
         {
             public const string ErrorUpdatingPlaybackState =
@@ -4058,27 +4058,6 @@ public static class AppConstants
 
             public const string ErrorUpdatingPlaybackPosition =
                 "Error updating media session playback position";
-        }
-
-        public static class AndroidMediaSessionCompatUpdateDiagnosticsLog
-        {
-            public const string ErrorUpdatingPlaybackState =
-                "Error updating MediaSessionCompat playback state";
-
-            public const string ErrorUpdatingMetadata =
-                "Error updating MediaSessionCompat metadata";
-
-            public const string ErrorUpdatingDefaultScheduleMetadata =
-                "Error updating MediaSessionCompat with default schedule metadata";
-
-            public const string ErrorUpdatingDuration =
-                "Error updating MediaSessionCompat duration";
-
-            public const string ErrorUpdatingNavigationState =
-                "Error updating MediaSessionCompat navigation state";
-
-            public const string ErrorUpdatingPlaybackPosition =
-                "Error updating MediaSessionCompat playback position";
         }
 
         /// <summary><c>NavigationService</c> error and teardown diagnostics.</summary>

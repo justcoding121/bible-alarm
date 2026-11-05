@@ -39,7 +39,7 @@ We're including the MediaElement 7.0.0 source code to:
 
 1. **Issue #2976 - Android 14+ Notification Body Tap Does Nothing**
    - **Problem**: On Android 14+ (especially Pixel 7a), tapping the notification body did not bring the app to foreground
-   - **Solution**: Implemented the recommended Android 14+ approach in `MediaControlsService.android.cs`
+   - **Solution**: Implemented the recommended Android 14+ approach in `BibleAlarmMediaLibraryService.android.cs`
    - Added fallback `SetContentIntent()` call using the stored PendingIntent from MediaManager
    - Uses `Platform.CurrentActivity` (not `AppContext`) for creating the PendingIntent - critical for reliability
    - Uses `PendingIntentFlags.Immutable | PendingIntentFlags.UpdateCurrent` for proper intent handling

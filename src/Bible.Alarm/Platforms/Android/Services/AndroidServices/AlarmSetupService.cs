@@ -72,7 +72,7 @@ public class AlarmSetupService : Service
         // This ensures MediaSession is available immediately on process start
         try
         {
-            Platforms.Android.Services.Media.MediaSessionHelper.Create();
+            _ = Platforms.Android.Services.Media3.SessionStatePlayer.Instance;
         }
         catch (Exception ex)
         {
@@ -91,7 +91,7 @@ public class AlarmSetupService : Service
         // This ensures MediaSession is available immediately on process start
         try
         {
-            Platforms.Android.Services.Media.MediaSessionHelper.Create();
+            _ = Platforms.Android.Services.Media3.SessionStatePlayer.Instance;
         }
         catch (Exception ex)
         {

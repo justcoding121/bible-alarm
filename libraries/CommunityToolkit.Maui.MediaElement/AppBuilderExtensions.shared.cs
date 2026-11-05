@@ -1,8 +1,5 @@
 using System.Runtime.Versioning;
 using CommunityToolkit.Maui.Core.Handlers;
-#if ANDROID
-using CommunityToolkit.Maui.Services;
-#endif
 
 namespace CommunityToolkit.Maui;
 
@@ -28,13 +25,6 @@ public static class AppBuilderExtensions
         {
             h.AddHandler<MediaElement, MediaElementHandler>();
         });
-
-#if ANDROID
-        if (OperatingSystem.IsAndroidVersionAtLeast(26))
-        {
-            builder.Services.AddSingleton<MediaControlsService>();
-        }
-#endif
 
         return builder;
     }

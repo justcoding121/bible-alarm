@@ -10,7 +10,7 @@ using Serilog;
 namespace Bible.Alarm.Platforms.Android.Services.Media3;
 
 /// <summary>
-/// Copy of the legacy schedule subscription. Notifies the Media3 session instead of MediaBrowserServiceCompat.
+/// Copy of the legacy schedule subscription. Notifies the Media3 session instead of MediaLibraryService.
 /// </summary>
 internal sealed class Media3StateSubscription(ILogger logger)
 {

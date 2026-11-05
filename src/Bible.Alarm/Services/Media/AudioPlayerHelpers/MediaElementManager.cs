@@ -183,12 +183,6 @@ public class MediaElementManager
                 await Task.Delay(150);
 #endif
 
-#if ANDROID
-                // Notify coordinator that MediaElement is fully disposed and its notification is removed
-                // This allows Android Auto to take ownership after disposal is complete
-                Bible.Alarm.Platforms.Android.Services.Media.ForegroundServiceCoordinator.OnMediaElementDisposed();
-                logger.Debug("Notified ForegroundServiceCoordinator that MediaElement is disposed");
-#endif
             }
 
             // Verify final state

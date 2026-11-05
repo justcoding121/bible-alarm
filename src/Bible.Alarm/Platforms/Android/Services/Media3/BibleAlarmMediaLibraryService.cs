@@ -20,8 +20,8 @@ namespace Bible.Alarm.Platforms.Android.Services.Media3;
 
 /// <summary>
 /// Single Media3 library service for in-app playback and Android Auto.
-/// Inactive until cutover: it has no intent filter and is not registered in DI.
 /// </summary>
+[IntentFilter(new[] { "androidx.media3.session.MediaLibraryService", "android.media.browse.MediaBrowserService" })]
 [Service(
     Exported = true,
     ForegroundServiceType = ForegroundService.TypeMediaPlayback,
@@ -31,7 +31,10 @@ namespace Bible.Alarm.Platforms.Android.Services.Media3;
 public class BibleAlarmMediaLibraryService : MediaLibraryService
 {
     private static readonly ILogger logger = Log.ForContext<BibleAlarmMediaLibraryService>();
+    private const int LibraryForegroundNotificationId = 3;
     private static BibleAlarmMediaLibraryService? current;
+
+    public static bool IsForeground { get; private set; }
 
     private MediaLibraryService.MediaLibrarySession? session;
     private readonly Media3StateSubscription subscription = new(logger);
@@ -53,7 +56,9 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
     public override void OnCreate()
     {
         current = this;
-        ForegroundServiceOperations.StartForegroundMinimal(this);
+        ForegroundServiceOperations.StartForegroundMinimal(this, LibraryForegroundNotificationId);
+        IsForeground = true;
+        ReleaseAlarmIfPlaybackRunning();
         _ = SessionStatePlayer.Instance;
         base.OnCreate();
 
@@ -71,7 +76,6 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
             subscription.SetSession(session!);
             _ = subscription.InitializeAsync();
             StartBootstrap();
-            ForegroundServiceCoordinator.OnAndroidAutoConnected(this);
         }
         catch (Exception ex)
         {
@@ -107,6 +111,7 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
         if (current == this)
         {
             current = null;
+            IsForeground = false;
         }
 
         base.OnDestroy();
@@ -140,11 +145,6 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
                 var playback = ServiceProviderManager.GetService<IState<PlaybackState>>();
                 if (playback?.Value?.IsPreparingOrPlaying is true)
                 {
-                    if (ForegroundServiceCoordinator.CurrentOwner != ForegroundServiceCoordinator.ForegroundServiceOwner.AndroidAuto)
-                    {
-                        ForegroundServiceOperations.StopForeground(this);
-                    }
-
                     return;
                 }
 
@@ -180,11 +180,50 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
         }
     }
 
+    /// <summary>
+    /// Drops the alarm foreground service once this service is in the foreground and playback is running.
+    /// </summary>
+    public static void ReleaseAlarmIfPlaybackRunning()
+    {
+        if (!IsForeground)
+        {
+            return;
+        }
+
+        var playback = ServiceProviderManager.GetService<IState<PlaybackState>>();
+        if (playback?.Value?.IsPreparingOrPlaying == true)
+        {
+            ForegroundServiceCoordinator.StopAlarmForegroundServiceIfActive();
+        }
+    }
+
+    private static void PostTapToResumeNotification()
+    {
+        var service = current;
+        if (service == null)
+        {
+            return;
+        }
+
+        try
+        {
+            var notification = ForegroundNotificationHelper.CreateNotification(service, isAlarmNotification: false);
+            var manager = service.GetSystemService(NotificationService) as NotificationManager;
+            manager?.Notify(LibraryForegroundNotificationId, notification);
+        }
+        catch (Exception ex)
+        {
+            logger.Warning(ex, "Could not post the tap-to-resume notification");
+        }
+    }
+
     private sealed class ForegroundStartListener : Java.Lang.Object, MediaSessionService.IListener
     {
         public void OnForegroundServiceStartNotAllowedException()
         {
-            logger.Warning("Media3 foreground start was not allowed. Alarm foreground service must stay up until playback is running.");
+            IsForeground = false;
+            logger.Warning("Media3 foreground start was not allowed. The alarm foreground service stays up.");
+            PostTapToResumeNotification();
         }
     }
 }

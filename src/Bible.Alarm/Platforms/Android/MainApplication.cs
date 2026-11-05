@@ -14,7 +14,7 @@ public class MainApplication(nint handle, JniHandleOwnership ownership) : MauiAp
         // This ensures MediaSession is available immediately on process start
         try
         {
-            Platforms.Android.Services.Media.MediaSessionHelper.Create();
+            _ = Platforms.Android.Services.Media3.SessionStatePlayer.Instance;
         }
         catch (Exception ex)
         {

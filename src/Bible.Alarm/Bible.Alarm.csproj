@@ -158,7 +158,7 @@
 		<PackageReference Include="TagLibSharp" Version="2.3.0" />
 	</ItemGroup>
 
-	<!-- Android Auto (MediaBrowserServiceCompat) -->
+	<!-- Android Auto (MediaLibraryService) -->
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-android'))">
 		<PackageReference Include="Xamarin.AndroidX.Media" Version="1.8.0.1" />
 		<PackageReference Include="Xamarin.AndroidX.Core" Version="1.19.1" />

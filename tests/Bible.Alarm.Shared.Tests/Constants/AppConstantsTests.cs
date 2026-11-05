@@ -1709,16 +1709,16 @@ public sealed class AppConstantsTests
             AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.FailedToApplyLastPlayedMetadataToMediaSession);
 
         Assert.Equal(
-            "MediaSessionCompat created successfully via MediaSessionHelper. Initial state: Buffering, Active: True, SessionToken available: {HasToken}",
-            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.MediaSessionCompatCreatedSuccessfullyInitialBufferingActiveHasToken);
+            "MediaSession created successfully via MediaSessionHelper. Initial state: Buffering, Active: True, SessionToken available: {HasToken}",
+            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.MediaSessionCreatedSuccessfullyInitialBufferingActiveHasToken);
 
         Assert.Equal(
-            "Creating shared MediaSessionCompat instance (2025 Standard)",
-            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.CreatingSharedMediaSessionCompatInstance2025Standard);
+            "Creating shared MediaSession instance (2025 Standard)",
+            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.CreatingSharedMediaSessionInstance2025Standard);
 
         Assert.Equal(
-            "MediaSessionCompat.SessionToken is null after creation - this should not happen",
-            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.MediaSessionCompatSessionTokenNullAfterCreationShouldNotHappen);
+            "MediaSession.SessionToken is null after creation - this should not happen",
+            AppConstants.Logging.AndroidMediaSessionHelperDiagnosticsLog.MediaSessionSessionTokenNullAfterCreationShouldNotHappen);
 
         Assert.Equal(
             "No last played metadata found in Preferences - already in blank loading state",
@@ -2842,7 +2842,7 @@ public sealed class AppConstantsTests
         Assert.Contains("{Token}", AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.SessionTokenSetInOnBind);
 
         Assert.Equal(
-            "LegacyMediaBrowserService.OnCreate() called",
+            "BibleAlarmMediaLibraryService.OnCreate() called",
             AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.OnCreateCalled);
 
         Assert.Contains("{ParentId}", AppConstants.Logging.LegacyMediaBrowserDiagnosticsLog.FailedToSendEmptyResultForParent);
@@ -3122,12 +3122,12 @@ public sealed class AppConstantsTests
             AppConstants.Logging.AndroidMediaSessionCreationDiagnosticsLog.AlarmSetupServiceOnCreateFailed);
 
         Assert.Equal(
-            "LegacyMediaBrowserService.OnCreate: failed to create MediaSession",
-            AppConstants.Logging.AndroidMediaSessionCreationDiagnosticsLog.LegacyMediaBrowserServiceOnCreateFailed);
+            "BibleAlarmMediaLibraryService.OnCreate: failed to create MediaSession",
+            AppConstants.Logging.AndroidMediaSessionCreationDiagnosticsLog.BibleAlarmMediaLibraryServiceOnCreateFailed);
 
         Assert.Equal(
-            "Error updating MediaSessionCompat playback state",
-            AppConstants.Logging.AndroidMediaSessionCompatUpdateDiagnosticsLog.ErrorUpdatingPlaybackState);
+            "Error updating media session playback state",
+            AppConstants.Logging.AndroidMediaSessionUpdateDiagnosticsLog.ErrorUpdatingPlaybackState);
 
         Assert.Contains(
             "{StartTime}",

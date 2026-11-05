@@ -58,7 +58,7 @@ public class AlarmRingerReceiver : BroadcastReceiver
     {
         try
         {
-            Platforms.Android.Services.Media.MediaSessionHelper.Create();
+            _ = Platforms.Android.Services.Media3.SessionStatePlayer.Instance;
         }
         catch (Exception ex)
         {

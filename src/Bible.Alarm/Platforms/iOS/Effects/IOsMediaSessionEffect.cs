@@ -22,8 +22,8 @@ namespace Bible.Alarm.Platforms.iOS.Effects;
 /// receive the correct playback state and can control audio properly.
 /// 
 /// Mirrors Android's MediaSessionEffect but uses iOS-specific APIs:
-/// - MPNowPlayingInfoCenter (equivalent to MediaMetadataCompat)
-/// - MPRemoteCommandCenter (equivalent to MediaSessionCompat.Callback)
+/// - MPNowPlayingInfoCenter (equivalent to MediaMetadata)
+/// - MPRemoteCommandCenter (equivalent to MediaSession.Callback)
 /// </summary>
 public class IOsMediaSessionEffect : IRecipient<PlaybackPositionChangedMessage>
 {

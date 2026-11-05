@@ -10,7 +10,7 @@ namespace Bible.Alarm.Platforms.Android.Services.Media3;
 
 /// <summary>
 /// Media3 implementation of the playback seam. Not registered in DI until cutover.
-/// Writes into <see cref="SessionStatePlayer"/> instead of MediaSessionCompat.
+/// Writes into <see cref="SessionStatePlayer"/> instead of MediaSession.
 /// </summary>
 public sealed class Media3MediaSessionManager : IMediaSessionManager
 {

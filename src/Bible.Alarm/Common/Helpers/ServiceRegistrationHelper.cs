@@ -343,11 +343,7 @@ public static class ServiceRegistrationHelper
         services.AddSingleton<IAndroidArtworkService, AndroidArtworkService>();
         services.AddSingleton<IAudioFocusListener, AudioFocusListener>();
         services.AddSingleton<IAudioFocusService, AudioFocusService>();
-        // Register the shared media session using the global helper (thread-safe, prevents duplicates)
-        // This ensures MediaSession is created as early as possible, even in background processes
-        services.AddSingleton(sp => Platforms.Android.Services.Media.MediaSessionHelper.Create());
-        // MediaSessionCallback is created lazily by MediaSessionManager to avoid startup dependency issues
-        services.AddSingleton<IMediaSessionManager, MediaSessionManager>();
+        services.AddSingleton<IMediaSessionManager, Bible.Alarm.Platforms.Android.Services.Media3.Media3MediaSessionManager>();
         services.AddSingleton<MediaSessionEffect>();
         services.AddSingleton<AudioFocusEffect>();
         // Default schedule rotation when Android Auto connected and not playing (every 5 min)

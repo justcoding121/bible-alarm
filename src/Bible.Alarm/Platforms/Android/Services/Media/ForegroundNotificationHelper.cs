@@ -5,15 +5,12 @@ using Android.App;
 using Android.Content;
 using Android.Graphics;
 using Android.Graphics.Drawables;
-using Android.Support.V4.Media;
-using Android.Support.V4.Media.Session;
 using AndroidX.Core.Content;
 using AndroidX.Core.Graphics.Drawable;
 using Bible.Alarm.Common;
 using Bible.Alarm.Shared.Constants;
 using Serilog;
 using Application = Android.App.Application;
-using MediaStyle = AndroidX.Media.App.NotificationCompat.MediaStyle;
 using NotificationCompat = AndroidX.Core.App.NotificationCompat;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
@@ -124,8 +121,6 @@ internal static class ForegroundNotificationHelper
 
     public static Notification CreateNotification(Service service, bool isAlarmNotification = false)
     {
-        // DELETE in step 8
-        var mediaSession = GetCompatSession();
         var context = service.ApplicationContext ?? Application.Context ?? throw new InvalidOperationException("Context cannot be null");
 
         var packageName = context.PackageName ?? throw new InvalidOperationException("PackageName cannot be null");
@@ -157,10 +152,9 @@ internal static class ForegroundNotificationHelper
         {
             // Android Auto notification: Use metadata from MediaSession or fallbacks
             // Android Auto requires user to start playback, so we show available metadata
-            var metadata = mediaSession?.Controller?.Metadata;
-            title = metadata?.GetString(MediaMetadataCompat.MetadataKeyTitle) ?? string.Empty;
-            artist = metadata?.GetString(MediaMetadataCompat.MetadataKeyArtist) ?? string.Empty;
-            artwork = metadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
+            var snapshot = ServiceProviderManager.GetService<Interfaces.IMediaSessionManager>()?.Snapshot;
+            title = snapshot?.Title ?? string.Empty;
+            artist = snapshot?.Artist ?? string.Empty;
 
             // Fallback values for early bootstrap scenarios (before metadata is set)
             if (string.IsNullOrEmpty(title))
@@ -195,32 +189,6 @@ internal static class ForegroundNotificationHelper
             builder.SetDefaults(0); // No default sounds, lights, or vibrations
         }
 
-        var playIntent = AndroidX.Media.Session.MediaButtonReceiver.BuildMediaButtonPendingIntent(
-            context!,
-            PlaybackStateCompat.ActionPlay);
-
-        if (playIntent != null)
-        {
-            var playIcon = IconCompat.CreateWithResource(context!, ResourceConstant.Drawable.exo_icon_circular_play);
-            var playAction = new NotificationCompat.Action(
-                playIcon,
-                "Play",
-                playIntent);
-
-            builder.AddAction(playAction);
-        }
-
-        // Attach MediaSession for Android Auto integration
-        if (mediaSession?.SessionToken is { } sessionToken)
-        {
-            var mediaStyle = new MediaStyle()
-                .SetMediaSession(sessionToken)!
-                .SetShowActionsInCompactView(0); // Show first action (play) in compact view
-
-            // MediaStyle fluent API always returns non-null, but compiler doesn't know this
-            builder.SetStyle(mediaStyle!);
-        }
-
         // Add artwork or app icon
         if (isAlarmNotification)
         {
@@ -238,13 +206,6 @@ internal static class ForegroundNotificationHelper
         }
 
         return builder.Build() ?? throw new InvalidOperationException("Failed to build notification");
-    }
-
-    // DELETE in step 8
-    internal static MediaSessionCompat? GetCompatSession()
-    {
-        var manager = ServiceProviderManager.GetService<MediaSessionManager>();
-        return manager?.GetOrCreate() ?? MediaSessionHelper.Create();
     }
 
     /// <summary>

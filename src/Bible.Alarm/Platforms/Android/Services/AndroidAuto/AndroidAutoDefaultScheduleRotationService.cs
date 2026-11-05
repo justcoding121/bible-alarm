@@ -94,15 +94,7 @@ public sealed class AndroidAutoDefaultScheduleRotationService(
                 // (common with wireless Android Auto on some cars like Genesis GV70).
                 // Clean up the stale state to remove the orphaned foreground notification
                 // and deactivate the MediaSession (prevents Android 13+ system notification).
-                if (ForegroundServiceCoordinator.IsAndroidAutoConnected)
-                {
-                    logger.Warning(
-                        AppConstants.Logging.AndroidAutoDefaultScheduleRotationDiagnosticsLog.CarDisconnectedBindFlagStaleCleanup);
-                    ForegroundServiceCoordinator.OnAndroidAutoDisconnected();
-                    mediaSessionManager.SetActive(false);
-                    break;
-                }
-
+                mediaSessionManager.SetActive(false);
                 continue;
             }
 

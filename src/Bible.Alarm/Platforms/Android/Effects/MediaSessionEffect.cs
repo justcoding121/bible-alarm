@@ -89,7 +89,6 @@ public class MediaSessionEffect(
         }
 
         await CoordinatePlaybackLifecycleSideEffectsAsync(action);
-        ApplyMediaSessionActivationPolicyForMediaElementOwner();
     }
 
     /// <summary>Returns true when the handler should exit early (restart suppression path).</summary>
@@ -105,7 +104,6 @@ public class MediaSessionEffect(
             logger.Information(
                 "[AndroidAuto] Suppressing {Status} MediaSession update during playback restart to prevent flashing",
                 action.Status);
-            ForegroundServiceCoordinator.OnPlaybackStopped();
             return true;
         }
 
@@ -241,17 +239,7 @@ public class MediaSessionEffect(
         }
         else if (action.Status == PlayStatus.Stopped || action.Status == PlayStatus.Ended)
         {
-            ForegroundServiceCoordinator.OnPlaybackStopped();
             ResetMetadataDedup();
-        }
-    }
-
-    private void ApplyMediaSessionActivationPolicyForMediaElementOwner()
-    {
-        if (!ForegroundServiceCoordinator.IsAndroidAutoConnected
-            && ForegroundServiceCoordinator.CurrentOwner == ForegroundServiceCoordinator.ForegroundServiceOwner.MediaElement)
-        {
-            mediaSessionManager.SetActive(false);
         }
     }
 
@@ -342,13 +330,6 @@ public class MediaSessionEffect(
                 // wireless Android Auto on some cars). Clean up the orphaned foreground
                 // notification and deactivate the MediaSession to prevent Android 13+
                 // from auto-generating a system notification for the stale active session.
-                if (ForegroundServiceCoordinator.IsAndroidAutoConnected)
-                {
-                    logger.Warning(
-                        "HandleSetDefaultScheduleMetadata: Car physically disconnected but MediaBrowser bind flag still true — cleaning up stale Android Auto state");
-                    ForegroundServiceCoordinator.OnAndroidAutoDisconnected();
-                }
-
                 mediaSessionManager.SetActive(false);
                 logger.Debug("HandleSetDefaultScheduleMetadata: Car not connected (CarConnection provider), skipping default metadata/notification");
                 return;
@@ -377,24 +358,9 @@ public class MediaSessionEffect(
             // Only start Android Auto foreground service if the car is still connected.
             // Re-check via the CarConnection content provider (not the stale binding flag)
             // to handle race conditions where the user disconnected during metadata update.
-            if (ForegroundServiceCoordinator.IsAndroidAutoConnected && CarConnectionHelper.IsCarConnected())
+            if (CarConnectionHelper.IsCarConnected())
             {
-                // Add a delay to ensure MediaElement's notification and foreground service are fully removed
-                // This ensures proper synchronization - MediaElement's notification is removed before
-                // Android Auto foreground service starts. Increased delay to ensure smooth transition.
-                await Task.Delay(300);
-
-                // Double-check car is still connected after delay
-                if (!CarConnectionHelper.IsCarConnected())
-                {
-                    logger.Debug("Car disconnected during delay - skipping foreground service start");
-                    return;
-                }
-
-                // Request Android Auto foreground service to keep connection alive
-                // Uses the stored service instance from ForegroundServiceCoordinator (no DI needed)
-                logger.Information("Requesting Android Auto foreground service after MediaElement disposal and metadata update");
-                ForegroundServiceCoordinator.RequestForAndroidAuto();
+                logger.Information("Car is connected after metadata update");
             }
             else
             {

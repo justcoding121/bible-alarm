@@ -25,7 +25,7 @@ internal static class ForegroundServiceOperations
     /// CRITICAL: StartForeground MUST be called or Android throws RemoteServiceException.
     /// We use a fallback path if the primary notification creation fails.
     /// </summary>
-    public static void StartForegroundMinimal(Service service)
+    public static void StartForegroundMinimal(Service service, int? notificationId = null)
     {
         Notification? notification = null;
         try
@@ -48,15 +48,16 @@ internal static class ForegroundServiceOperations
 
         if (notification != null)
         {
+            var id = notificationId ?? ForegroundNotificationHelper.NotificationId;
             try
             {
                 if (OperatingSystem.IsAndroidVersionAtLeast(29))
                 {
-                    service.StartForeground(ForegroundNotificationHelper.NotificationId, notification, ForegroundService.TypeMediaPlayback);
+                    service.StartForeground(id, notification, ForegroundService.TypeMediaPlayback);
                 }
                 else
                 {
-                    service.StartForeground(ForegroundNotificationHelper.NotificationId, notification);
+                    service.StartForeground(id, notification);
                 }
                 logger.Information("Minimal foreground service started immediately (pre-bootstrap)");
             }

@@ -10,7 +10,6 @@ using AndroidX.Media3.UI;
 using CommunityToolkit.Maui.Interfaces;
 using CommunityToolkit.Maui.MediaSource;
 using CommunityToolkit.Maui.Primitives;
-using CommunityToolkit.Maui.Services;
 using CommunityToolkit.Maui.Views;
 using Java.Lang;
 using Microsoft.Extensions.Logging;
@@ -36,11 +35,7 @@ public partial class MediaManager : Object, IPlayerListener
 
     TaskCompletionSource? seekToTaskCompletionSource;
     CancellationTokenSource? cancellationTokenSource;
-    MediaSession? session;
     MediaItem.Builder? mediaItem;
-    BoundServiceConnection? connection;
-
-    public MediaSession? Session => session;
 
     protected PlayerView? PlayerView { get; set; }
 
@@ -56,18 +51,6 @@ public partial class MediaManager : Object, IPlayerListener
 
     public void UpdateNotifications()
     {
-        if (connection?.Binder?.Service is null)
-        {
-#if DEBUG
-            Logger.LogDebug("Notification Service not running.");
-#endif
-            return;
-        }
-
-        if (session is not null && Player is not null)
-        {
-            connection.Binder.Service.UpdateNotifications(session, Player);
-        }
     }
 
     public void OnPlayerStateChanged(bool playWhenReady, int playbackState)
@@ -111,20 +94,18 @@ public partial class MediaManager : Object, IPlayerListener
         }
     }
 
-    [MemberNotNull(nameof(Player), nameof(session))]
+    [MemberNotNull(nameof(Player))]
     public (PlatformMediaElement platformView, PlayerView? PlayerView) CreatePlatformView(AndroidViewType androidViewType)
     {
         AndroidMainThreadRunner.RunOnMainThread(() =>
         {
-            (Player, session) = AndroidGlobalExoPlayerFactory.CreateOrReuse(MauiContext, this);
+            Player = AndroidGlobalExoPlayerFactory.CreateOrReuse(MauiContext, this);
         });
 
-        // Always headless mode - no PlayerView needed for audio-only playback
         PlayerView? playerView = null;
-        // Player and session are guaranteed to be non-null due to [MemberNotNull] attribute and initialization in RunOnMainThread
-        if (Player == null || session == null)
+        if (Player == null)
         {
-            throw new InvalidOperationException("Player or session is null after initialization");
+            throw new InvalidOperationException("Player is null after initialization");
         }
         return (Player, playerView);
     }
@@ -277,18 +258,13 @@ public partial class MediaManager : Object, IPlayerListener
             return;
         }
 
-        if (connection is null)
-        {
-            StartService();
-        }
-
         (cancellationTokenSource, mediaItem) = await AndroidMediaManagerSourceUpdater.UpdateSourceAsync(
             MediaElement,
             Player,
             PlayerView,
             cancellationTokenSource,
             mediaItem,
-            UpdateNotifications,
+            static () => { },
             Logger).ConfigureAwait(true);
     }
 
@@ -419,48 +395,12 @@ public partial class MediaManager : Object, IPlayerListener
 
         if (disposing)
         {
-            session?.Release();
-            session?.Dispose();
-            session = null;
-
             cancellationTokenSource?.Dispose();
             cancellationTokenSource = null;
-
-            if (connection is not null)
-            {
-                StopService(connection);
-                connection.Dispose();
-                connection = null;
-            }
 
             AndroidArtworkBytesFetcher.DisposeClient();
             AndroidGlobalExoPlayerFactory.Reset();
         }
-    }
-
-    [MemberNotNull(nameof(connection))]
-    void StartService()
-    {
-        var intent = new Intent(Application.Context, typeof(MediaControlsService));
-        connection = new BoundServiceConnection(this);
-        connection.MediaControlsServiceTaskRemoved += HandleMediaControlsServiceTaskRemoved;
-
-        Application.Context.StartForegroundService(intent);
-        Application.Context.ApplicationContext?.BindService(intent, connection, Bind.AutoCreate);
-    }
-
-    void StopService(in BoundServiceConnection boundServiceConnection)
-    {
-        boundServiceConnection.MediaControlsServiceTaskRemoved -= HandleMediaControlsServiceTaskRemoved;
-
-        var serviceIntent = new Intent(Platform.AppContext, typeof(MediaControlsService));
-        Application.Context.StopService(serviceIntent);
-        Platform.AppContext.UnbindService(boundServiceConnection);
-    }
-
-    void HandleMediaControlsServiceTaskRemoved(object? sender, EventArgs e)
-    {
-        Player?.Stop();
     }
 
     public void OnAudioAttributesChanged(AudioAttributes? audioAttributes) { }
@@ -487,10 +427,7 @@ public partial class MediaManager : Object, IPlayerListener
             return;
         }
 
-        Dispatcher.DispatchAsync(() =>
-        {
-            UpdateNotifications();
-        });
+        _ = mediaMetadata;
     }
     public void OnMetadata(Metadata? metadata) { }
     public void OnPlayWhenReadyChanged(bool playWhenReady, int reason) { }

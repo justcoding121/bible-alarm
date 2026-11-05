@@ -19,7 +19,6 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
 {
     private readonly MediaSourceBuilder mediaSourceBuilder = new(logger);
     private readonly PlayerManager playerManager = new(logger);
-    private readonly AndroidPlayerNotificationHelpers.MediaSessionManager mediaSessionManager = new(logger);
     private readonly NotificationLogger notificationLogger = new(logger);
 
     /// <summary>
@@ -86,7 +85,8 @@ public sealed class AndroidPlayerNotificationService(ILogger logger) : IAndroidP
     /// </summary>
     public async Task ReleaseMediaSessionAsync(MediaElement mediaElement)
     {
-        await mediaSessionManager.ReleaseMediaSessionAsync(mediaElement);
+        _ = mediaElement;
+        await Task.CompletedTask;
     }
 
     private bool isDisposed;

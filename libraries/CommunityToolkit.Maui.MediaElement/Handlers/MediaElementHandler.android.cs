@@ -114,7 +114,7 @@ public partial class MediaElementHandler : ViewHandler<MediaElement, MauiMediaEl
             platformView.Dispose();
         }
 
-        // Dispose() will handle MediaManager disposal (releases MediaSession and stops MediaControlsService)
+        // Dispose() will handle MediaManager disposal (releases MediaSession and stops BibleAlarmMediaLibraryService)
         // This works for both UI mode and headless mode
         Dispose();
     }
