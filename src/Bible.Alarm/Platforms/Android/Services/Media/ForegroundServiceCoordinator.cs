@@ -2,8 +2,8 @@
 
 using Android.App;
 using Android.Content;
-using Android.Support.V4.Media;
-using Android.Support.V4.Media.Session;
+using Bible.Alarm.Common;
+using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
 using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media;
@@ -84,8 +84,7 @@ public sealed class ForegroundServiceCoordinator
             return;
         }
 
-        var hasMetadata = session.Controller?.Metadata != null &&
-            !string.IsNullOrEmpty(session.Controller.Metadata.GetString(MediaMetadataCompat.MetadataKeyTitle));
+        var hasMetadata = !string.IsNullOrEmpty(ServiceProviderManager.GetService<IMediaSessionManager>()?.Snapshot.Title);
 
         if (hasMetadata)
         {
@@ -97,7 +96,7 @@ public sealed class ForegroundServiceCoordinator
         }
 
         // Always start foreground - notification helper will use fallback text if no metadata
-        RequestForAndroidAuto(service, session);
+        RequestForAndroidAuto(service);
     }
 
     /// <summary>
@@ -259,9 +258,8 @@ public sealed class ForegroundServiceCoordinator
     /// Should be called whenever default schedule metadata is set.
     /// Uses the stored service instance from when Android Auto connected.
     /// </summary>
-    /// <param name="mediaSession">The MediaSessionCompat to attach to notification</param>
     /// <returns>True if ownership was granted or already owned, false if Android Auto not connected or MediaElement is active</returns>
-    public static bool RequestForAndroidAuto(MediaSessionCompat mediaSession)
+    public static bool RequestForAndroidAuto()
     {
         lock (@lock)
         {
@@ -271,7 +269,7 @@ public sealed class ForegroundServiceCoordinator
                 return false;
             }
 
-            return RequestForAndroidAuto(state.AndroidAutoService, mediaSession);
+            return RequestForAndroidAuto(state.AndroidAutoService);
         }
     }
 
@@ -281,9 +279,8 @@ public sealed class ForegroundServiceCoordinator
     /// Should be called whenever default schedule metadata is set.
     /// </summary>
     /// <param name="service">The Android Auto service instance (LegacyMediaBrowserService)</param>
-    /// <param name="mediaSession">The MediaSessionCompat to attach to notification</param>
     /// <returns>True if ownership was granted or already owned, false if Android Auto not connected or MediaElement is active</returns>
-    public static bool RequestForAndroidAuto(Service service, MediaSessionCompat mediaSession)
+    public static bool RequestForAndroidAuto(Service service)
     {
         lock (@lock)
         {
@@ -300,7 +297,7 @@ public sealed class ForegroundServiceCoordinator
             if (ForegroundServiceValidator.ShouldUpdateAndroidAutoForeground(state))
             {
                 logger.Debug("Android Auto already owns foreground service - updating notification");
-                ForegroundServiceOperations.UpdateForeground(service, mediaSession);
+                ForegroundServiceOperations.UpdateForeground(service);
                 return true;
             }
 
@@ -316,7 +313,7 @@ public sealed class ForegroundServiceCoordinator
             }
 
             logger.Information("Android Auto requesting foreground service ownership (Android Auto is connected)");
-            ForegroundServiceOperations.StartForeground(service, mediaSession);
+            ForegroundServiceOperations.StartForeground(service);
             state.SetOwner(ForegroundServiceOwner.AndroidAuto);
             state.SetAndroidAutoConnected(true, service);
             logger.Information("Foreground service ownership granted to Android Auto");
@@ -436,6 +433,7 @@ public sealed class ForegroundServiceCoordinator
         // ForegroundNotificationHelper.CreateNotification handles alarm notifications with "Preparing playback..." message.
         // The notification will be updated when metadata is set later via UpdateForeground.
         var mediaSession = MediaSessionHelper.Create();
+        var hasMetadata = !string.IsNullOrEmpty(ServiceProviderManager.GetService<IMediaSessionManager>()?.Snapshot.Title);
         if (mediaSession != null)
         {
             lock (@lock)
@@ -449,7 +447,12 @@ public sealed class ForegroundServiceCoordinator
                 }
 
                 state.SetAlarmService(serviceInstance);
-                ForegroundServiceOperations.StartForeground(serviceInstance, mediaSession, isAlarmNotification: true);
+                if (hasMetadata)
+                {
+                    logger.Information("Alarm foreground service starting with existing session metadata");
+                }
+
+                ForegroundServiceOperations.StartForeground(serviceInstance, isAlarmNotification: true);
                 state.SetOwner(ForegroundServiceOwner.Alarm);
                 logger.Information("Alarm foreground service started with preparing notification - will switch to MediaElement when playback starts");
             }

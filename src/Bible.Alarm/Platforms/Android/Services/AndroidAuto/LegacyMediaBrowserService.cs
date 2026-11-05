@@ -272,9 +272,10 @@ public class LegacyMediaBrowserService : MediaBrowserServiceCompat
             try
             {
                 mediaSessionManager ??= ServiceProviderManager.GetService<IMediaSessionManager>();
-                if (mediaSessionManager != null)
+                var concreteManager = ServiceProviderManager.GetService<Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManager>();
+                if (concreteManager != null)
                 {
-                    session ??= mediaSessionManager.GetOrCreate();
+                    session ??= concreteManager.GetOrCreate();
                     if (session?.SessionToken != null)
                     {
                         SessionToken = session.SessionToken;

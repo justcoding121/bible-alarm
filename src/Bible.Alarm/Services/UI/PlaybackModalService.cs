@@ -544,13 +544,16 @@ public sealed partial class PlaybackModalService :
 #if ANDROID
         try
         {
-            var mediaSession = Platforms.Android.Services.Media.MediaSessionHelper.Create();
-            var sessionPlaybackState = mediaSession?.Controller?.PlaybackState;
+            var mediaSessionManager = Common.ServiceProviderManager.GetService<Platforms.Android.Services.Media.Interfaces.IMediaSessionManager>();
+            if (mediaSessionManager == null || !mediaSessionManager.IsAvailable)
+            {
+                return false;
+            }
 
-            return sessionPlaybackState?.State is
-                Android.Support.V4.Media.Session.PlaybackStateCompat.StatePlaying or
-                Android.Support.V4.Media.Session.PlaybackStateCompat.StateBuffering or
-                Android.Support.V4.Media.Session.PlaybackStateCompat.StatePaused;
+            return mediaSessionManager.Snapshot.State is
+                Platforms.Android.Services.Media.Session.SessionPlaybackState.Playing or
+                Platforms.Android.Services.Media.Session.SessionPlaybackState.Buffering or
+                Platforms.Android.Services.Media.Session.SessionPlaybackState.Paused;
         }
         catch (Exception ex)
         {

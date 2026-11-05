@@ -4,6 +4,7 @@ using Android.Support.V4.Media.Session;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
 using Bible.Alarm.Platforms.Android.Services.Media.MediaSessionManagerHelpers;
+using Bible.Alarm.Platforms.Android.Services.Media.Session;
 using Bible.Alarm.Services.Media.Models;
 using Serilog;
 
@@ -53,12 +54,40 @@ public sealed class MediaSessionManager : IMediaSessionManager
         return mediaSession;
     }
 
+    public bool IsAvailable => GetOrCreate() != null;
 
+    public SessionPlaybackSnapshot Snapshot
+    {
+        get
+        {
+            var session = GetOrCreate();
+            var playback = session?.Controller?.PlaybackState;
+            var metadata = session?.Controller?.Metadata;
+            var mediaId = metadata?.GetString(MediaMetadataCompat.MetadataKeyMediaId);
+            int? scheduleId = int.TryParse(mediaId, out var parsed) && parsed > 0 ? parsed : null;
+            return new SessionPlaybackSnapshot(
+                MapCompatState(playback?.State),
+                playback?.Position ?? 0,
+                metadata?.GetLong(MediaMetadataCompat.MetadataKeyDuration) ?? 0,
+                CanPlayNext: true,
+                CanPlayPrevious: true,
+                metadata?.GetString(MediaMetadataCompat.MetadataKeyTitle),
+                metadata?.GetString(MediaMetadataCompat.MetadataKeyArtist),
+                metadata?.GetString(MediaMetadataCompat.MetadataKeyAlbum),
+                metadata?.GetString(MediaMetadataCompat.MetadataKeyArtUri),
+                scheduleId,
+                session?.Active ?? false,
+                playback?.ErrorMessage?.ToString());
+        }
+    }
 
     /// <summary>
     /// Updates the playback state of the shared MediaSessionCompat.
     /// </summary>
-    public void UpdatePlaybackState(int state, long position = 0, bool canPlayNext = false, bool canPlayPrevious = false)
+    public void UpdatePlaybackState(SessionPlaybackState state, long position = 0, bool canPlayNext = false, bool canPlayPrevious = false)
+        => ApplyPlaybackState(MapToCompatState(state), position, canPlayNext, canPlayPrevious);
+
+    private void ApplyPlaybackState(int state, long position, bool canPlayNext, bool canPlayPrevious)
     {
         if (state == lastSetState && position == lastSetPosition)
         {
@@ -145,7 +174,7 @@ public sealed class MediaSessionManager : IMediaSessionManager
     /// Updates the metadata of the shared MediaSessionCompat.
     /// Replaces MediaId when a new schedule id is supplied so Play matches the title and artwork on screen.
     /// </summary>
-    public void UpdateMetadata(string title, string artist, string? album = null, int? scheduleId = null, string? artworkUrl = null)
+    public void UpdateMetadata(string title, string artist, string? album = null, int? scheduleId = null, string? artworkUrl = null, TimeSpan? duration = null)
     {
         if (mediaSession == null)
         {
@@ -161,6 +190,16 @@ public sealed class MediaSessionManager : IMediaSessionManager
         }
 
         metadataManager.PreserveExistingMetadata(builder, mediaSession, scheduleId, artworkUrl);
+        if (duration.HasValue)
+        {
+            // A zero duration during a track change means the new length is not known yet.
+            // Keep the previous length so the car progress bar does not collapse.
+            var durationMs = duration.Value > TimeSpan.Zero
+                ? (long)duration.Value.TotalMilliseconds
+                : Math.Max(mediaSession.Controller?.Metadata?.GetLong(MediaMetadataCompat.MetadataKeyDuration) ?? 0, 0);
+            builder.PutLong(MediaMetadataCompat.MetadataKeyDuration, durationMs);
+        }
+
         ApplyMetadata(builder);
     }
 
@@ -299,7 +338,7 @@ public sealed class MediaSessionManager : IMediaSessionManager
             // For Playing state, Android Auto uses position + playbackSpeed + timestamp
             // to advance the position automatically.
             var position = mediaSession.Controller?.PlaybackState?.Position ?? 0;
-            UpdatePlaybackState(state, position: position, canPlayNext: canPlayNext, canPlayPrevious: canPlayPrevious);
+            ApplyPlaybackState(state, position, canPlayNext, canPlayPrevious);
 
             if (status == PlayStatus.Playing)
             {
@@ -380,6 +419,25 @@ public sealed class MediaSessionManager : IMediaSessionManager
     /// Gets the SessionToken from the shared MediaSessionCompat.
     /// This token is used by both Legacy and Modern Android Auto services.
     /// </summary>
+    private static int MapToCompatState(SessionPlaybackState state) => state switch
+    {
+        SessionPlaybackState.Playing => PlaybackStateCompat.StatePlaying,
+        SessionPlaybackState.Buffering => PlaybackStateCompat.StateBuffering,
+        SessionPlaybackState.Paused => PlaybackStateCompat.StatePaused,
+        SessionPlaybackState.Error => PlaybackStateCompat.StateError,
+        _ => PlaybackStateCompat.StateNone,
+    };
+
+    private static SessionPlaybackState MapCompatState(int? state) => state switch
+    {
+        PlaybackStateCompat.StatePlaying => SessionPlaybackState.Playing,
+        PlaybackStateCompat.StateBuffering => SessionPlaybackState.Buffering,
+        PlaybackStateCompat.StatePaused => SessionPlaybackState.Paused,
+        PlaybackStateCompat.StateError => SessionPlaybackState.Error,
+        _ => SessionPlaybackState.None,
+    };
+
+    // DELETE in step 8. Notification code still needs the compat token until the Media3 cutover.
     public MediaSessionCompat.Token? Token
     {
         get

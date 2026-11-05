@@ -9,6 +9,7 @@ using Android.Support.V4.Media;
 using Android.Support.V4.Media.Session;
 using AndroidX.Core.Content;
 using AndroidX.Core.Graphics.Drawable;
+using Bible.Alarm.Common;
 using Bible.Alarm.Shared.Constants;
 using Serilog;
 using Application = Android.App.Application;
@@ -121,8 +122,10 @@ internal static class ForegroundNotificationHelper
         return builder.Build() ?? throw new InvalidOperationException("Failed to build minimal notification");
     }
 
-    public static Notification CreateNotification(Service service, MediaSessionCompat mediaSession, bool isAlarmNotification = false)
+    public static Notification CreateNotification(Service service, bool isAlarmNotification = false)
     {
+        // DELETE in step 8
+        var mediaSession = GetCompatSession();
         var context = service.ApplicationContext ?? Application.Context ?? throw new InvalidOperationException("Context cannot be null");
 
         var packageName = context.PackageName ?? throw new InvalidOperationException("PackageName cannot be null");
@@ -235,6 +238,13 @@ internal static class ForegroundNotificationHelper
         }
 
         return builder.Build() ?? throw new InvalidOperationException("Failed to build notification");
+    }
+
+    // DELETE in step 8
+    internal static MediaSessionCompat? GetCompatSession()
+    {
+        var manager = ServiceProviderManager.GetService<MediaSessionManager>();
+        return manager?.GetOrCreate() ?? MediaSessionHelper.Create();
     }
 
     /// <summary>

@@ -1,13 +1,12 @@
 #nullable enable
 using System;
-using Android.Support.V4.Media;
-using Android.Support.V4.Media.Session;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;
 using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
 using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
+using Bible.Alarm.Platforms.Android.Services.Media.Session;
 using Bible.Alarm.Services.Media.Models;
 using Bible.Alarm.Stores;
 using Bible.Alarm.Stores.Actions.Playback;
@@ -19,14 +18,13 @@ using FluxorDispatcher = Fluxor.IDispatcher;
 namespace Bible.Alarm.Platforms.Android.Effects;
 
 /// <summary>
-/// Fluxor effect that syncs playback state and metadata with MediaSessionCompat for Android Auto.
+/// Fluxor effect that syncs playback state and metadata with the shared media session for Android Auto.
 /// This ensures that Android Auto receives the correct playback state and can route audio properly.
 /// Audio focus management is handled by MediaSessionManager.
 /// </summary>
 public class MediaSessionEffect(
     IMediaSessionManager mediaSessionManager,
-    IState<PlaybackState> playbackState,
-    IAndroidArtworkService artworkService) : IRecipient<PlaybackPositionChangedMessage>
+    IState<PlaybackState> playbackState) : IRecipient<PlaybackPositionChangedMessage>
 {
     private static readonly ILogger logger = Log.ForContext<MediaSessionEffect>();
 
@@ -53,7 +51,7 @@ public class MediaSessionEffect(
     {
         try
         {
-            if (GetValidatedSession("cannot update playback state") == null)
+            if (!EnsureSession("cannot update playback state"))
             {
                 return;
             }
@@ -62,7 +60,7 @@ public class MediaSessionEffect(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, AppConstants.Logging.AndroidMediaSessionCompatUpdateDiagnosticsLog.ErrorUpdatingPlaybackState);
+            logger.Error(ex, AppConstants.Logging.AndroidMediaSessionUpdateDiagnosticsLog.ErrorUpdatingPlaybackState);
         }
     }
 
@@ -154,7 +152,7 @@ public class MediaSessionEffect(
             logger.Information(
                 "[AndroidAuto] Loading status with auto-advancing: Setting to Buffering state with Pause action (pause button visible, buffering progress, no prev/next buttons, matches Alarm Modal)");
             mediaSessionManager.UpdatePlaybackState(
-                PlaybackStateCompat.StateBuffering,
+                SessionPlaybackState.Buffering,
                 position: 0,
                 canPlayNext: true,
                 canPlayPrevious: true);
@@ -273,8 +271,7 @@ public class MediaSessionEffect(
     {
         try
         {
-            var session = GetValidatedSession("cannot update metadata");
-            if (session == null)
+            if (!EnsureSession("cannot update metadata"))
             {
                 return Task.CompletedTask;
             }
@@ -287,18 +284,18 @@ public class MediaSessionEffect(
                     return Task.CompletedTask;
                 }
 
-                var metadata = BuildMetadata(action, session);
-                if (metadata != null)
-                {
-                    session.SetMetadata(metadata);
-                    var durationMs = metadata.GetLong(MediaMetadataCompat.MetadataKeyDuration);
-                    mediaSessionManager.SetTrackedDuration(durationMs);
-
-                    lastMetadataTitle = action.Title;
-                    lastMetadataArtist = action.Artist;
-                    lastMetadataAlbum = action.Album;
-                    lastMetadataArtworkUrl = action.ArtworkUrl;
-                }
+                mediaSessionManager.UpdateMetadata(
+                    action.Title ?? string.Empty,
+                    action.Artist ?? string.Empty,
+                    action.Album,
+                    playbackState.Value?.CurrentScheduleId,
+                    action.ArtworkUrl,
+                    playbackState.Value?.Duration ?? TimeSpan.Zero);
+                mediaSessionManager.SetTrackedDuration(mediaSessionManager.Snapshot.DurationMs);
+                lastMetadataTitle = action.Title;
+                lastMetadataArtist = action.Artist;
+                lastMetadataAlbum = action.Album;
+                lastMetadataArtworkUrl = action.ArtworkUrl;
 
                 var currentState = playbackState.Value;
                 if (currentState.Status == PlayStatus.Playing || currentState.Status == PlayStatus.Paused)
@@ -314,7 +311,7 @@ public class MediaSessionEffect(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error updating MediaSessionCompat metadata");
+            logger.Error(ex, "Error updating media session metadata");
         }
 
         return Task.CompletedTask;
@@ -357,8 +354,7 @@ public class MediaSessionEffect(
                 return;
             }
 
-            var session = GetValidatedSession("cannot update default schedule metadata");
-            if (session == null)
+            if (!EnsureSession("cannot update default schedule metadata"))
             {
                 return;
             }
@@ -398,7 +394,7 @@ public class MediaSessionEffect(
                 // Request Android Auto foreground service to keep connection alive
                 // Uses the stored service instance from ForegroundServiceCoordinator (no DI needed)
                 logger.Information("Requesting Android Auto foreground service after MediaElement disposal and metadata update");
-                ForegroundServiceCoordinator.RequestForAndroidAuto(session);
+                ForegroundServiceCoordinator.RequestForAndroidAuto();
             }
             else
             {
@@ -407,55 +403,24 @@ public class MediaSessionEffect(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, AppConstants.Logging.AndroidMediaSessionCompatUpdateDiagnosticsLog.ErrorUpdatingDefaultScheduleMetadata);
+            logger.Error(ex, AppConstants.Logging.AndroidMediaSessionUpdateDiagnosticsLog.ErrorUpdatingDefaultScheduleMetadata);
         }
     }
 
-    private MediaSessionCompat? GetValidatedSession(string warningMessage)
+    private bool EnsureSession(string warningMessage)
     {
-        var session = mediaSessionManager.GetOrCreate();
-        if (session == null)
+        if (mediaSessionManager.IsAvailable)
         {
-            logger.Warning("MediaSessionCompat is null, {Detail}", warningMessage);
+            return true;
         }
-        return session;
+
+        logger.Warning("Media session is null, {Detail}", warningMessage);
+        return false;
     }
 
     private static bool HasValidMetadata(PlaybackMetadataChangedAction action)
     {
         return !string.IsNullOrEmpty(action.Title) || !string.IsNullOrEmpty(action.Artist);
-    }
-
-    private MediaMetadataCompat? BuildMetadata(PlaybackMetadataChangedAction action, MediaSessionCompat session)
-    {
-        var scheduleId = playbackState.Value?.CurrentScheduleId;
-        var metadataBuilder = AndroidAutoPlayScreenHelper.CreateMetadataBuilderWithMediaId(
-            action.Title,
-            action.Artist,
-            action.Album,
-            scheduleId);
-
-        SetArtwork(metadataBuilder, action, session);
-
-        // Include duration from Fluxor state so metadata replacement doesn't wipe duration.
-        // Without this, a race between PlaybackMetadataChangedAction and PlaybackDurationChangedAction
-        // can cause the progress bar in Android Auto to lose the end time.
-        var duration = playbackState.Value?.Duration ?? TimeSpan.Zero;
-        if (duration > TimeSpan.Zero)
-        {
-            metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, (long)duration.TotalMilliseconds);
-        }
-        else
-        {
-            // During track transitions, the reducer resets duration to 0 before the new
-            // track's duration is known. Preserve the existing duration from the MediaSession
-            // to prevent the time text from disappearing and causing layout shifts on the car screen.
-            // Always set duration (even 0) so the time area stays allocated on the Now Playing screen.
-            var existingDuration = session.Controller?.Metadata?.GetLong(MediaMetadataCompat.MetadataKeyDuration) ?? 0;
-            metadataBuilder.PutLong(MediaMetadataCompat.MetadataKeyDuration, Math.Max(existingDuration, 0));
-        }
-
-        return metadataBuilder.Build();
     }
 
     private bool IsMetadataUnchanged(PlaybackMetadataChangedAction action)
@@ -474,35 +439,6 @@ public class MediaSessionEffect(
         lastMetadataArtworkUrl = null;
     }
 
-    private void SetArtwork(MediaMetadataCompat.Builder metadataBuilder, PlaybackMetadataChangedAction action, MediaSessionCompat session)
-    {
-        if (!string.IsNullOrEmpty(action.ArtworkUrl))
-        {
-            try
-            {
-                var artworkBitmap = artworkService?.LoadArtworkBitmap(action.ArtworkUrl);
-                if (artworkBitmap != null)
-                {
-                    metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, artworkBitmap);
-                    return;
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.Warning(ex, AppConstants.Logging.AndroidMediaArtworkLog.ErrorLoadingBitmapFromArtworkUrl, action.ArtworkUrl);
-            }
-        }
-
-        // No new artwork - preserve existing artwork from the MediaSession to prevent
-        // blank artwork during transitions (while async artwork extraction is pending).
-        // If no existing artwork either (fresh start), the car UI shows no art (no app icon fallback).
-        var existingArtwork = session.Controller?.Metadata?.GetBitmap(MediaMetadataCompat.MetadataKeyArt);
-        if (existingArtwork != null)
-        {
-            metadataBuilder.PutBitmap(MediaMetadataCompat.MetadataKeyArt, existingArtwork);
-        }
-    }
-
     [EffectMethod]
     public Task HandlePlaybackDurationChanged(PlaybackDurationChangedAction action, FluxorDispatcher dispatcher)
     {
@@ -512,7 +448,7 @@ public class MediaSessionEffect(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, "Error updating MediaSessionCompat duration");
+            logger.Error(ex, "Error updating media session duration");
         }
 
         return Task.CompletedTask;
@@ -534,14 +470,13 @@ public class MediaSessionEffect(
                 return Task.CompletedTask;
             }
 
-            var session = GetValidatedSession("cannot update navigation state");
-            if (session == null)
+            if (!EnsureSession("cannot update navigation state"))
             {
                 return Task.CompletedTask;
             }
 
             var state = MapPlayStatusToPlaybackState(currentState.Status);
-            var position = GetCurrentPlaybackPosition(session);
+            var position = mediaSessionManager.Snapshot.PositionMs;
 
             var canPlayNext = true;
             var canPlayPrevious = true;
@@ -558,34 +493,27 @@ public class MediaSessionEffect(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, AppConstants.Logging.AndroidMediaSessionCompatUpdateDiagnosticsLog.ErrorUpdatingNavigationState);
+            logger.Error(ex, AppConstants.Logging.AndroidMediaSessionUpdateDiagnosticsLog.ErrorUpdatingNavigationState);
         }
 
         return Task.CompletedTask;
     }
 
-    private static int MapPlayStatusToPlaybackState(PlayStatus status)
+    private static SessionPlaybackState MapPlayStatusToPlaybackState(PlayStatus status)
     {
-        // Stopped/Ended use StatePaused (not StateStopped) to stay consistent with
-        // SetStoppedState, which uses StatePaused to hint Android Auto that media is
-        // "ready" rather than "unavailable". Inconsistent mapping causes conflicting
-        // SetPlaybackState calls between handlers → rapid play/pause button flash.
+        // Stopped/Ended use Paused (not None) to stay consistent with
+        // SetStoppedState, which uses Paused to hint Android Auto that media is
+        // "ready" rather than "unavailable".
         return status switch
         {
-            PlayStatus.Playing => PlaybackStateCompat.StatePlaying,
-            PlayStatus.Paused => PlaybackStateCompat.StatePaused,
-            PlayStatus.Loading => PlaybackStateCompat.StateBuffering,
-            PlayStatus.Stopped => PlaybackStateCompat.StatePaused,
-            PlayStatus.Ended => PlaybackStateCompat.StatePaused,
-            PlayStatus.Failed => PlaybackStateCompat.StateError,
-            _ => PlaybackStateCompat.StateNone
+            PlayStatus.Playing => SessionPlaybackState.Playing,
+            PlayStatus.Paused => SessionPlaybackState.Paused,
+            PlayStatus.Loading => SessionPlaybackState.Buffering,
+            PlayStatus.Stopped => SessionPlaybackState.Paused,
+            PlayStatus.Ended => SessionPlaybackState.Paused,
+            PlayStatus.Failed => SessionPlaybackState.Error,
+            _ => SessionPlaybackState.None
         };
-    }
-
-    private static long GetCurrentPlaybackPosition(MediaSessionCompat session)
-    {
-        var playbackStateCompat = session.Controller?.PlaybackState;
-        return playbackStateCompat?.Position ?? 0;
     }
 
     /// <summary>
@@ -612,8 +540,7 @@ public class MediaSessionEffect(
                 return;
             }
 
-            var session = mediaSessionManager.GetOrCreate();
-            if (session == null)
+            if (!mediaSessionManager.IsAvailable)
             {
                 logger.Debug("[AndroidAuto] PlaybackPositionChangedMessage: MediaSession is null, skipping");
                 return;
@@ -624,7 +551,7 @@ public class MediaSessionEffect(
         }
         catch (Exception ex)
         {
-            logger.Error(ex, AppConstants.Logging.AndroidMediaSessionCompatUpdateDiagnosticsLog.ErrorUpdatingPlaybackPosition);
+            logger.Error(ex, AppConstants.Logging.AndroidMediaSessionUpdateDiagnosticsLog.ErrorUpdatingPlaybackPosition);
         }
     }
 

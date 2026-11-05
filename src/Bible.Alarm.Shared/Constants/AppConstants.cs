@@ -4039,6 +4039,27 @@ public static class AppConstants
         }
 
         /// <summary><c>MediaSessionCompat</c> sync (<c>MediaSessionEffect</c>).</summary>
+        public static class AndroidMediaSessionUpdateDiagnosticsLog
+        {
+            public const string ErrorUpdatingPlaybackState =
+                "Error updating media session playback state";
+
+            public const string ErrorUpdatingMetadata =
+                "Error updating media session metadata";
+
+            public const string ErrorUpdatingDefaultScheduleMetadata =
+                "Error updating media session with default schedule metadata";
+
+            public const string ErrorUpdatingDuration =
+                "Error updating media session duration";
+
+            public const string ErrorUpdatingNavigationState =
+                "Error updating media session navigation state";
+
+            public const string ErrorUpdatingPlaybackPosition =
+                "Error updating media session playback position";
+        }
+
         public static class AndroidMediaSessionCompatUpdateDiagnosticsLog
         {
             public const string ErrorUpdatingPlaybackState =

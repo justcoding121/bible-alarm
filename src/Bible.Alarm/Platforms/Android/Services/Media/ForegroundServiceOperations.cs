@@ -5,7 +5,6 @@ using System;
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
-using Android.Support.V4.Media.Session;
 using AndroidX.Core.App;
 using Serilog;
 using Application = Android.App.Application;
@@ -73,14 +72,14 @@ internal static class ForegroundServiceOperations
         }
     }
 
-    public static void StartForeground(Service service, MediaSessionCompat mediaSession, bool isAlarmNotification = false)
+    public static void StartForeground(Service service, bool isAlarmNotification = false)
     {
         try
         {
             // Ensure notification channel exists
             ForegroundNotificationHelper.CreateNotificationChannel(service);
 
-            var notification = ForegroundNotificationHelper.CreateNotification(service, mediaSession, isAlarmNotification);
+            var notification = ForegroundNotificationHelper.CreateNotification(service, isAlarmNotification);
 
             // Start foreground service with sticky notification
             // Use ForegroundService.TypeMediaPlayback to match MediaElement's type
@@ -103,14 +102,14 @@ internal static class ForegroundServiceOperations
         }
     }
 
-    public static void UpdateForeground(Service service, MediaSessionCompat mediaSession)
+    public static void UpdateForeground(Service service)
     {
         try
         {
             // Check if this is an alarm service to preserve alarm notification style
             bool isAlarm = service is AlarmForegroundService;
 
-            var notification = ForegroundNotificationHelper.CreateNotification(service, mediaSession, isAlarm);
+            var notification = ForegroundNotificationHelper.CreateNotification(service, isAlarm);
             var notificationManager = NotificationManagerCompat.From(service);
             notificationManager?.Notify(ForegroundNotificationHelper.NotificationId, notification);
 
