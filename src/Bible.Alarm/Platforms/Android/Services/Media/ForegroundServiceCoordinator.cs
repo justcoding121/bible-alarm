@@ -38,6 +38,7 @@ public static class ForegroundServiceCoordinator
             }
         }
 
+        logger.Information("Playback started. BibleAlarmMediaLibraryService owns the media notification.");
         if (BibleAlarmMediaLibraryService.IsForeground)
         {
             BibleAlarmMediaLibraryService.ReleaseAlarmIfPlaybackRunning();

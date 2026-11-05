@@ -1,6 +1,6 @@
 ---
 description: "Playback architecture (MediaElement) + Android Auto + iOS CarPlay + foreground service behavior"
-globs: "{src/Bible.Alarm/Services/Media/**,libraries/CommunityToolkit.Maui.MediaElement/**,src/Bible.Alarm/Platforms/Android/Services/AndroidAuto/**,src/Bible.Alarm/Platforms/Android/Services/Media/**,src/Bible.Alarm/Platforms/iOS/Services/CarPlay/**,src/Bible.Alarm/Platforms/iOS/Services/Media/**}"
+globs: "{src/Bible.Alarm/Services/Media/**,libraries/CommunityToolkit.Maui.MediaElement/**,src/Bible.Alarm/Platforms/Android/Services/AndroidAuto/**,src/Bible.Alarm/Platforms/Android/Services/Media/**,src/Bible.Alarm/Platforms/Android/Services/Media3/**,src/Bible.Alarm/Platforms/iOS/Services/CarPlay/**,src/Bible.Alarm/Platforms/iOS/Services/Media/**}"
 alwaysApply: false
 ---
 
@@ -148,74 +148,82 @@ Platform notes (library-level, high-level):
 
 Android can kill background-started processes quickly (especially after alarms, or when Android Auto starts the app) unless the app is in a foreground service state with a notification.
 
-Bible Alarm uses foreground services to:
-- survive long bootstrap/migration work
-- survive media preparation
-- keep Android Auto connected/controllable
+Bible Alarm uses one Android media session for the in-app player, the system notification, and Android Auto.
 
-### Foreground service coordination (single-owner rule)
+### One MediaLibraryService
 
-Android only allows one foreground service "owner" to be active at a time for the app.
+Service:
+- `src/Bible.Alarm/Platforms/Android/Services/Media3/BibleAlarmMediaLibraryService.cs`
 
-Coordinator:
-- `src/Bible.Alarm/Platforms/Android/Services/Media/ForegroundServiceCoordinator.cs`
+It is a Media3 `MediaLibraryService`. The merged manifest declares both
+`androidx.media3.session.MediaLibraryService` and `android.media.browse.MediaBrowserService`
+on that one service. It does not declare `androidx.media3.session.MediaSessionService`
+and it does not declare `androidx.car.app.CarAppService`. `automotive_app_desc.xml`
+still uses `<uses name="media" />`, and the manifest keeps
+`com.google.android.gms.car.application`.
 
-Key ideas:
-- coordinates ownership between:
-  - MediaElement's media controls service (notification ID 1)
-  - Android Auto service (notification ID 2)
-  - Alarm foreground service (notification ID 2)
-- starts Android Auto foreground with placeholder metadata if real metadata isn't ready yet (prevents kill during bootstrap)
-- on alarm trigger, starts an "Alarm foreground service" immediately, then hands off to MediaElement when playback starts
+Check after a Release Android build:
 
-Alarm entrypoint calls:
-- `ForegroundServiceCoordinator.OnAlarmTriggered(context, scheduleId)` from `AlarmRingerReceiver`
+`pwsh tests/scripts/assert-android-manifest.ps1 -Path src/Bible.Alarm/obj/Release/net10.0-android/AndroidManifest.xml -ExpectedBrowseServices 1 -ExpectedMediaSessionServices 0`
 
-### Why two media sessions exist (cannot unify)
+The service owns the media notification through `DefaultMediaNotificationProvider`.
+ExoPlayer does not create its own `MediaSession` and does not start a second
+notification service. The player stays in
+`AndroidGlobalExoPlayerFactory` (plain `ExoPlayerBuilder`,
+`SetMaxSeekToPreviousPositionMs(long.MaxValue)`, no `SetAudioAttributes(..., true)`).
 
-The app runs **two separate media sessions** on Android:
+### Proxy player and the seam
 
-1. **Media3 `MediaSession`** — created internally by CommunityToolkit MediaElement / ExoPlayer.
-   - Owns playback and the player notification (notification ID 1).
-   - Created in `libraries/CommunityToolkit.Maui.MediaElement/Views/AndroidGlobalExoPlayerFactory.android.cs` with a random ID. Not exposed or shareable.
+`SessionStatePlayer` (`SimpleBasePlayer`) is the process-wide player the session
+exposes. It does not own ExoPlayer. `Media3MediaSessionManager` implements
+`IMediaSessionManager` and writes playback state and metadata into the proxy.
+`MediaSessionEffect` is the Fluxor effect that calls that interface. Commands
+from the notification or the car (`play`, `pause`, `next`, `previous`, seek)
+go through `SessionCommandRouter` and the same messenger messages the in-app
+player already handles.
 
-2. **Legacy `MediaSessionCompat`** — created by the app for Android Auto and system controls.
-   - Owned by `MediaSessionManager` / `MediaSessionHelper`.
-   - Drives Android Auto notification (notification ID 2), lock screen controls, and car display metadata.
+Early process start (`MainApplication`, `AlarmSetupService`, `RestartReceiver`,
+`AlarmRingerReceiver`) touches `SessionStatePlayer.Instance` before DI exists.
 
-**Why they can't be unified into one session:**
+### Alarm handoff
 
-In native Android (Java/Kotlin), the recommended approach is to use Media3's `MediaLibraryService` — a single service that combines `MediaSession` (playback) with `MediaBrowserServiceCompat` (Android Auto browsing), providing automatic backward compatibility with legacy clients.
+`ForegroundServiceCoordinator` only keeps the process alive across alarm bootstrap.
 
-However, the .NET binding package `Xamarin.AndroidX.Media3.Session` **does not include `MediaLibraryService`** (or `MediaLibrarySession`). These classes are missing from the generated binding surface. Until Microsoft ships these bindings, the app cannot adopt the unified Media3 approach and must maintain the dual-session architecture with `ForegroundServiceCoordinator` managing ownership between them.
+1. `AlarmRingerReceiver` touches `SessionStatePlayer.Instance`, then calls
+   `OnAlarmTriggered`.
+2. `AlarmForegroundService` calls `StartForeground` immediately (notification id 2,
+   "Preparing playback...").
+3. When playback reaches `Playing`, `OnPlaybackStarted` starts
+   `BibleAlarmMediaLibraryService` if it is not running.
+4. The library service calls `StartForeground` with notification id 3, then
+   `ReleaseAlarmIfPlaybackRunning` stops `AlarmForegroundService` only when this
+   service is already in the foreground and playback is preparing or playing.
+5. There is no timer that stops the alarm service. If Media3 reports
+   `OnForegroundServiceStartNotAllowedException`, the alarm service stays up and
+   the listener posts a tap-to-resume notification.
 
-**Consequence:** Two notifications can appear during playback (ID 1 from MediaElement, ID 2 from Android Auto/Alarm). The coordinator ensures only one foreground service is active at a time, with proper handoff between owners.
-
-### MediaSessionCompat (Android Auto + system controls)
-
-Manager:
-- `src/Bible.Alarm/Platforms/Android/Services/Media/MediaSessionManager.cs`
-
-Key behaviors:
-- creates/owns a shared `MediaSessionCompat`
-- updates playback state + metadata so Android Auto and system UI can control playback
-- **keeps the MediaSession active even when playback is stopped** so Android Auto can discover the app when the car connects
+Logcat tag is `BibleAlarm` (`adb logcat -s BibleAlarm`). The pair to watch is
+`Alarm triggered (schedule {ScheduleId})` and
+`Playback started. BibleAlarmMediaLibraryService owns the media notification.`
+There is no Crashlytics, Sentry, or other production telemetry sink in the app.
+A staged Play rollout has to use these log lines, crash rate, and the device
+checklist in `docs/playback/device-checklist.md`. That checklist's device matrix
+(Android 12, 14, 16, and a real head unit) has not been run for this cutover.
 
 ---
 
 ## Android Auto
 
-Bible Alarm uses a single `MediaBrowserServiceCompat` for all Android Auto versions:
-- `src/Bible.Alarm/Platforms/Android/Services/AndroidAuto/LegacyMediaBrowserService.cs`
+Android Auto binds `BibleAlarmMediaLibraryService`. Browse data comes from Fluxor
+through `Media3LibraryCatalog` and `AndroidAutoScheduleHelper`. The library
+callback allows the browse root only for a car host package. Any connected
+controller can send playback commands. The browse service is what keeps the app
+listed when playback is stopped. Default-schedule metadata is published only
+when nothing is playing and `CarConnectionHelper.IsCarConnected()` is true.
 
 **Why no CarAppService:** Google Play does not allow an app to declare both
-`android.media.browse.MediaBrowserService` and `androidx.car.app.CarAppService` simultaneously.
-For media apps, the required approach is `MediaBrowserServiceCompat` (declared in
-`automotive_app_desc.xml` with `<uses name="media" />`).
-
-Relies on:
-- the shared `MediaSessionCompat`
-- schedule data sourced from Fluxor state (helpers live in `AndroidAutoScheduleHelper.cs`)
+`android.media.browse.MediaBrowserService` and `androidx.car.app.CarAppService`
+at the same time. Media apps declare the browse action on the library service.
 
 ---
 
