@@ -120,10 +120,10 @@
   <ItemGroup>
     <!--
       Pin Microsoft.Maui.Controls to the same version Bible.Alarm.csproj uses so the package downgrade
-      check (NU1605) does not trip during restore. The implicit version that .NET 8+ resolves from the
-      MAUI workload (currently 10.0.20) is older than what Bible.Alarm references (10.0.41).
+      check (NU1605) does not trip during restore. The implicit version from the SDK 10.0.403 MAUI
+      workload (10.0.110) is older than the package reference (10.0.120).
     -->
-    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.41" />
+    <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.120" />
 
     <!-- xunit core: runner is pulled in via Microsoft.DotNet.XHarness.* below; no xunit.runner.visualstudio here. -->
     <PackageReference Include="xunit" Version="2.9.3" />
