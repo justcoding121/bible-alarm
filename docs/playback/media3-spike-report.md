@@ -31,3 +31,24 @@ Go requires items 1–4 and 6 on a device. Those device checks did not pass beca
 - `LibraryResult`: `OfItem`, `OfItemList`, `OfError`, `OfVoid`.
 - `ForwardingPlayer` is bound as `Get*Handler` methods and is the awkward fallback. It was not selected.
 - AndroidX Media 1.8 marks `MediaSessionCompat`, `MediaMetadataCompat`, `PlaybackStateCompat`, and `MediaBrowserServiceCompat` obsolete (`CS0618`). Expected until cutover.
+
+## Play screen features from AndroidAutoPlayScreenHelper
+
+Mapped into the inactive Media3 proxy. Nothing in this list is dropped silently.
+
+| Compat helper | Media3 equivalent |
+| --- | --- |
+| `ApplyBlankLoadingState` (clear metadata, buffering, play action) | `ProxyPlaybackKind.Buffering` with playWhenReady true. Empty title falls back to "Bible Alarm". |
+| `SetStoppedState` (paused at position 0) | `UpdatePlaybackStateForStop` sets paused and position 0. Never ENDED and never None while a track is on screen. |
+| `SetBufferingStateOnly` (keep metadata) | `SetBufferingStateOnly` changes kind only. |
+| `CreatePlaybackState` actions | `PlayerCommands`: play/pause, seek in item, seek forward/back, next/previous only when allowed. |
+| `CreateErrorPlaybackState` error text | `PlaybackException` with the same message (`ErrorCodeUnspecified`). |
+| `CreatePlaybackStateFromExisting` | Position updates keep the current kind and commands. |
+| `CreateMetadataBuilder` title/artist/album fallbacks | `MediaMetadata` title falls back to "Bible Alarm". Artist and album are passed through. Duration is always set so the time area stays reserved. |
+| `CreateMetadataBuilderFromExisting` artwork keep | Previous artwork bytes are kept when the new url fails and the schedule did not change. |
+| `CreateMetadataBuilderWithMediaId` | `MediaItem.MediaId` is the schedule id. |
+| `GetOrLoadAppIconBitmap` | Not copied as a silent fallback image. Track artwork is the bitmap from `AndroidArtworkService`. The notification small icon is the existing play drawable. |
+
+No custom actions or session extras are set by the helper today, so the Media3 session advertises none. Progress is `SetContentPositionMs`, extrapolated while playing because `LivePositionSupplier` has no public constructor in the 1.11.1 binding. The existing position messages still re-sync the anchor.
+
+`DefaultMediaNotificationProvider(Context)` is used. Channel id and notification id were not changed because the device spike did not run. `SetSmallIcon` uses the existing play drawable.
