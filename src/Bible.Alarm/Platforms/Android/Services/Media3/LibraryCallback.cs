@@ -267,7 +267,7 @@ public sealed class LibraryCallback : Java.Lang.Object, MediaLibraryService.Medi
             try
             {
                 await MauiProgram.WaitForBootstrapAsync();
-                GuavaFutures.SetResult(future, load()!);
+                GuavaFutures.SetResult(future, load());
             }
             catch (System.Exception)
             {

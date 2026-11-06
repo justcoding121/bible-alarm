@@ -95,7 +95,7 @@ public partial class EventToCommandBehavior : BindableBehavior<View>
                      out var resolvedEvent))
         {
             case DeclaredRuntimeEventLookupOutcome.Found:
-                eventInfo = resolvedEvent!;
+                eventInfo = resolvedEvent ?? throw new InvalidOperationException("EventToCommand: resolved event was null.");
                 AddEventHandler(eventInfo, AssociatedObject, OnFired);
                 break;
             case DeclaredRuntimeEventLookupOutcome.MissingNamedEvent:

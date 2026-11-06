@@ -252,7 +252,7 @@ public class OsToastService : ToastService
             Text = message,
             TextColor = textColor,
             TextAlignment = UITextAlignment.Center,
-            Font = UIFont.SystemFontOfSize(16f),
+            Font = UIFont.SystemFontOfSize(16f) ?? throw new InvalidOperationException("System font is unavailable."),
             Lines = 0,
             LineBreakMode = UILineBreakMode.WordWrap,
             BackgroundColor = UIColor.Clear

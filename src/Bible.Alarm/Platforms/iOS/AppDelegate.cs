@@ -262,7 +262,7 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
             // Extract schedule ID from notification and start playback
             if (userInfo.TryGetValue(new NSString("ScheduleId"), out var scheduleIdValue))
             {
-                var scheduleIdString = scheduleIdValue?.ToString();
+                var scheduleIdString = scheduleIdValue.ToString();
                 if (!string.IsNullOrEmpty(scheduleIdString) && int.TryParse(scheduleIdString, out var scheduleId) && scheduleId > 0)
                 {
                     logger.Information(AppConstants.Logging.IosAppDelegateDiagnosticsLog.NotificationTappedStartingPlayback, scheduleId);

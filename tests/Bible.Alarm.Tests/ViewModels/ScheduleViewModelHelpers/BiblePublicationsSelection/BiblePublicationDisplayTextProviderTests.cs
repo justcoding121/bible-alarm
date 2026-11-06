@@ -173,6 +173,36 @@ public sealed class BiblePublicationDisplayTextProviderTests
     }
 
     [Fact]
+    public void GetLanguageDisplayText_Falls_Back_To_Language_Code_When_Name_Absent()
+    {
+        var schedule = BaseSchedule();
+        schedule.BiblePublicationLanguageName = null;
+        schedule.BiblePublicationLanguageCode = "E";
+        var sut = Create(schedule);
+        Assert.Equal("E", sut.GetLanguageDisplayText());
+    }
+
+    [Fact]
+    public void GetPublicationDisplayText_Falls_Back_To_Publication_Code_When_Name_Absent()
+    {
+        var schedule = BaseSchedule();
+        schedule.BiblePublicationName = "  ";
+        schedule.BiblePublicationCode = "nwt";
+        var sut = Create(schedule);
+        Assert.Equal("nwt", sut.GetPublicationDisplayText());
+    }
+
+    [Fact]
+    public void GetSectionDisplayText_Falls_Back_To_Section_Code_When_Name_Absent()
+    {
+        var schedule = BaseSchedule();
+        schedule.BiblePublicationSectionName = null;
+        schedule.BiblePublicationSectionCode = "mat";
+        var sut = Create(schedule);
+        Assert.Equal("mat", sut.GetSectionDisplayText());
+    }
+
+    [Fact]
     public void GetLanguageDisplayText_Returns_Default_Language_When_Code_Absent()
     {
         var schedule = BaseSchedule();
