@@ -1,3 +1,5 @@
+#nullable enable
+
 using Android.Graphics;
 using Bible.Alarm.Common;
 using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;

@@ -1,3 +1,5 @@
+#nullable enable
+
 using Android.OS;
 using AndroidX.Media3.Session;
 using Bible.Alarm.Common;

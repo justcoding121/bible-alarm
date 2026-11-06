@@ -94,7 +94,7 @@ public static class ApplicationReducer
         }
 
         var newSchedules = new ObservableHashSet<ScheduleStateItem>();
-        foreach (var scheduleItem in state.Schedules!)
+        foreach (var scheduleItem in state.Schedules)
         {
             if (scheduleItem.Id == scheduleFromAction.Id)
             {

@@ -102,7 +102,9 @@ internal static class IOsBackgroundTaskScheduler
                 EarliestBeginDate = NSDate.FromTimeIntervalSinceNow(delay.TotalSeconds)
             };
 
+#pragma warning disable CA1422 // BGTaskScheduler.Submit remains the supported iOS 16+ API for this refresh task.
             BGTaskScheduler.Shared.Submit(request, out var error);
+#pragma warning restore CA1422
             if (error != null)
             {
                 logger.Warning(

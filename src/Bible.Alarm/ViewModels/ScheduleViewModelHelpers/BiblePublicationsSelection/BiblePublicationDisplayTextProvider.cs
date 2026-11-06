@@ -92,7 +92,7 @@ public sealed class BiblePublicationDisplayTextProvider
 
         if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationLanguageCode))
         {
-            return currentSchedule.BiblePublicationLanguageCode!;
+            return currentSchedule.BiblePublicationLanguageCode;
         }
 
         // When LanguageCode is null (non-language publications like "iam"), default to English for display
@@ -118,7 +118,7 @@ public sealed class BiblePublicationDisplayTextProvider
 
         if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationCode))
         {
-            return currentSchedule.BiblePublicationCode!;
+            return currentSchedule.BiblePublicationCode;
         }
 
         return string.Empty;
@@ -141,7 +141,7 @@ public sealed class BiblePublicationDisplayTextProvider
 
         if (!string.IsNullOrWhiteSpace(currentSchedule.BiblePublicationSectionCode))
         {
-            return currentSchedule.BiblePublicationSectionCode!;
+            return currentSchedule.BiblePublicationSectionCode;
         }
 
         return string.Empty;

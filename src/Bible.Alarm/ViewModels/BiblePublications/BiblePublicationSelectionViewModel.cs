@@ -439,7 +439,7 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
         }
 
         CurrentLanguage = language;
-        CurrentLanguage!.IsSelected = true;
+        CurrentLanguage.IsSelected = true;
     }
 
     private void SetSelectedPublication()
@@ -479,7 +479,7 @@ public sealed partial class BiblePublicationSelectionViewModel : ObservableObjec
         }
 
         SelectedPublication = publication;
-        SelectedPublication!.IsSelected = true;
+        SelectedPublication.IsSelected = true;
     }
 
     public void Receive(ListItemFetchProgressMessage message)

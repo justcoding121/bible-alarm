@@ -373,12 +373,9 @@ partial class MediaManager : IDisposable
     void ScheduleHeadlessPlayerDispose(WindowsMediaElement mediaPlayer)
     {
         var queue = DispatcherQueue.GetForCurrentThread();
-        if (queue is not null)
+        if (queue is not null && queue.TryEnqueue(DispatcherQueuePriority.Low, () => DisposeHeadlessPlayer(mediaPlayer)))
         {
-            if (queue.TryEnqueue(DispatcherQueuePriority.Low, () => DisposeHeadlessPlayer(mediaPlayer)))
-            {
-                return;
-            }
+            return;
         }
 
         Dispatcher.Dispatch(() => DisposeHeadlessPlayer(mediaPlayer));

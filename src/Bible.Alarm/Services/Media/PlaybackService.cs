@@ -636,7 +636,7 @@ public sealed partial class PlaybackService : IPlaybackService, IRecipient<NextB
                 try
                 {
                     await trackOnDemandPreparer.PreDownloadNextTrackAsync(
-                        stateManager.Playlist!,
+                        stateManager.Playlist,
                         stateManager.CurrentTrackIndex,
                         stateManager.PreparationCancellationTokenSource?.Token ?? CancellationToken.None);
                 }

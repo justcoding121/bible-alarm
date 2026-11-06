@@ -181,7 +181,7 @@ jobs:
       run: |
         FOUND=$(find . -type d \( -name .git -o -name obj -o -name bin -o -name artifacts \) -prune -o -type f \( -name "*.jks" -o -name "*.keystore" -o -name "*.pfx" -o -name "*.p12" -o -name "*.p8" -o -name "*.mobileprovision" \) -print 2>/dev/null)
         if [ -n "$FOUND" ]; then
-          echo "ERROR: Secret files found in working directory!"
+          echo "ERROR: Secret files found in working directory!" >&2
           echo "$FOUND"
           exit 1
         fi

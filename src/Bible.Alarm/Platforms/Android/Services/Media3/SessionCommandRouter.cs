@@ -1,3 +1,5 @@
+#nullable enable
+
 using Bible.Alarm.Common;
 using Bible.Alarm.Common.Helpers;
 using Bible.Alarm.Common.Messenger;

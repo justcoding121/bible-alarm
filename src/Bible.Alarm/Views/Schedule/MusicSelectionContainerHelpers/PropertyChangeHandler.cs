@@ -115,9 +115,10 @@ public sealed partial class PropertyChangeHandler : IDisposable
         Serilog.Log.Debug(AppConstants.Logging.MusicSelectionContainerDiagnosticsLog.ShouldScrollToBottomScrolling);
 #endif
 
+        var token = debounceTokenSource?.Token ?? CancellationToken.None;
         container.Dispatcher.DispatchAsync(async () =>
         {
-            await Task.Delay(200, debounceTokenSource.Token);
+            await Task.Delay(200, token);
             scrollToBottom();
 
             if (viewModel != null)

@@ -13,14 +13,15 @@ public sealed class MusicPublicationSelectionRefreshHandlerTests
         var languages = new System.Collections.ObjectModel.ObservableCollection<LanguageListViewItemModel>();
         LanguageListViewItemModel? current = null;
         var sut = new MusicPublicationSelectionRefreshHandler(
-            null!,
-            null!,
-            () => languages,
-            () => current,
-            lang => current = lang,
-            _ => { },
-            _ => { },
-            _ => { });
+            new MusicPublicationSelectionRefreshHandlerDeps(
+                null!,
+                null!,
+                () => languages,
+                () => current,
+                lang => current = lang,
+                _ => { },
+                _ => { },
+                _ => { }));
         Assert.NotNull(sut);
     }
 }

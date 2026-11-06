@@ -93,7 +93,6 @@ internal sealed class LanguageContentSectionTracksFetcher
 
             // Use case-sensitive code for dramas when querying database
             var isAvailable = await db.SectionLanguages
-                .Include(sl => sl.Language)
                 .AnyAsync(
                     sl => sl.PublicationCode == publicationCodeForDb &&
                           sl.SectionCode == normalizedSectionCode &&

@@ -78,7 +78,7 @@ internal sealed class BiblePublicationSectionSelectionTrackTapHandler
             var toastService = ServiceProviderManager.GetService<IToastService>();
             await Task.Delay(500);
             await navigationService.PopModalAsync();
-            await toastService!.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
+            await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
         }
         catch (Exception ex)
         {
@@ -87,7 +87,7 @@ internal sealed class BiblePublicationSectionSelectionTrackTapHandler
             var toastService = ServiceProviderManager.GetService<IToastService>();
             await Task.Delay(500);
             await navigationService.PopModalAsync();
-            await toastService!.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
+            await toastService.ShowMessage(ModalScrollHelper.GetFetchErrorMessage(ex));
         }
     }
 }

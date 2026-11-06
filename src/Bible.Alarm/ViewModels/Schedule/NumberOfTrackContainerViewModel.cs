@@ -190,7 +190,7 @@ public sealed partial class NumberOfTrackContainerViewModel : ObservableObject, 
         if (CurrentNumberOfTracks != null) CurrentNumberOfTracks.IsSelected = false;
         CurrentNumberOfTracks = x;
         if (CurrentNumberOfTracks != null) CurrentNumberOfTracks.IsSelected = true;
-        if (CurrentNumberOfTracks != null) DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = CurrentNumberOfTracks!.Value);
+        if (CurrentNumberOfTracks != null) DispatchScheduleUpdate(s => s.NumberOfTracksToPlay = CurrentNumberOfTracks.Value);
         OnPropertyChanged(nameof(CurrentNumberOfTracks));
         OnPropertyChanged(nameof(CurrentNumberOfTracksText));
         await navigationService.PopModalAsync();

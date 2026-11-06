@@ -162,7 +162,6 @@ internal sealed class TestModeSeeder
             var normalizedTestLanguageCode = testLanguageCode.ToUpperInvariant();
 
             var isAvailable = await db.PublicationLanguages
-                .Include(pl => pl.Language)
                 .AnyAsync(pl => pl.PublicationCode == normalizedPublicationCode &&
                                pl.Language != null &&
                                pl.Language.LanguageCode == normalizedTestLanguageCode);
@@ -175,7 +174,6 @@ internal sealed class TestModeSeeder
             }
 
             var existing = await db.BiblePublications
-                .Include(bp => bp.Language)
                 .AnyAsync(bp => bp.PublicationCode == normalizedPublicationCode &&
                               bp.Language != null &&
                               bp.Language.LanguageCode == normalizedTestLanguageCode);
@@ -441,7 +439,6 @@ internal sealed class TestModeSeeder
         try
         {
             var hasSections = await db.SectionLanguages
-                .Include(sl => sl.Language)
                 .AnyAsync(sl => sl.PublicationCode == normalizedPublicationCode &&
                               sl.Language != null &&
                               sl.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode);

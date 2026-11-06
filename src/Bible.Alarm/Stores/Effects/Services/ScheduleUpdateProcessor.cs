@@ -31,7 +31,7 @@ public sealed class ScheduleUpdateProcessor
         this.mapper = mapper;
         this.alarmScheduleService = alarmScheduleService ?? ServiceProviderManager.GetService<IAlarmScheduleService>();
         this.alarmService = alarmService ?? ServiceProviderManager.GetService<IAlarmService>();
-        this.scheduleDisplayNameService = scheduleDisplayNameService ?? ServiceProviderManager.GetService<IScheduleDisplayNameService>()!;
+        this.scheduleDisplayNameService = scheduleDisplayNameService ?? ServiceProviderManager.GetService<IScheduleDisplayNameService>();
     }
 
     /// <summary>

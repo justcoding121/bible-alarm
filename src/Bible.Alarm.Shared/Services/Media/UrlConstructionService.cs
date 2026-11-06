@@ -54,8 +54,7 @@ public class UrlConstructionService : IUrlConstructionService
 
         var track = await dbContext.BiblePublicationTracks
             .AsNoTracking()
-            .Include(t => t.Publication)
-                .ThenInclude(p => p!.Language)
+            .Include(t => t.Publication.Language)
             .Include(t => t.Section)
             .Include(t => t.TrackUrl)
             .FirstOrDefaultAsync(t => t.Id == trackId);
@@ -89,20 +88,19 @@ public class UrlConstructionService : IUrlConstructionService
 
         var query = dbContext.BiblePublicationTracks
             .AsNoTracking()
-            .Include(t => t.Publication)
-                .ThenInclude(p => p!.Language)
+            .Include(t => t.Publication.Language)
             .Include(t => t.Section)
             .Include(t => t.TrackUrl)
             .Where(t => t.Publication != null && t.Publication.PublicationCode == publicationCode);
 
         if (isNoLanguagePublication)
         {
-            query = query.Where(t => t.Publication!.Language == null);
+            query = query.Where(t => t.Publication.Language == null);
         }
         else
         {
             var normalizedLanguageCode = languageCode.ToUpperInvariant();
-            query = query.Where(t => t.Publication!.Language != null
+            query = query.Where(t => t.Publication.Language != null
                 && t.Publication.Language.LanguageCode == normalizedLanguageCode);
         }
 
@@ -193,8 +191,7 @@ public class UrlConstructionService : IUrlConstructionService
 
         var query = dbContext.BiblePublicationTracks
             .AsNoTracking()
-            .Include(t => t.Publication)
-                .ThenInclude(p => p!.Language)
+            .Include(t => t.Publication.Language)
             .Include(t => t.Section)
             .Include(t => t.TrackUrl)
             .Where(t => t.Publication != null && t.Publication.PublicationCode == publicationCode);
@@ -202,11 +199,11 @@ public class UrlConstructionService : IUrlConstructionService
         if (!string.IsNullOrEmpty(effectiveLanguageCode))
         {
             var normalizedLanguageCode = effectiveLanguageCode.ToUpperInvariant();
-            query = query.Where(t => t.Publication!.Language != null && t.Publication.Language.LanguageCode == normalizedLanguageCode);
+            query = query.Where(t => t.Publication.Language != null && t.Publication.Language.LanguageCode == normalizedLanguageCode);
         }
         else
         {
-            query = query.Where(t => t.Publication!.Language == null);
+            query = query.Where(t => t.Publication.Language == null);
         }
 
         if (!string.IsNullOrEmpty(sectionCode))

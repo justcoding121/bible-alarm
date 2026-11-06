@@ -49,9 +49,12 @@ public partial class MediaManager : Object, IPlayerListener
         MediaElement.Speed = playbackParameters.Speed;
     }
 
+#pragma warning disable CA1822 // Instance API of the MediaManager partial; Media3 owns the notification.
     public void UpdateNotifications()
     {
+        // Media3 library service owns the notification; MediaElement must not create a session/notification.
     }
+#pragma warning restore CA1822
 
     public void OnPlayerStateChanged(bool playWhenReady, int playbackState)
     {

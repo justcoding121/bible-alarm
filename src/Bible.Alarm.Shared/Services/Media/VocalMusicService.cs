@@ -125,9 +125,6 @@ public sealed class VocalMusicService(IServiceScopeFactory scopeFactory, ILogger
             {
                 var hasVocalMusic = await dbContext.BiblePublications
                     .AsNoTracking()
-                    .Include(x => x.BiblePublicationCategories)
-                    .ThenInclude(x => x.Category)
-                    .Include(x => x.Language)
                     .AnyAsync(x => x.BiblePublicationCategories.Any(bpc => bpc.Category.CategoryCode == AppConstants.Media.BiblePublicationCategoryMusic)
                         && x.LanguageId != null
                         && x.Language!.LanguageCode == lang.LanguageCode, cancellationToken);

@@ -59,7 +59,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             {
                 foreach (var section in publication.Sections.Where(s => s.Tracks != null))
                 {
-                    allTracks.AddRange(section.Tracks!);
+                    allTracks.AddRange(section.Tracks);
                 }
             }
 
@@ -156,7 +156,7 @@ public sealed class MelodyMusicService(IServiceScopeFactory scopeFactory, ILogge
             {
                 foreach (var section in publication.Sections.Where(s => s.Tracks != null))
                 {
-                    allTracks.AddRange(section.Tracks!);
+                    allTracks.AddRange(section.Tracks);
                 }
             }
 

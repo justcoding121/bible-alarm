@@ -252,7 +252,7 @@ public class OsToastService : ToastService
             Text = message,
             TextColor = textColor,
             TextAlignment = UITextAlignment.Center,
-            Font = UIFont.SystemFontOfSize(16),
+            Font = UIFont.SystemFontOfSize(16f),
             Lines = 0,
             LineBreakMode = UILineBreakMode.WordWrap,
             BackgroundColor = UIColor.Clear

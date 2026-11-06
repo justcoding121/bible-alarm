@@ -118,7 +118,7 @@ public class HomeNavigationHelper
         logger.Information("[PERF] ShowOverlayAndNavigateAsync: Overlay dispatched, now calling NavigateToScheduleAsync");
 #endif
 
-        var schedule = scheduleListItem.Schedule!;
+        var schedule = scheduleListItem.Schedule;
         var reminderEvaluation = await EvaluateReminderAndPermissionModalAsync(schedule, scheduleListItem.IsEnabled);
 
         await navigationService.NavigateToScheduleAsync(schedule.Id, reminderEvaluation.ShouldEnableReminder);

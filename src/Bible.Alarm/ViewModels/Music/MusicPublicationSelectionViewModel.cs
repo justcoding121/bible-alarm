@@ -67,14 +67,15 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
         dataProvider = new MusicPublicationSelectionDataProvider(deps.MediaService, languageNameService, biblePublicationService, languageContentService, deps.ScopeFactory);
         commandHandler = new MusicPublicationSelectionCommandHandler(this.navigationService, state, deps.Dispatcher, deps.MediaService, languageNameService);
         refreshHandler = new MusicPublicationSelectionRefreshHandler(
-            state,
-            stateManager,
-            () => Languages,
-            () => CurrentLanguage,
-            lang => CurrentLanguage = lang,
-            SetupLanguageSearchHandler,
-            visible => ShowProgress = visible,
-            canCancel => CanCancelFetch = canCancel);
+            new MusicPublicationSelectionRefreshHandlerDeps(
+                state,
+                stateManager,
+                () => Languages,
+                () => CurrentLanguage,
+                lang => CurrentLanguage = lang,
+                SetupLanguageSearchHandler,
+                visible => ShowProgress = visible,
+                canCancel => CanCancelFetch = canCancel));
         initHandler = new MusicPublicationSelectionInitHandler(
             deps.MediaService,
             stateManager,
@@ -427,7 +428,9 @@ public sealed partial class MusicPublicationSelectionViewModel : ObservableObjec
         {
             if (e.PropertyName == nameof(LanguageSearchTerm))
             {
+#pragma warning disable S1854 // Fire-and-forget; the search handler must not block PropertyChanged.
                 _ = populateLanguages(LanguageSearchTerm?.Trim());
+#pragma warning restore S1854
             }
         };
         PropertyChanged += languageSearchHandler;

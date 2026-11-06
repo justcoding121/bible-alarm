@@ -122,7 +122,7 @@ jobs:
       run: |
         # Check for common secret file patterns
         if find . -name "*.jks" -o -name "*.keystore" -o -name "*.pfx" -o -name "*.p12" -o -name "*.p8" -o -name "*.mobileprovision" | grep -v ".git"; then
-          echo "ERROR: Secret files found in working directory!"
+          echo "ERROR: Secret files found in working directory!" >&2
           find . -name "*.jks" -o -name "*.keystore" -o -name "*.pfx" -o -name "*.p12" -o -name "*.p8" -o -name "*.mobileprovision" | grep -v ".git"
           exit 1
         fi

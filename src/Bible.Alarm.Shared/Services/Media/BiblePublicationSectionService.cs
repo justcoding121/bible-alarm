@@ -58,7 +58,6 @@ public sealed class BiblePublicationSectionService(IServiceScopeFactory scopeFac
 
             var sections = await dbContext.BiblePublications
                 .AsNoTracking()
-                .Include(x => x.Sections)
                 .Where(x => x.Language != null && x.Language.LanguageCode == languageCode && x.PublicationCode == publicationCode)
                 .SelectMany(x => x.Sections)
                 .ToListAsync(cancellationToken);

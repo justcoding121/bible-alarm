@@ -19,13 +19,8 @@ public sealed partial class WindowSetupService(IServiceProvider serviceProvider,
     private static readonly ILogger logger = Log.ForContext<WindowSetupService>();
     private bool isDisposed;
 
-    // Base window dimensions (phone-like portrait layout)
-    // Must accommodate content across all pages:
-    // - Home: margins(32) + time(80) + play(56) + days(140) + nav(80) = 388px
-    // - Schedule details: margins(32) + 7 day buttons(7×48=336) + spacing(24) = 392px  
-    // - Alarm modal: margins(48) + 5 media buttons(48+48+64+48+48=256) + spacing(60) = 364px
-    // - Selection pages: margins(32) + text(200) + icon(40) = 272px
-    // Widest is ~400px, add padding for comfort = 450px base (used by Windows window sizing only)
+    // Phone-like portrait size for Windows. 450x850 covers the widest schedule-details
+    // row (seven day buttons plus margins) without crowding other pages.
 #if WINDOWS
     private const double BaseWidth = 450;
     private const double BaseHeight = 850;

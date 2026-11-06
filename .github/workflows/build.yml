@@ -330,12 +330,12 @@ jobs:
       - name: Install MAUI iOS workload
         run: dotnet workload install maui-ios
 
-      - name: Install xharness CLI
+      - name: Restore local xharness CLI
         run: |
-          dotnet tool install --global Microsoft.DotNet.XHarness.CLI \
-            --version "$XHARNESS_VERSION" \
-            --add-source "$XHARNESS_FEED"
-          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
+          # NuGet.config already maps Microsoft.DotNet.XHarness.* to the dotnet-eng feed.
+          # --add-source cannot be combined with packageSourceMapping (NU1100 / source-mapping error).
+          # ci-ios-device-tests.sh also runs `dotnet tool restore` and invokes `dotnet xharness`.
+          dotnet tool restore
 
       - name: Boot iOS simulator
         # Warm CoreSimulator on a runner-provided iPhone. xharness still creates its own

@@ -154,7 +154,7 @@ public sealed class ScheduleSaveService : IScheduleSaveService
         }
         else
         {
-            model.CategoryCode = currentSchedule!.BiblePublicationCategoryName;
+            model.CategoryCode = currentSchedule.BiblePublicationCategoryName;
         }
     }
 

@@ -127,8 +127,7 @@ public sealed partial class MediaElementService : IMediaElementService
     {
 #if WINDOWS
         await ReleaseWindowsPlaybackAsync();
-        return;
-#endif
+#else
         MediaElement? toDispose = null;
 
         lock (lockObject)
@@ -169,6 +168,7 @@ public sealed partial class MediaElementService : IMediaElementService
         {
             logger.Error(ex, "Error disposing MediaElement");
         }
+#endif
     }
 
 #if WINDOWS

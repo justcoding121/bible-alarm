@@ -208,12 +208,11 @@ public sealed class AlarmScheduleTests
         => Assert.Equal(expected, Create(days, hour: hour, minute: minute, second: second).CronExpression);
 
     /// <summary>
-    /// Quartz stays on 3.16.1. Quartz 4.7.2 moves the US spring-forward gap for
-    /// "0 30 2 ? * 1" in Eastern time from 2026-03-08 03:30 EDT to 03:00 EDT.
-    /// Next-fire instants recorded from Quartz 3.16.1 with an explicit time zone,
-    /// so the golden values do not depend on the machine's local zone.
-    /// AlarmSchedule.NextFireDate uses the same CronExpression parser with TimeZoneInfo.Local.
-    /// Includes the US spring-forward gap (2026-03-08) and fall-back overlap (2026-11-01).
+    /// Quartz 4.7.2 CronExpression is immutable; pass the zone to the constructor.
+    /// Next-fire instants are recorded with an explicit time zone so goldens do not
+    /// depend on the machine's local zone. AlarmSchedule.NextFireDate uses the same
+    /// parser default (TimeZoneInfo.Local). Includes the US spring-forward gap
+    /// (2026-03-08) and fall-back overlap (2026-11-01).
     /// </summary>
     [Theory]
     [InlineData("0 0 8 ? * 1", "UTC", "2026-03-01T08:00:00.0000000+00:00", "2026-03-08T08:00:00.0000000+00:00")]
@@ -222,17 +221,14 @@ public sealed class AlarmScheduleTests
     [InlineData("0 0 23 ? * 2,4,6", "UTC", "2026-03-02T22:59:59.0000000+00:00", "2026-03-02T23:00:00.0000000+00:00")]
     [InlineData("0 0 8 ? * 7", "UTC", "2026-03-07T08:00:00.0000000+00:00", "2026-03-14T08:00:00.0000000+00:00")]
     [InlineData("30 0 0 ? * 1,2,3,4,5,6,7", "UTC", "2026-06-01T00:00:29.0000000+00:00", "2026-06-01T00:00:30.0000000+00:00")]
-    [InlineData("0 30 2 ? * 1", "Eastern Standard Time", "2026-03-07T12:00:00.0000000-05:00", "2026-03-08T07:30:00.0000000+00:00")]
+    [InlineData("0 30 2 ? * 1", "Eastern Standard Time", "2026-03-07T12:00:00.0000000-05:00", "2026-03-08T07:00:00.0000000+00:00")]
     [InlineData("0 0 8 ? * 1", "Eastern Standard Time", "2026-03-07T12:00:00.0000000-05:00", "2026-03-08T12:00:00.0000000+00:00")]
     [InlineData("0 30 1 ? * 1", "Eastern Standard Time", "2026-10-31T12:00:00.0000000-04:00", "2026-11-01T05:30:00.0000000+00:00")]
     [InlineData("0 0 8 ? * 1", "Pacific Standard Time", "2026-10-31T12:00:00.0000000-07:00", "2026-11-01T16:00:00.0000000+00:00")]
-    public void CronExpression_NextFire_MatchesQuartz316Golden(
+    public void CronExpression_NextFire_MatchesQuartzGolden(
         string cronText, string timeZoneId, string afterText, string expectedText)
     {
-        var cron = new CronExpression(cronText)
-        {
-            TimeZone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId),
-        };
+        var cron = new CronExpression(cronText, TimeZoneInfo.FindSystemTimeZoneById(timeZoneId));
 
         var next = cron.GetNextValidTimeAfter(DateTimeOffset.Parse(afterText));
 
@@ -244,10 +240,7 @@ public sealed class AlarmScheduleTests
     {
         var sut = Create(WeekDays.Sunday, hour: 8, minute: 0, second: 0);
         var after = new DateTimeOffset(2030, 6, 1, 12, 0, 0, TimeSpan.Zero);
-        var cron = new CronExpression(sut.CronExpression)
-        {
-            TimeZone = TimeZoneInfo.Local,
-        };
+        var cron = new CronExpression(sut.CronExpression, TimeZoneInfo.Local);
 
         Assert.Equal(cron.GetNextValidTimeAfter(after), sut.NextFireDate(after));
     }

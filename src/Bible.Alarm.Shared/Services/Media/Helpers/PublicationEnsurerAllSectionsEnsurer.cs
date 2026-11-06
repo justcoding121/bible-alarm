@@ -77,7 +77,7 @@ internal sealed class PublicationEnsurerAllSectionsEnsurer
 
                 var existingSectionCodes = publication.Sections
                     .Where(s => !string.IsNullOrEmpty(s.SectionCode))
-                    .Select(s => s.SectionCode!)
+                    .Select(s => s.SectionCode)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
                 var missingSectionCodes = availableSectionCodes

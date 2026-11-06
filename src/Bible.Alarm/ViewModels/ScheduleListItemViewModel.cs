@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System;
 using System.Windows.Input;
 using AutoMapper;
@@ -247,12 +247,12 @@ public sealed partial class ScheduleListItemViewModel : ObservableObject, ICompa
                 try
                 {
                     OnPlayStarted?.Invoke();
-                    WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = Schedule!.Id });
-                    await playbackService.PlayScheduleAsync(Schedule!.Id);
+                    WeakReferenceMessenger.Default.Send(new RequestShowPlaybackModalMessage { TargetScheduleId = Schedule.Id });
+                    await playbackService.PlayScheduleAsync(Schedule.Id);
                 }
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
-                    logger.Warning(ex, AppConstants.Logging.ScheduleListItemViewModelDiagnosticsLog.PlayCommandFailedForSchedule, Schedule!.Id);
+                    logger.Warning(ex, AppConstants.Logging.ScheduleListItemViewModelDiagnosticsLog.PlayCommandFailedForSchedule, Schedule.Id);
                 }
                 finally
                 {

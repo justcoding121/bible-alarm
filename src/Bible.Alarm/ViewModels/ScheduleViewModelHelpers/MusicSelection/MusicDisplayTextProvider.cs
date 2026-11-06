@@ -124,7 +124,7 @@ public sealed class MusicDisplayTextProvider
 
         if (!string.IsNullOrWhiteSpace(currentSchedule.MusicLanguageCode))
         {
-            return currentSchedule.MusicLanguageCode!;
+            return currentSchedule.MusicLanguageCode;
         }
 
         if (currentSchedule.MusicEnabled)
@@ -228,7 +228,7 @@ public sealed class MusicDisplayTextProvider
         // Fall back to code (matches Bible container behavior).
         if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.MusicPublicationCode))
         {
-            return currentSchedule.MusicPublicationCode!;
+            return currentSchedule.MusicPublicationCode;
         }
 
         return string.Empty;
@@ -258,7 +258,7 @@ public sealed class MusicDisplayTextProvider
         }
 
         // Fall back to code (matches Bible container behavior).
-        return currentSchedule.MusicPublicationCode!;
+        return currentSchedule.MusicPublicationCode;
     }
 
     public string GetTrackDisplayText()
@@ -381,7 +381,7 @@ public sealed class MusicDisplayTextProvider
         // Fall back to section code (matches Bible container behavior).
         if (currentSchedule != null && !string.IsNullOrWhiteSpace(currentSchedule.MusicSectionCode))
         {
-            return currentSchedule.MusicSectionCode!;
+            return currentSchedule.MusicSectionCode;
         }
 
         return string.Empty;

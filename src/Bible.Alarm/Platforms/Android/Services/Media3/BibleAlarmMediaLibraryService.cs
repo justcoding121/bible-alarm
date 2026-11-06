@@ -1,3 +1,8 @@
+#nullable enable
+
+// Java binding parameter names are not valid C# identifiers
+#pragma warning disable S927
+
 using _Microsoft.Android.Resource.Designer;
 using Android.App;
 using Android.Content;
@@ -27,7 +32,9 @@ namespace Bible.Alarm.Platforms.Android.Services.Media3;
     ForegroundServiceType = ForegroundService.TypeMediaPlayback,
     Name = "bible.alarm.platforms.android.services.media3.BibleAlarmMediaLibraryService")]
 [Register("bible.alarm.platforms.android.services.media3.BibleAlarmMediaLibraryService")]
+#pragma warning disable CS0618 // Xamarin Preserve is still required for JNI Media3 callbacks
 [Preserve(AllMembers = true)]
+#pragma warning restore CS0618
 public class BibleAlarmMediaLibraryService : MediaLibraryService
 {
     private static readonly ILogger logger = Log.ForContext<BibleAlarmMediaLibraryService>();
@@ -55,9 +62,9 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
 
     public override void OnCreate()
     {
-        current = this;
+        SetCurrent(this);
         ForegroundServiceOperations.StartForegroundMinimal(this, LibraryForegroundNotificationId);
-        IsForeground = true;
+        SetIsForeground(true);
         ReleaseAlarmIfPlaybackRunning();
         _ = SessionStatePlayer.Instance;
         base.OnCreate();
@@ -69,7 +76,7 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
             var provider = new DefaultMediaNotificationProvider.Builder(this)
                 .SetNotificationId(LibraryForegroundNotificationId)!
                 .SetChannelId(ForegroundNotificationHelper.ForegroundChannelId)!
-                .Build();
+                .Build()!;
             provider.SetSmallIcon(ResourceConstant.Drawable.exo_icon_circular_play);
             SetMediaNotificationProvider(provider);
             SetListener(foregroundListener);
@@ -118,8 +125,8 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
         session = null;
         if (current == this)
         {
-            current = null;
-            IsForeground = false;
+            SetCurrent(null);
+            SetIsForeground(false);
         }
 
         base.OnDestroy();
@@ -205,33 +212,39 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
         }
     }
 
-    private static void PostTapToResumeNotification()
-    {
-        var service = current;
-        if (service == null)
-        {
-            return;
-        }
+    private static void SetCurrent(BibleAlarmMediaLibraryService? service) => current = service;
 
-        try
-        {
-            var notification = ForegroundNotificationHelper.CreateNotification(service, isAlarmNotification: false);
-            var manager = service.GetSystemService(NotificationService) as NotificationManager;
-            manager?.Notify(LibraryForegroundNotificationId, notification);
-        }
-        catch (Exception ex)
-        {
-            logger.Warning(ex, "Could not post the tap-to-resume notification");
-        }
-    }
+    private static void SetIsForeground(bool value) => IsForeground = value;
 
     private sealed class ForegroundStartListener : Java.Lang.Object, MediaSessionService.IListener
     {
         public void OnForegroundServiceStartNotAllowedException()
         {
-            IsForeground = false;
+            SetIsForeground(false);
             logger.Warning("Media3 foreground start was not allowed. The alarm foreground service stays up.");
             PostTapToResumeNotification();
         }
+
+        private static void PostTapToResumeNotification()
+        {
+            var service = current;
+            if (service == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var notification = ForegroundNotificationHelper.CreateNotification(service, isAlarmNotification: false);
+                var manager = service.GetSystemService(NotificationService) as NotificationManager;
+                manager?.Notify(LibraryForegroundNotificationId, notification);
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Could not post the tap-to-resume notification");
+            }
+        }
     }
 }
+
+#pragma warning restore S927

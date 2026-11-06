@@ -121,7 +121,8 @@ public sealed class AlarmSchedule : IComparable, IEquatable<AlarmSchedule>
         var expression = new CronExpression(CronExpression);
 
         ValidateNextFire(expression);
-        return expression.GetNextValidTimeAfter(DateTimeOffset.Now)!.Value;
+        return expression.GetNextValidTimeAfter(DateTimeOffset.Now)
+            ?? throw new InvalidOperationException("Invalid alarm time.");
     }
 
     public DateTimeOffset NextFireDate(DateTimeOffset after)
@@ -131,7 +132,8 @@ public sealed class AlarmSchedule : IComparable, IEquatable<AlarmSchedule>
         var expression = new CronExpression(CronExpression);
 
         ValidateNextFire(expression);
-        return expression.GetNextValidTimeAfter(after)!.Value;
+        return expression.GetNextValidTimeAfter(after)
+            ?? throw new InvalidOperationException("Invalid alarm time.");
     }
 
     private string GetCronExpression()
@@ -451,7 +453,7 @@ public sealed class AlarmSchedule : IComparable, IEquatable<AlarmSchedule>
 
         sample.BiblePublicationSchedule.SectionCode = section.SectionCode;
 
-        var firstTrack = section.Tracks!.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList()[0];
+        var firstTrack = section.Tracks.OrderBy(t => t, Comparer<BiblePublicationTrack>.Create((a, b) => a.CompareTo(b))).ToList()[0];
         sample.BiblePublicationSchedule.TrackCode = firstTrack.TrackCode;
     }
 
@@ -494,7 +496,7 @@ public sealed class AlarmSchedule : IComparable, IEquatable<AlarmSchedule>
 
     private static void ApplyRandomMelodyFromRandomSection(AlarmSchedule sample, MelodyMusic music)
     {
-        var randomSection = music.Publication!.Sections![Random.Shared.Next(music.Publication.Sections.Count)];
+        var randomSection = music.Publication.Sections[Random.Shared.Next(music.Publication.Sections.Count)];
 
         if (randomSection.Tracks == null || randomSection.Tracks.Count == 0)
         {

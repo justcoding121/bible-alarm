@@ -73,8 +73,7 @@ internal static class CatalogValidator
         var tracksWithParams = await db.BiblePublicationTracks
             .AsNoTracking()
             .Include(t => t.TrackUrl)
-            .Include(t => t.Publication)
-            .ThenInclude(p => p!.Language)
+            .Include(t => t.Publication.Language)
             .Include(t => t.Section)
             .Where(t => t.TrackUrl != null)
             .ToListAsync();
@@ -82,7 +81,7 @@ internal static class CatalogValidator
         var byPub = tracksWithParams
             .Where(t => t.Publication != null &&
                         (t.Publication.Language?.LanguageCode == AppConstants.Media.DefaultLanguageCode || t.Publication.LanguageId == null))
-            .GroupBy(t => t.Publication!.PublicationCode, StringComparer.OrdinalIgnoreCase)
+            .GroupBy(t => t.Publication.PublicationCode, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
 
         void TryAdd(string pubCode, string? sectionCode, string? trackCodeHint)
@@ -98,7 +97,7 @@ internal static class CatalogValidator
                 }
 
                 samples.Add(new SampleTrack(
-                    track.Publication!.PublicationCode,
+                    track.Publication.PublicationCode,
                     track.Publication.Name,
                     track.TrackCode,
                     track.Title ?? string.Empty,

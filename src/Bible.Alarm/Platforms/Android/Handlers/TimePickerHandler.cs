@@ -207,7 +207,7 @@ public class TimePickerHandler : Microsoft.Maui.Handlers.TimePickerHandler
             if (timePicker is null)
                 return;
 
-            TryApplyAmPmFontSizeToTimePicker(dialog.Context!, timePicker, fontSize);
+            TryApplyAmPmFontSizeToTimePicker(dialog.Context, timePicker, fontSize);
         }
         catch (Exception)
         {

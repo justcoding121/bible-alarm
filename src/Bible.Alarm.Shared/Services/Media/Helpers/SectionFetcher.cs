@@ -81,7 +81,7 @@ internal sealed class SectionFetcher
 
         var existingSectionCodes = existingPublication?.Sections
             .Where(s => !string.IsNullOrEmpty(s.SectionCode))
-            .Select(s => s.SectionCode!)
+            .Select(s => s.SectionCode)
             .ToHashSet(StringComparer.OrdinalIgnoreCase) ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         var missingSectionCodes = sectionCodes
@@ -514,7 +514,7 @@ internal sealed class SectionFetcher
         if (!string.IsNullOrEmpty(extractedName) && isBible)
         {
             var isVideoName = AppConstants.Media.ApiMisleadingGoodNewsVideoPublicationNamePhrases.Any(vn =>
-                extractedName!.Contains(vn, StringComparison.OrdinalIgnoreCase));
+                extractedName.Contains(vn, StringComparison.OrdinalIgnoreCase));
 
             if (isVideoName)
             {

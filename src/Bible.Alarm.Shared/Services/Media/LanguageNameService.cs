@@ -119,7 +119,7 @@ public sealed class LanguageNameService(IServiceScopeFactory scopeFactory, ILogg
 
         var dbName = await db.LanguageNamesByLanguage
             .AsNoTracking()
-            .Where(x => x.Language!.LanguageCode == languageCode && x.DisplayLanguageCode == displayLanguageCode)
+            .Where(x => x.Language.LanguageCode == languageCode && x.DisplayLanguageCode == displayLanguageCode)
             .Select(x => x.Name)
             .FirstOrDefaultAsync(cancellationToken);
 

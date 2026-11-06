@@ -1,3 +1,5 @@
+#nullable enable
+
 using Google.Common.Util.Concurrent;
 using Java.Interop;
 using JniObject = Java.Lang.Object;
@@ -14,8 +16,8 @@ internal static class GuavaFutures
     {
         var futures = Java.Lang.Class.ForName("com.google.common.util.concurrent.Futures")
             ?? throw new InvalidOperationException("Guava Futures is not on the classpath.");
-        var method = futures.GetMethod("immediateVoidFuture", []);
-        var value = method?.Invoke(null) as JniObject;
+        var method = futures.GetMethod("immediateVoidFuture");
+        var value = method?.Invoke(null);
         return value?.JavaCast<IListenableFuture>()
             ?? throw new InvalidOperationException("immediateVoidFuture returned null.");
     }
@@ -25,7 +27,7 @@ internal static class GuavaFutures
         var futures = Java.Lang.Class.ForName("com.google.common.util.concurrent.Futures")
             ?? throw new InvalidOperationException("Guava Futures is not on the classpath.");
         var method = futures.GetMethod("immediateFuture", Java.Lang.Class.FromType(typeof(JniObject)));
-        var result = method?.Invoke(null, value) as JniObject;
+        var result = method?.Invoke(null, value);
         return result?.JavaCast<IListenableFuture>()
             ?? throw new InvalidOperationException("immediateFuture returned null.");
     }
@@ -34,8 +36,8 @@ internal static class GuavaFutures
     {
         var settable = Java.Lang.Class.ForName("com.google.common.util.concurrent.SettableFuture")
             ?? throw new InvalidOperationException("Guava SettableFuture is not on the classpath.");
-        var method = settable.GetMethod("create", []);
-        var value = method?.Invoke(null) as JniObject;
+        var method = settable.GetMethod("create");
+        var value = method?.Invoke(null);
         return value?.JavaCast<IListenableFuture>()
             ?? throw new InvalidOperationException("SettableFuture.create returned null.");
     }

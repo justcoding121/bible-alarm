@@ -129,11 +129,6 @@ public static class ForegroundServiceCoordinator
             alarmService = null;
         }
 
-        if (alarmServiceToStop == null)
-        {
-            return;
-        }
-
         try
         {
             alarmServiceToStop.StopSelf();

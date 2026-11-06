@@ -146,7 +146,6 @@ internal static class ForegroundNotificationHelper
             // Alarm automatically starts playback, so we show a preparing state
             title = AppConstants.AppSettings.ApplicationDisplayName;
             artist = "Preparing playback...";
-            artwork = null; // Don't use artwork, use app icon instead
         }
         else
         {
@@ -155,6 +154,11 @@ internal static class ForegroundNotificationHelper
             var snapshot = ServiceProviderManager.GetService<Interfaces.IMediaSessionManager>()?.Snapshot;
             title = snapshot?.Title ?? string.Empty;
             artist = snapshot?.Artist ?? string.Empty;
+            if (!string.IsNullOrEmpty(snapshot?.ArtworkUrl))
+            {
+                artwork = ServiceProviderManager.GetService<Interfaces.IAndroidArtworkService>()
+                    ?.LoadArtworkBitmap(snapshot.ArtworkUrl);
+            }
 
             // Fallback values for early bootstrap scenarios (before metadata is set)
             if (string.IsNullOrEmpty(title))
@@ -168,7 +172,7 @@ internal static class ForegroundNotificationHelper
         }
 
         // Split the fluent API chain to avoid compiler warnings
-        var builder = new NotificationCompat.Builder(context!, ForegroundChannelId);
+        var builder = new NotificationCompat.Builder(context, ForegroundChannelId);
         builder.SetSmallIcon(ResourceConstant.Drawable.exo_icon_circular_play);
         builder.SetContentTitle(title);
         builder.SetContentText(artist);

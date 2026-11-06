@@ -188,19 +188,19 @@ public sealed class MusicStateChangeHandler
         BiblePublicationTrack? chosenTrack = null;
 
         var sectionsWithTracks = melodyMusic.Sections?
-            .Where(static s => s.Tracks != null && s.Tracks!.Count > 0)
+            .Where(static s => s.Tracks != null && s.Tracks.Count > 0)
             .ToList();
 
         if (sectionsWithTracks is { Count: > 0 })
         {
             chosenSection = sectionsWithTracks[Random.Shared.Next(sectionsWithTracks.Count)];
-            if (chosenSection.Tracks!.Count > 0)
+            if (chosenSection.Tracks.Count > 0)
             {
                 chosenTrack = chosenSection.Tracks[Random.Shared.Next(chosenSection.Tracks.Count)];
             }
         }
 
-        chosenTrack ??= melodyMusic.Tracks![Random.Shared.Next(melodyMusic.Tracks!.Count)];
+        chosenTrack ??= melodyMusic.Tracks[Random.Shared.Next(melodyMusic.Tracks.Count)];
         return (chosenSection, chosenTrack);
     }
 

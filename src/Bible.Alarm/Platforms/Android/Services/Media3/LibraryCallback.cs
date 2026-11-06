@@ -1,3 +1,8 @@
+#nullable enable
+
+// Java binding parameter names are not valid C# identifiers
+#pragma warning disable S927
+
 using Android.OS;
 using Android.Runtime;
 using AndroidX.Media3.Common;
@@ -12,7 +17,9 @@ namespace Bible.Alarm.Platforms.Android.Services.Media3;
 /// Library and session callback for the inactive Media3 service.
 /// Every controller may connect. Browse results are limited to car hosts.
 /// </summary>
+#pragma warning disable CS0618 // Xamarin Preserve is still required for JNI Media3 callbacks
 [Preserve(AllMembers = true)]
+#pragma warning restore CS0618
 public sealed class LibraryCallback : Java.Lang.Object, MediaLibraryService.MediaLibrarySession.ICallback
 {
     public IListenableFuture? OnConnectAsync(MediaSession? session, MediaSession.ControllerInfo? controller)
@@ -62,11 +69,8 @@ public sealed class LibraryCallback : Java.Lang.Object, MediaLibraryService.Medi
         return GuavaFutures.Immediate(MediaSession.ConnectionResult.Accept(sessionCommands, playerCommands)!);
     }
 
-    public void OnPostConnect(MediaSession? session, MediaSession.ControllerInfo? controller)
-    {
-        _ = session;
-        _ = controller;
-    }
+    public void OnPostConnect(MediaSession? session, MediaSession.ControllerInfo? controller) =>
+        OnDisconnected(session, controller);
 
     public void OnDisconnected(MediaSession? session, MediaSession.ControllerInfo? controller)
     {
@@ -107,12 +111,12 @@ public sealed class LibraryCallback : Java.Lang.Object, MediaLibraryService.Medi
         {
             if (!AndroidAutoHostValidator.IsCarHostPackage(browser?.PackageName))
             {
-                return LibraryResult.OfError(LibraryResult.ResultErrorPermissionDenied);
+                return LibraryResult.OfError(LibraryResult.ResultErrorPermissionDenied)!;
             }
 
             _ = session;
             var children = Media3LibraryCatalog.LoadChildren(global::Android.App.Application.Context);
-            return LibraryResult.OfItemList(children, libraryParams);
+            return LibraryResult.OfItemList(children, libraryParams)!;
         });
     }
 
@@ -290,3 +294,5 @@ public sealed class LibraryCallback : Java.Lang.Object, MediaLibraryService.Medi
         return list;
     }
 }
+
+#pragma warning restore S927

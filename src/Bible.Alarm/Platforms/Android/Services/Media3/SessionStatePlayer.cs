@@ -1,3 +1,8 @@
+#nullable enable
+
+// Java binding parameter names are not valid C# identifiers
+#pragma warning disable S927
+
 using Android.OS;
 using Android.Runtime;
 using AndroidX.Media3.Common;
@@ -10,7 +15,9 @@ namespace Bible.Alarm.Platforms.Android.Services.Media3;
 /// Process-wide proxy player. The real ExoPlayer stays in the MediaElement fork.
 /// This player only publishes the app-defined state that Android Auto and the notification read.
 /// </summary>
+#pragma warning disable CS0618 // Xamarin Preserve is still required for JNI Media3 callbacks
 [Preserve(AllMembers = true)]
+#pragma warning restore CS0618
 public sealed class SessionStatePlayer : SimpleBasePlayer
 {
     private static readonly Lock gate = new();
@@ -123,13 +130,13 @@ public sealed class SessionStatePlayer : SimpleBasePlayer
         var item = new MediaItem.Builder()
             .SetMediaId(mediaId)!
             .SetMediaMetadata(metadata)!
-            .Build();
+            .Build()!;
         var itemData = new MediaItemData.Builder(item)
             .SetMediaItem(item)!
             .SetMediaMetadata(metadata)!
             .SetDurationUs(Math.Max(snapshot.DurationMs, 0) * 1000)!
             .SetIsSeekable(true)!
-            .Build();
+            .Build()!;
         var playlist = new System.Collections.Generic.List<MediaItemData> { itemData };
 
         var builder = new State.Builder()
@@ -285,13 +292,13 @@ public sealed class SessionStatePlayer : SimpleBasePlayer
 
         if (snapshot.Artwork is { Length: > 0 })
         {
-            builder.SetArtworkData(snapshot.Artwork);
+            builder.SetArtworkData(snapshot.Artwork, (Java.Lang.Integer)MediaMetadata.PictureTypeFrontCover);
         }
 
         return builder.Build()!;
     }
 
-    private static class InterfaceConsts
+    private new static class InterfaceConsts
     {
         public const int StateIdle = BasePlayer.InterfaceConsts.StateIdle;
         public const int StateBuffering = BasePlayer.InterfaceConsts.StateBuffering;
@@ -347,3 +354,5 @@ public sealed record ProxyModel(
         false,
         null);
 }
+
+#pragma warning restore S927

@@ -58,7 +58,7 @@ internal sealed class DefaultMusicPopulator
             }
 
             var (defaultPublicationCode, defaultPublicationName, melodyMusic) = resolved.Value;
-            var trackCount = melodyMusic.Tracks!.Count;
+            var trackCount = melodyMusic.Tracks.Count;
             foreach (var (schedule, stateItem) in schedulesNeedingMusic)
             {
                 var randomTrack = melodyMusic.Tracks[RandomNumberGenerator.GetInt32(trackCount)];

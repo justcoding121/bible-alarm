@@ -371,8 +371,6 @@ internal sealed class BiblePublicationSelectionSectionTrackResolver
                 // No sections defined - check if it's a flat publication (has tracks directly)
                 var hasTracks = await db.BiblePublicationTracks
                     .AsNoTracking()
-                    .Include(t => t.Publication)
-                        .ThenInclude(bp => bp!.Language)
                     .AnyAsync(t => t.Publication != null &&
                                    t.Publication.PublicationCode == publicationCodeForDb &&
                                    t.Publication.Language != null &&

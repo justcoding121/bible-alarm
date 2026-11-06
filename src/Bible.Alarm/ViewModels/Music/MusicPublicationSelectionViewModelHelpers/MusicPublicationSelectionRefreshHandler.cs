@@ -29,24 +29,16 @@ public sealed class MusicPublicationSelectionRefreshHandler
     private readonly Action<bool> setShowProgress;
     private readonly Action<bool> setCanCancelFetch;
 
-    public MusicPublicationSelectionRefreshHandler(
-        IState<ApplicationState> state,
-        MusicPublicationSelectionStateManager stateManager,
-        Func<System.Collections.ObjectModel.ObservableCollection<LanguageListViewItemModel>> getLanguages,
-        Func<LanguageListViewItemModel?> getCurrentLanguage,
-        Action<LanguageListViewItemModel?> setCurrentLanguage,
-        Action<Func<string?, Task>> setupLanguageSearchHandler,
-        Action<bool> setShowProgress,
-        Action<bool> setCanCancelFetch)
+    public MusicPublicationSelectionRefreshHandler(MusicPublicationSelectionRefreshHandlerDeps deps)
     {
-        this.state = state;
-        this.stateManager = stateManager;
-        this.getLanguages = getLanguages;
-        this.getCurrentLanguage = getCurrentLanguage;
-        this.setCurrentLanguage = setCurrentLanguage;
-        this.setupLanguageSearchHandler = setupLanguageSearchHandler;
-        this.setShowProgress = setShowProgress;
-        this.setCanCancelFetch = setCanCancelFetch;
+        state = deps.State;
+        stateManager = deps.StateManager;
+        getLanguages = deps.GetLanguages;
+        getCurrentLanguage = deps.GetCurrentLanguage;
+        setCurrentLanguage = deps.SetCurrentLanguage;
+        setupLanguageSearchHandler = deps.SetupLanguageSearchHandler;
+        setShowProgress = deps.SetShowProgress;
+        setCanCancelFetch = deps.SetCanCancelFetch;
     }
 
     public async Task RefreshAsync(
@@ -176,25 +168,15 @@ public sealed class MusicPublicationSelectionRefreshHandler
             languages.Count > 0)
         {
             var langCode = scheduleLanguageCode ?? newLanguageCode;
-            var languageToSelect = !string.IsNullOrEmpty(langCode)
-                ? languages.FirstOrDefault(l => string.Equals(l.Code, langCode, StringComparison.OrdinalIgnoreCase))
-                : null;
+            var languageToSelect = (!string.IsNullOrEmpty(langCode)
+                    ? languages.FirstOrDefault(l => string.Equals(l.Code, langCode, StringComparison.OrdinalIgnoreCase))
+                    : null)
+                ?? languages.FirstOrDefault(l => string.Equals(l.Code, AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase))
+                ?? languages[0];
 
-            if (languageToSelect == null)
-            {
-                languageToSelect = languages.FirstOrDefault(l => string.Equals(l.Code, AppConstants.Media.DefaultLanguageCode, StringComparison.OrdinalIgnoreCase));
-                if (languageToSelect == null && languages.Count > 0)
-                {
-                    languageToSelect = languages[0];
-                }
-            }
-
-            if (languageToSelect != null)
-            {
-                setCurrentLanguage(languageToSelect);
-                languageToSelect.IsSelected = true;
-                return languageToSelect.Code;
-            }
+            setCurrentLanguage(languageToSelect);
+            languageToSelect.IsSelected = true;
+            return languageToSelect.Code;
         }
 
         if (currentLanguage != null)
@@ -206,3 +188,13 @@ public sealed class MusicPublicationSelectionRefreshHandler
         return newLanguageCode;
     }
 }
+
+public sealed record MusicPublicationSelectionRefreshHandlerDeps(
+    IState<ApplicationState> State,
+    MusicPublicationSelectionStateManager StateManager,
+    Func<System.Collections.ObjectModel.ObservableCollection<LanguageListViewItemModel>> GetLanguages,
+    Func<LanguageListViewItemModel?> GetCurrentLanguage,
+    Action<LanguageListViewItemModel?> SetCurrentLanguage,
+    Action<Func<string?, Task>> SetupLanguageSearchHandler,
+    Action<bool> SetShowProgress,
+    Action<bool> SetCanCancelFetch);

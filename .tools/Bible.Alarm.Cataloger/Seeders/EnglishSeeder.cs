@@ -110,7 +110,6 @@ internal sealed class EnglishSeeder
 
         var hasEnglish = await db.BiblePublications
             .AsNoTracking()
-            .Include(bp => bp.Language)
             .AnyAsync(bp => bp.PublicationCode == publicationCodeForDb &&
                            bp.Language != null &&
                            bp.Language.LanguageCode == AppConstants.Media.DefaultLanguageCode);

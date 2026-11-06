@@ -286,7 +286,7 @@ public class MediaSessionEffect(
                 lastMetadataArtworkUrl = action.ArtworkUrl;
 
                 var currentState = playbackState.Value;
-                if (currentState.Status == PlayStatus.Playing || currentState.Status == PlayStatus.Paused)
+                if (currentState != null && (currentState.Status == PlayStatus.Playing || currentState.Status == PlayStatus.Paused))
                 {
                     LastPlayedMetadataHelper.SaveLastPlayedMetadata(
                         action.Title,

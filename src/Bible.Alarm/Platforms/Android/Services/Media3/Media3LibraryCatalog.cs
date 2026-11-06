@@ -1,3 +1,5 @@
+#nullable enable
+
 using _Microsoft.Android.Resource.Designer;
 using Android.Content;
 using Android.Graphics;
@@ -66,7 +68,7 @@ internal static class Media3LibraryCatalog
         {
             using var stream = new MemoryStream();
             icon.Compress(Bitmap.CompressFormat.Png!, 100, stream);
-            metadata.SetArtworkData(stream.ToArray());
+            metadata.SetArtworkData(stream.ToArray(), (Java.Lang.Integer)MediaMetadata.PictureTypeFrontCover);
         }
 
         return new MediaItem.Builder()

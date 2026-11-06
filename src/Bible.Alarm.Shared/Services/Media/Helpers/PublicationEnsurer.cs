@@ -185,7 +185,6 @@ internal sealed class PublicationEnsurer
 
         var existing = await db.BiblePublications
             .AsNoTracking()
-            .Include(bp => bp.Language)
             .AnyAsync(
                 bp => bp.PublicationCode == publicationCodeForDb &&
                       bp.Language != null &&
