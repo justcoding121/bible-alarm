@@ -46,6 +46,7 @@ public sealed class MessageSendingFetchProgressReporterTests
     [Fact]
     public void UpdateProgress_clamps_high_values_to_one_in_message()
     {
+        WeakReferenceMessenger.Default.Reset();
         using var recipient = new RecordingRecipient();
         var sut = new ListItemFetchProgressReporter("MusicPublication", "pub-9", onProgressReported: null, default);
 
