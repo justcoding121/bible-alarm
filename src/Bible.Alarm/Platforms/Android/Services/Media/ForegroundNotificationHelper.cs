@@ -23,7 +23,7 @@ internal static class ForegroundNotificationHelper
 {
     private static readonly ILogger logger = Log.ForContext(typeof(ForegroundNotificationHelper));
     private const int ForegroundNotificationId = 2; // MediaElement uses 1, so we use 2
-    private const string ForegroundChannelId = "foreground_service_channel";
+    internal const string ForegroundChannelId = "foreground_service_channel";
     private const string ForegroundChannelName = "Media Playback";
     public static int NotificationId => ForegroundNotificationId;
 

@@ -18,7 +18,6 @@ public sealed class LibraryCallback : Java.Lang.Object, MediaLibraryService.Medi
     public IListenableFuture? OnConnectAsync(MediaSession? session, MediaSession.ControllerInfo? controller)
     {
         _ = session;
-        _ = controller;
         var sessionCommands = new SessionCommands.Builder()
             .Add(SessionCommand.CommandCodeLibraryGetLibraryRoot)!
             .Add(SessionCommand.CommandCodeLibraryGetChildren)!
@@ -28,9 +27,37 @@ public sealed class LibraryCallback : Java.Lang.Object, MediaLibraryService.Medi
             .Add(SessionCommand.CommandCodeLibrarySubscribe)!
             .Add(SessionCommand.CommandCodeLibraryUnsubscribe)!
             .Build();
+        // Transport, seek and play-from-id are only for the app's own notification controller,
+        // trusted system controllers (SystemUI, media keys) and car hosts. Any other app that
+        // binds to this exported service keeps the minimal set.
+        var fullControl = controller != null
+            && (controller.IsTrusted
+                || controller.PackageName == global::Android.App.Application.Context.PackageName
+                || AndroidAutoHostValidator.IsCarHostPackage(controller.PackageName));
+        if (!fullControl)
+        {
+            var minimal = new PlayerCommands.Builder()
+                .Add(BasePlayer.InterfaceConsts.CommandPlayPause)!
+                .Add(BasePlayer.InterfaceConsts.CommandGetMetadata)!
+                .Build();
+            return GuavaFutures.Immediate(MediaSession.ConnectionResult.Accept(sessionCommands, minimal)!);
+        }
+
+        // The Media3 notification controller hides the notification when the
+        // timeline command is missing, because an empty timeline means "nothing to show".
         var playerCommands = new PlayerCommands.Builder()
             .Add(BasePlayer.InterfaceConsts.CommandPlayPause)!
+            .Add(BasePlayer.InterfaceConsts.CommandPrepare)!
+            .Add(BasePlayer.InterfaceConsts.CommandStop)!
+            .Add(BasePlayer.InterfaceConsts.CommandGetCurrentMediaItem)!
             .Add(BasePlayer.InterfaceConsts.CommandGetMetadata)!
+            .Add(BasePlayer.InterfaceConsts.CommandGetTimeline)!
+            .Add(BasePlayer.InterfaceConsts.CommandSeekInCurrentMediaItem)!
+            .Add(BasePlayer.InterfaceConsts.CommandSeekForward)!
+            .Add(BasePlayer.InterfaceConsts.CommandSeekBack)!
+            .Add(BasePlayer.InterfaceConsts.CommandSeekToNext)!
+            .Add(BasePlayer.InterfaceConsts.CommandSeekToPrevious)!
+            .Add(BasePlayer.InterfaceConsts.CommandSetMediaItem)!
             .Build();
         return GuavaFutures.Immediate(MediaSession.ConnectionResult.Accept(sessionCommands, playerCommands)!);
     }

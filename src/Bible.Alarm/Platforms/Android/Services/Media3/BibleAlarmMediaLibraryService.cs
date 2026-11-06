@@ -64,14 +64,22 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
 
         try
         {
+            // Same id and channel as the startup placeholder, so Media3 replaces
+            // "Starting..." in place instead of posting a second notification.
+            var provider = new DefaultMediaNotificationProvider.Builder(this)
+                .SetNotificationId(LibraryForegroundNotificationId)!
+                .SetChannelId(ForegroundNotificationHelper.ForegroundChannelId)!
+                .Build();
+            provider.SetSmallIcon(ResourceConstant.Drawable.exo_icon_circular_play);
+            SetMediaNotificationProvider(provider);
+            SetListener(foregroundListener);
             var callback = new LibraryCallback();
             session = new MediaLibraryService.MediaLibrarySession.Builder(this, SessionStatePlayer.Instance, callback)
                 .SetId("BibleAlarmSession")!
                 .Build();
-            var provider = new DefaultMediaNotificationProvider(this);
-            provider.SetSmallIcon(ResourceConstant.Drawable.exo_icon_circular_play);
-            SetMediaNotificationProvider(provider);
-            SetListener(foregroundListener);
+            // The platform sees a MediaSession as soon as it is built. The service
+            // posts its media notification only for sessions passed to AddSession.
+            AddSession(session);
             ApplySessionActive(SessionStatePlayer.Instance.IsSessionActive);
             subscription.SetSession(session!);
             _ = subscription.InitializeAsync();
