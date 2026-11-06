@@ -960,6 +960,24 @@ public sealed class MediaServiceTests
     }
 
     [Fact]
+    public async Task GetVocalMusicReleases_downloadAll_for_non_english_starts_background_ensure()
+    {
+        var vocal = new ConfigurableVocalMusicService
+        {
+            Releases = new Dictionary<string, VocalMusic>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["osg"] = new BiblePublication { Id = 1, PublicationCode = "osg", Name = "Sing Out" },
+            },
+        };
+        var sut = CreateSut(vocal: vocal);
+
+        var result = await sut.GetVocalMusicReleases("M", downloadAll: true);
+
+        Assert.NotNull(result);
+        await Task.Delay(50);
+    }
+
+    [Fact]
     public async Task GetBiblePublicationSections_for_english_skips_ensure_all_sections()
     {
         var sections = new StubBiblePublicationSectionService

@@ -150,6 +150,20 @@ public sealed class ScheduleDetailsContainerViewModelTests
     }
 
     [Fact]
+    public void Constructor_dispatches_ready_synchronously_when_main_thread_unavailable()
+    {
+        var state = new MutableApplicationState(new ApplicationState(
+            new ObservableHashSet<ScheduleStateItem>(),
+            Schedule(name: "Dawn")));
+        var dispatcher = new RecordingDispatcher();
+        using var sut = CreateSut(state, dispatcher);
+
+        Assert.Equal("Dawn", sut.Name);
+        Assert.Contains(dispatcher.Dispatched, action => action is ContainerReadyAction ready &&
+            ready.ContainerName == "ScheduleDetails");
+    }
+
+    [Fact]
     public void Constructor_loads_schedule_details_from_current_schedule()
     {
         var state = new MutableApplicationState(App(Schedule(
