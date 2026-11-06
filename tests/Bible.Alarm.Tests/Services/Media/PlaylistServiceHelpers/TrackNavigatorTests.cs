@@ -24,6 +24,8 @@ public sealed class TrackNavigatorTests
 
         public Func<string, string, List<string>>? PublicationCodesInCategoryResolver { get; init; }
 
+        public Func<string, BiblePublication?>? PublicationWithTracksResolver { get; init; }
+
         public void Dispose()
         {
         }
@@ -35,6 +37,11 @@ public sealed class TrackNavigatorTests
         public Task<BiblePublication?> GetByLanguageAndCodeWithTracksAsync(string languageCode, string publicationCode,
             CancellationToken cancellationToken = default)
         {
+            if (PublicationWithTracksResolver != null)
+            {
+                return Task.FromResult(PublicationWithTracksResolver(publicationCode));
+            }
+
             if (PublicationsByCode != null &&
                 PublicationsByCode.TryGetValue(publicationCode, out var mapped))
             {
@@ -168,6 +175,48 @@ public sealed class TrackNavigatorTests
                 new BiblePublicationTrack { TrackCode = "3", Title = "Third" },
             ],
         };
+
+    [Fact]
+    public async Task GetNextBiblePublicationTrack_reloads_adjacent_publication_after_ensure()
+    {
+        var current = ThreeTrackPublication("vod");
+        var adjacentLoaded = ThreeTrackPublication("vod2");
+        var vod2Lookups = 0;
+        var bible = new StubBiblePublicationService
+        {
+            Publication = current,
+            CategoryInfoResolver = (_, _) => (AppConstants.Media.BiblePublicationCategoryDramas, false),
+            PublicationCodesInCategoryResolver = (_, _) => ["vod", "vod2"],
+            PublicationWithTracksResolver = code =>
+            {
+                if (string.Equals(code, "vod", StringComparison.OrdinalIgnoreCase))
+                {
+                    return current;
+                }
+
+                vod2Lookups++;
+                return vod2Lookups == 1
+                    ? new BiblePublication { PublicationCode = "vod2", Tracks = [] }
+                    : adjacentLoaded;
+            },
+        };
+        var sut = new TrackNavigator(
+            new IdleMediaService(),
+            bible,
+            TestLogging.CreateLogger(),
+            new EnsuringLanguageContentService());
+
+        var next = await sut.GetNextBiblePublicationTrack(
+            "E",
+            current.PublicationCode,
+            sectionCode: null,
+            trackCode: "3",
+            sectionFetchProgress: new TokenFetchProgress());
+
+        Assert.Equal("vod2", next.PublicationCode);
+        Assert.Equal("1", next.Track.TrackCode);
+        Assert.True(vod2Lookups >= 2);
+    }
 
     [Fact]
     public async Task GetNextBiblePublicationTrack_without_section_delegates_to_flat_navigation()
@@ -791,5 +840,57 @@ public sealed class TrackNavigatorTests
 
         public Task<int> GetExpectedSectionCountForNoLanguagePublicationAsync(string publicationCode) =>
             inner.GetExpectedSectionCountForNoLanguagePublicationAsync(publicationCode);
+    }
+
+    private sealed class EnsuringLanguageContentService : ILanguageContentService
+    {
+        public Task<string?> GetVideoPublicationDisplayNameAsync(string publicationCode, string languageCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult<string?>(null);
+
+        public Task<bool> FetchPublicationTracksAsync(string publicationCode, string languageCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+
+        public Task<bool> FetchPublicationSectionsAsync(string publicationCode, string languageCode, IFetchProgress? progress = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+
+        public Task<bool> FetchSectionTracksAsync(string publicationCode, string sectionCode, string languageCode, bool replaceExistingTracksFromApi = false, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+
+        public Task<bool> SeedEnglishPublicationAsync(string publicationCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+
+        public Task<bool> EnsurePublicationExistsAsync(string publicationCode, string languageCode, IFetchProgress? progress = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+
+        public Task<bool> FetchFirstPublicationForLanguageAsync(string languageCode, string? categoryName = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+
+        public Task<bool> EnsureAllPublicationsForLanguageAsync(string languageCode, string? categoryName = null, IFetchProgress? progress = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+
+        public Task<bool> EnsureAllSectionsForPublicationAsync(string publicationCode, string languageCode, IFetchProgress? progress = null, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+
+        public Task<bool> FetchFirstSectionOnlyAsync(string publicationCode, string firstSectionCode, string languageCode, CancellationToken cancellationToken = default) =>
+            Task.FromResult(true);
+    }
+
+    private sealed class TokenFetchProgress : IFetchProgress
+    {
+        private readonly CancellationTokenSource cts = new();
+
+        public CancellationToken CancellationToken => cts.Token;
+
+        public void UpdateProgress(double progress)
+        {
+        }
+
+        public void UpdateProgressText(string text)
+        {
+        }
+
+        public void SetIsVisible(bool isVisible)
+        {
+        }
     }
 }
