@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.Services.Media.PlaylistServiceHelpers;
+using Bible.Alarm.Shared.Constants;
 using Bible.Alarm.Shared.Models.Media;
 using Bible.Alarm.Shared.Models.Media.BiblePublications;
 using Bible.Alarm.Shared.Services.Media.Interfaces;
@@ -49,13 +50,25 @@ public sealed class TrackNavigatorNonSectionedHelperTests
         public Task<bool> IsNoLanguagePublicationAsync(string publicationCode, CancellationToken cancellationToken = default) =>
             Task.FromResult(false);
 
+        public Dictionary<string, (string? CategoryCode, bool IsMusic)> CategoryInfoByCode { get; init; } =
+            new(StringComparer.OrdinalIgnoreCase);
+
+        public List<string> OrderedPublicationCodes { get; init; } = [];
+
         public Task<(string? CategoryCode, bool IsMusic)?> GetPublicationCategoryInfoAsync(string languageCode, string publicationCode,
-            CancellationToken cancellationToken = default) =>
-            Task.FromResult<(string? CategoryCode, bool IsMusic)?>(null);
+            CancellationToken cancellationToken = default)
+        {
+            if (CategoryInfoByCode.TryGetValue(publicationCode, out var info))
+            {
+                return Task.FromResult<(string? CategoryCode, bool IsMusic)?>(info);
+            }
+
+            return Task.FromResult<(string? CategoryCode, bool IsMusic)?>(null);
+        }
 
         public Task<List<string>> GetPublicationCodesInCategoryOrderAsync(string languageCode, string categoryCode,
             CancellationToken cancellationToken = default) =>
-            Task.FromResult(new List<string>());
+            Task.FromResult(OrderedPublicationCodes);
     }
 
     private static BiblePublication ThreeTrackPublication(string code = "vod") =>
@@ -122,5 +135,35 @@ public sealed class TrackNavigatorNonSectionedHelperTests
 
         Assert.Equal(pub.PublicationCode, prev.PublicationCode);
         Assert.Equal("3", prev.Track.TrackCode);
+    }
+
+    [Fact]
+    public async Task GetNextAsync_jumps_to_adjacent_publication_when_at_last_track()
+    {
+        var pub = ThreeTrackPublication("vod");
+        var bible = new StubBiblePublicationService
+        {
+            Publication = pub,
+            CategoryInfoByCode =
+            {
+                ["vod"] = (AppConstants.Media.BiblePublicationCategoryDramas, false),
+                ["vod2"] = (AppConstants.Media.BiblePublicationCategoryDramas, false),
+            },
+            OrderedPublicationCodes = ["vod", "vod2"],
+        };
+        var adjacentFirst = new BiblePublicationTrack { TrackCode = "10", Title = "Adjacent first" };
+        var sut = new TrackNavigatorNonSectionedHelper(
+            bible,
+            TestLogging.CreateLogger(),
+            getFirstTrackOfPublicationAsync: (_, publicationCode, _) =>
+                publicationCode == "vod2"
+                    ? Task.FromResult<(BiblePublicationSection?, BiblePublicationTrack)?>(
+                        (null, adjacentFirst))
+                    : Task.FromResult<(BiblePublicationSection?, BiblePublicationTrack)?>(null));
+
+        var next = await sut.GetNextAsync("E", pub.PublicationCode, "3");
+
+        Assert.Equal("vod2", next.PublicationCode);
+        Assert.Equal("10", next.Track.TrackCode);
     }
 }

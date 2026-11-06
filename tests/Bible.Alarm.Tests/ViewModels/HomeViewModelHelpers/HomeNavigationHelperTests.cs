@@ -1,9 +1,17 @@
 #nullable enable
 
+using System.Reflection;
 using AutoMapper;
+using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Scheduler.Interfaces;
 using Bible.Alarm.Services.UI.Interfaces;
+using Bible.Alarm.Shared.Models.Schedule;
+using Bible.Alarm.Shared.Services.Media.Interfaces;
 using Bible.Alarm.Stores;
+using Bible.Alarm.Stores.Actions;
+using Bible.Alarm.Stores.Mapping;
 using Bible.Alarm.Tests.Support;
+using Bible.Alarm.ViewModels;
 using Bible.Alarm.ViewModels.HomeViewModelHelpers;
 using Bible.Alarm.Views;
 using Fluxor;
@@ -28,6 +36,8 @@ public sealed class HomeNavigationHelperTests
     private sealed class StubNavigationService : INavigationService
     {
         public bool PlaybackModalOnScreen { get; set; }
+        public int? NavigatedScheduleId { get; private set; }
+        public bool? NavigatedIsEnabled { get; private set; }
 
         public void Dispose()
         {
@@ -37,7 +47,12 @@ public sealed class HomeNavigationHelperTests
 
         public Task NavigateToScheduleAsync() => Task.CompletedTask;
 
-        public Task NavigateToScheduleAsync(int scheduleId, bool isEnabled) => Task.CompletedTask;
+        public Task NavigateToScheduleAsync(int scheduleId, bool isEnabled)
+        {
+            NavigatedScheduleId = scheduleId;
+            NavigatedIsEnabled = isEnabled;
+            return Task.CompletedTask;
+        }
 
         public Task OpenSongPublicationSelectionModalAsync(object bindingContext) => Task.CompletedTask;
 
@@ -121,13 +136,78 @@ public sealed class HomeNavigationHelperTests
 
     private sealed class NopDispatcher : IDispatcher
     {
-        public void Dispatch(object action)
-        {
-        }
+        public List<object> Dispatched { get; } = [];
+
+        public void Dispatch(object action) => Dispatched.Add(action);
 
 #pragma warning disable CS0067
         public event EventHandler<ActionDispatchedEventArgs>? ActionDispatched;
 #pragma warning restore CS0067
+    }
+
+    private sealed class FakeApplicationState(ApplicationState value) : IState<ApplicationState>
+    {
+        public ApplicationState Value => value;
+
+#pragma warning disable CS0067
+        public event EventHandler? StateChanged;
+#pragma warning restore CS0067
+    }
+
+    private sealed class NopSchedulePlaybackService : ISchedulePlaybackService
+    {
+        public Task<bool> CanMoveTrackAsync(int scheduleId) => Task.FromResult(true);
+
+        public Task PlayScheduleAsync(int scheduleId) => Task.CompletedTask;
+    }
+
+    private sealed class NopStopPlaybackService : IPlaybackService
+    {
+        public bool IsAlarmPlaybackSession => false;
+
+        public Task PauseAsync() => Task.CompletedTask;
+
+        public Task PlayAsync() => Task.CompletedTask;
+
+        public Task PlayNextAsync() => Task.CompletedTask;
+
+        public Task PlayPreviousAsync() => Task.CompletedTask;
+
+        public Task PrepareAndPlayAsync(int scheduleId, bool isAlarm) => Task.CompletedTask;
+
+        public Task ResetAndRetryAsync(int scheduleId) => Task.CompletedTask;
+
+        public Task SeekBackwardAsync() => Task.CompletedTask;
+
+        public Task SeekForwardAsync() => Task.CompletedTask;
+
+        public Task SeekToAsync(TimeSpan position) => Task.CompletedTask;
+
+        public Task StopAsync() => Task.CompletedTask;
+
+        public Task StopForTeardownAsync() => Task.CompletedTask;
+
+        public void Dispose()
+        {
+        }
+    }
+
+    private sealed class NopScheduleStateService : IScheduleStateService
+    {
+        public void Dispose()
+        {
+        }
+
+        public Task<bool> UpdateScheduleEnabledStateAsync(int scheduleId, bool isEnabled) =>
+            Task.FromResult(true);
+    }
+
+    private sealed class StubCategoryNameService : ICategoryNameService
+    {
+        public Task WarmCacheForDisplayLanguageAsync(string displayLanguageCode, CancellationToken cancellationToken = default) =>
+            Task.CompletedTask;
+
+        public string? GetName(string categoryCode, string displayLanguageCode) => categoryCode;
     }
 
     private static HomeNavigationHelper CreateSut(
@@ -198,6 +278,73 @@ public sealed class HomeNavigationHelperTests
 
         sut.TrackPlayClick(7);
         Assert.True(sut.ShouldSkipNavigation(7));
+    }
+
+    [Fact]
+    public async Task ShowOverlayAndNavigateAsync_returns_when_schedule_missing()
+    {
+        var nav = new StubNavigationService();
+        var dispatcher = new NopDispatcher();
+        var sut = new HomeNavigationHelper(
+            TestLogging.CreateLogger(),
+            dispatcher,
+            nav,
+            new StubPlaybackModalService(),
+            new FakePlaybackState(new PlaybackState()),
+            new ServiceCollection().BuildServiceProvider(),
+            new MapperConfiguration(_ => { }, NullLoggerFactory.Instance).CreateMapper());
+
+        using var missing = CreateListItem(schedule: null);
+        await sut.ShowOverlayAndNavigateAsync(missing);
+
+        Assert.Empty(dispatcher.Dispatched);
+        Assert.Null(nav.NavigatedScheduleId);
+    }
+
+    [Fact]
+    public async Task ShowOverlayAndNavigateAsync_dispatches_overlay_and_navigates()
+    {
+        var nav = new StubNavigationService();
+        var dispatcher = new NopDispatcher();
+        var sut = new HomeNavigationHelper(
+            TestLogging.CreateLogger(),
+            dispatcher,
+            nav,
+            new StubPlaybackModalService(),
+            new FakePlaybackState(new PlaybackState()),
+            new ServiceCollection().BuildServiceProvider(),
+            new MapperConfiguration(_ => { }, NullLoggerFactory.Instance).CreateMapper());
+        using var listItem = CreateListItem(new AlarmSchedule { Id = 42, Name = "Dawn", IsEnabled = true });
+
+        await sut.ShowOverlayAndNavigateAsync(listItem);
+
+        var overlay = Assert.Single(dispatcher.Dispatched.OfType<SetSchedulePageOverlayAction>());
+        Assert.True(overlay.IsVisible);
+        Assert.Equal(42, nav.NavigatedScheduleId);
+        Assert.Equal(listItem.IsEnabled, nav.NavigatedIsEnabled);
+    }
+
+    private static ScheduleListItemViewModel CreateListItem(AlarmSchedule? schedule)
+    {
+        var deps = new ScheduleListItemViewModelDeps(
+            TestLogging.CreateLogger(),
+            new NopSchedulePlaybackService(),
+            new NopStopPlaybackService(),
+            new NopScheduleStateService(),
+            new FakeApplicationState(new ApplicationState()),
+            new FakePlaybackState(new PlaybackState()),
+            new NopDispatcher(),
+            new MapperConfiguration(c => c.AddProfile<ScheduleMappingProfile>(), NullLoggerFactory.Instance).CreateMapper(),
+            new StubCategoryNameService());
+        var vm = new ScheduleListItemViewModel(deps);
+        if (schedule != null)
+        {
+            typeof(ScheduleListItemViewModel)
+                .GetField("<Schedule>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic)!
+                .SetValue(vm, schedule);
+        }
+
+        return vm;
     }
 
     [Fact]

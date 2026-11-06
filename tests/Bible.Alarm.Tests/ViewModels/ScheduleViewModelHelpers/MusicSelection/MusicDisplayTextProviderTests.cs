@@ -228,6 +228,34 @@ public sealed class MusicDisplayTextProviderTests
     }
 
     [Fact]
+    public void GetMusicSectionDisplayText_Falls_Back_To_Section_Code_When_Name_Absent()
+    {
+        var schedule = BaseSchedule();
+        schedule.MusicSectionName = "  ";
+        schedule.MusicSectionCode = "iam-1";
+        var sut = new MusicDisplayTextProvider(
+            new FakeState(new ApplicationState([], schedule)),
+            new StubMediaService(),
+            TestLogging.CreateLogger());
+
+        Assert.Equal("iam-1", sut.GetMusicSectionDisplayText());
+    }
+
+    [Fact]
+    public async Task GetSongPublicationDisplayTextAsync_Falls_Back_To_Publication_Code_When_Name_Absent()
+    {
+        var schedule = BaseSchedule();
+        schedule.MusicPublicationName = null;
+        schedule.MusicPublicationCode = "sjjm";
+        var sut = new MusicDisplayTextProvider(
+            new FakeState(new ApplicationState([], schedule)),
+            new StubMediaService(),
+            TestLogging.CreateLogger());
+
+        Assert.Equal("sjjm", await sut.GetSongPublicationDisplayTextAsync());
+    }
+
+    [Fact]
     public void GetMusicSectionDisplayText_Prefers_Name_Over_Code()
     {
         var schedule = BaseSchedule();

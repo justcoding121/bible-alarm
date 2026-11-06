@@ -749,6 +749,20 @@ public sealed class MediaServiceTests
     }
 
     [Fact]
+    public async Task GetBiblePublications_null_category_uses_distinct_cache_key()
+    {
+        var bible = new CountingPublicationsBiblePublicationService();
+        var sut = CreateSut(biblePubs: bible);
+
+        var first = await sut.GetBiblePublications("E", null);
+        var second = await sut.GetBiblePublications("E", null);
+
+        Assert.Single(first);
+        Assert.Single(second);
+        Assert.Equal(1, bible.GetByLanguageCodeCalls);
+    }
+
+    [Fact]
     public async Task GetBiblePublications_uses_in_memory_cache_for_repeat_read_only_requests()
     {
         var bible = new CountingPublicationsBiblePublicationService();

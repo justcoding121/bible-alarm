@@ -47,7 +47,7 @@ public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optiona
     private readonly IAlarmScheduleService? alarmScheduleService = optionalDeps.AlarmScheduleService ?? ServiceProviderManager.GetService<IAlarmScheduleService>();
     private readonly IAlarmService? alarmService = optionalDeps.AlarmService ?? ServiceProviderManager.GetService<IAlarmService>();
     private readonly IMediaCacheService? mediaCacheService = optionalDeps.MediaCacheService ?? ServiceProviderManager.GetService<IMediaCacheService>();
-    private readonly IState<ApplicationState>? state = optionalDeps.State ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
+    private readonly IState<ApplicationState> state = optionalDeps.State ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
     private readonly IMediaService? mediaService = optionalDeps.MediaService;
     private readonly IScheduleDisplayNameService scheduleDisplayNameService =
         optionalDeps.ScheduleDisplayNameService ?? ServiceProviderManager.GetService<IScheduleDisplayNameService>();
@@ -80,7 +80,7 @@ public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optiona
     {
         try
         {
-            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
+            var currentState = state;
             var currentSchedule = currentState.Value.CurrentSchedule;
             if (currentSchedule == null)
             {
@@ -242,7 +242,7 @@ public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optiona
                 return;
             }
 
-            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
+            var currentState = state;
             var currentSchedule = currentState.Value.CurrentSchedule;
             if (currentSchedule == null || currentSchedule.Id != action.Schedule.Id)
             {
@@ -271,7 +271,7 @@ public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optiona
                 return;
             }
 
-            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
+            var currentState = state;
             var currentSchedule = currentState.Value.CurrentSchedule;
             if (currentSchedule == null)
             {
@@ -364,7 +364,7 @@ public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optiona
     {
         try
         {
-            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
+            var currentState = state;
             var currentSchedule = currentState.Value.CurrentSchedule;
             if (currentSchedule == null)
             {
@@ -402,7 +402,7 @@ public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optiona
     {
         try
         {
-            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
+            var currentState = state;
             var currentSchedule = currentState.Value.CurrentSchedule;
             if (currentSchedule == null)
             {
@@ -465,7 +465,7 @@ public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optiona
     {
         try
         {
-            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
+            var currentState = state;
             var currentMediaService = mediaService ?? ServiceProviderManager.GetService<IMediaService>();
             var currentBiblePublicationService = BiblePublicationService ?? ServiceProviderManager.GetService<IBiblePublicationService>();
             var currentBiblePublicationSectionService = biblePublicationSectionService ?? ServiceProviderManager.GetService<IBiblePublicationSectionService>();
@@ -512,7 +512,7 @@ public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optiona
                 return;
             }
 
-            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
+            var currentState = state;
             var currentMediaService = mediaService ?? ServiceProviderManager.GetService<IMediaService>();
             var currentBiblePublicationService = BiblePublicationService ?? ServiceProviderManager.GetService<IBiblePublicationService>();
             var currentBiblePublicationSectionService = biblePublicationSectionService ?? ServiceProviderManager.GetService<IBiblePublicationSectionService>();
@@ -560,7 +560,7 @@ public class ScheduleEffects(IMapper mapper, ScheduleEffectsOptionalDeps optiona
             Log.Debug(AppConstants.Logging.ScheduleEffectsDiagnosticsLog.HandleMusicCascadeTriggered,
                 action.Schedule?.Id ?? 0, action.Schedule?.MusicPublicationCode ?? "null");
 
-            var currentState = state ?? ServiceProviderManager.GetService<IState<ApplicationState>>();
+            var currentState = state;
             var currentMediaService = mediaService ?? ServiceProviderManager.GetService<IMediaService>();
             var languageContentService = ServiceProviderManager.GetService<Bible.Alarm.Shared.Services.Media.Interfaces.ILanguageContentService>();
             var scopeFactory = ServiceProviderManager.GetService<IServiceScopeFactory>();
