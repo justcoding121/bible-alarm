@@ -1,8 +1,4 @@
----
-description: "Databases: Schedule DB + Media index DB (schema, relationships, and category usage)"
-globs: "{src/Bible.Alarm.Shared/Database/**,src/Bible.Alarm.Shared/Models/**,.tools/Bible.Alarm.DbMigration/**,src/Bible.Alarm/Services/Bootstrap/DatabaseBootstrapService.cs,src/Bible.Alarm/Services/Database/**}"
-alwaysApply: false
----
+# Databases: Schedule DB + Media index DB (schema, relationships, and category usage)
 
 ## Overview: two SQLite databases
 

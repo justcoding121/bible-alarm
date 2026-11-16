@@ -1,8 +1,4 @@
----
-description: "Bootstrap + state management + schedule editor flow (Fluxor, AutoMapper, cascades, caching)"
-globs: "{src/Bible.Alarm/MauiProgram.cs,src/Bible.Alarm/Common/Helpers/ServiceRegistrationHelper.cs,src/Bible.Alarm/Services/Bootstrap/**,src/Bible.Alarm/Stores/**,src/Bible.Alarm/Services/Schedule/**,src/Bible.Alarm/ViewModels/**,src/Bible.Alarm/Views/**}"
-alwaysApply: false
----
+# Bootstrap + state management + schedule editor flow (Fluxor, AutoMapper, cascades, caching)
 
 ## Boot flow (UI + background entrypoints)
 
@@ -120,7 +116,7 @@ Enforced in two layers:
 The schedule editor uses **cascade handlers** so that selecting higher-level fields (category/language/publication/section) auto-selects the next valid fields.
 
 If you’re working on this area, also read:
-- `schedule-cascade-deep-dive.mdc` (full “how it really works”, including ad-hoc catalog + no-language publications + save persistence)
+- `schedule-cascade-deep-dive.md` (full “how it really works”, including ad-hoc catalog + no-language publications + save persistence)
 
 ### Category cascade (category → language → publication → section → track)
 

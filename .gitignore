@@ -248,3 +248,6 @@ sonar-reports/
 ._*
 .Spotlight-V100
 .Trashes
+
+# Local Cursor agent rules / config (not shared)
+.cursor/

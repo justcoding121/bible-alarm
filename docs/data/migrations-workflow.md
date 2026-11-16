@@ -1,8 +1,4 @@
----
-description: "EF Core migrations workflow (DbMigration tool) + how migrations are applied at runtime"
-globs: "{.tools/Bible.Alarm.DbMigration/**,src/Bible.Alarm.Shared/Database/Migrations/**,src/Bible.Alarm.Shared/Database/*DbContext*.cs,src/Bible.Alarm/Services/Bootstrap/DatabaseBootstrapService.cs,src/Bible.Alarm/Services/Database/**}"
-alwaysApply: false
----
+# EF Core migrations workflow (DbMigration tool) + how migrations are applied at runtime
 
 ## Why there is a separate migration tool project
 

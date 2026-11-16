@@ -1,6 +1,8 @@
 # Project docs (by category)
 
-These notes live under `docs/` and are grouped into subfolders by category.
+These notes live under `docs/` and are grouped into subfolders by category. They explain how the app works.
+
+Coding constraints the agent must keep in mind (code style, AutoMapper copy, folder naming, DI, test-host traps, fetch-progress) live in `.cursor/rules/` on this machine. That folder is gitignored.
 
 ## Categories
 

@@ -12,7 +12,7 @@
         adb shell am start -W -n com.jthomas.info.Bible.Alarm.Tests/.TestRunnerActivity
         # poll /sdcard/Documents/test-results/done.txt
         adb pull /sdcard/Documents/test-results/. <local-results-dir>
-    See [.cursor/rules/testing/multi-platform-tests.mdc] for the rationale (xharness + custom
+    See [docs/testing/multi-platform-tests.md] for the rationale (xharness + custom
     Instrumentation hits UnsatisfiedLinkError because Mono is not initialized when Android calls
     Instrumentation.onCreate).
 
@@ -21,7 +21,7 @@
 
     Sonar excludes this project (test project; no production source emits coverage from here).
     Code coverage is intentionally not collected from this device-test slice — see the "Android
-    coverage" row in [.cursor/rules/testing/multi-platform-tests.mdc] for the decision history
+    coverage" row in [docs/testing/multi-platform-tests.md] for the decision history
     (coverlet's Cecil resolver cannot find MAUI workload assemblies; AltCover and Debug-mode
     workarounds were both evaluated and ruled out).
   -->

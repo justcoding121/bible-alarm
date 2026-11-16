@@ -10,7 +10,7 @@
     See tests/README.md and tests/run-tests.ps1 -Platform iOS for the local SSH-to-Mac workflow.
 
     Code coverage is intentionally NOT collected from this device-test slice — see the "iOS coverage"
-    row in [.cursor/rules/testing/multi-platform-tests.mdc] for the decision history (coverlet bakes
+    row in [docs/testing/multi-platform-tests.md] for the decision history (coverlet bakes
     an absolute build-time path the simulator's seatbelt sandbox blocks; AltCover and other
     workarounds were evaluated and ruled out).
   -->

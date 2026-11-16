@@ -1,8 +1,4 @@
----
-description: "How alarms trigger playback + background/periodic jobs (Android/iOS/Windows)"
-globs: "{src/Bible.Alarm/Services/Scheduler/**,src/Bible.Alarm/Platforms/Android/Services/BroadcastReceivers/**,src/Bible.Alarm/Platforms/Android/Services/Jobs/**,src/Bible.Alarm/Platforms/Windows/**,src/Bible.Alarm/Platforms/iOS/**}"
-alwaysApply: false
----
+# How alarms trigger playback + background/periodic jobs (Android/iOS/Windows)
 
 ## Mental model
 

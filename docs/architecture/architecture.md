@@ -1,8 +1,4 @@
----
-description: "Bible Alarm: architecture overview + key entry points"
-globs: "**"
-alwaysApply: true
----
+# Bible Alarm: architecture overview + key entry points
 
 ## Purpose of this doc
 
@@ -21,7 +17,7 @@ This project is a **.NET MAUI** app (Android/iOS/Windows) that helps users **wak
   - playback should survive platform lifecycle constraints (foreground services on Android, background audio on iOS)
   - large media catalogs must be discoverable without shipping full audio (media index DB + ad-hoc cataloging + caching)
 
-This file is meant to give Cursor **reliable navigation anchors**:
+This file is the map of where to look:
 - where the app starts and bootstraps
 - where data lives (two SQLite DBs)
 - where side-effects happen (Fluxor Effects)
@@ -29,14 +25,14 @@ This file is meant to give Cursor **reliable navigation anchors**:
 - how the media index is built/updated (cataloger tool + embedded resource)
 
 If you need deeper detail, also read:
-- `media-index-and-cataloging.mdc`
-- `databases-and-migrations.mdc`
-- `bootstrap-state-and-scheduling.mdc`
-- `schedule-cascade-deep-dive.mdc`
-- `playback-androidauto-carplay.mdc`
-- `caching-and-preferences.mdc`
-- `home-page-listing-and-text.mdc`
-- `user-actions-and-expected-results.mdc`
+- `media-index-and-cataloging.md`
+- `databases-and-migrations.md`
+- `bootstrap-state-and-scheduling.md`
+- `schedule-cascade-deep-dive.md`
+- `playback-androidauto-carplay.md`
+- `caching-and-preferences.md`
+- `home-page-listing-and-text.md`
+- `user-actions-and-expected-results.md`
 
 ---
 
@@ -161,7 +157,7 @@ After Home is pushed, `BootstrapOverlay.Deactivate()` clears its content and set
 - context: `src/Bible.Alarm.Shared/Database/MediaDbContext.cs`
 - populated by the cataloger tool; shipped to app as `index.zip` embedded resource
 
-See `databases-and-migrations.mdc` for schema + relationships.
+See `databases-and-migrations.md` for schema + relationships.
 
 ---
 
@@ -219,7 +215,7 @@ Periodic maintenance:
 - **AutoMapper**:
   - **Why**: reduces boilerplate mapping between EF entities and UI/state DTOs; use for copy/clone operations too
   - **Where**: profiles in `src/Bible.Alarm/Stores/Mapping/**` (e.g. schedule mappings)
-  - **Rule**: use AutoMapper for copy/clone (see `automapper-copy-clone.mdc`)
+  - **Rule**: use AutoMapper for copy/clone
 - **Polly**:
   - **Why**: resilient handling of flaky networks + transient file locks (SQLite/WAL, Android file handles)
   - **Where**: downloads (`DownloadService`), file ops (`MediaIndexService`), UI wait helpers

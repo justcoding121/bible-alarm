@@ -164,7 +164,7 @@ Reasons:
 3. **They are inherently flakier** — UI timing, simulator boot, device sleep. Keeping them on a
    separate gate lets coverage stay green even when a UI smoke test needs a retry.
 
-When CI wires up `ui-windows`, `ui-android`, `ui-ios` jobs (see `multi-platform-tests.mdc` for
+When CI wires up `ui-windows`, `ui-android`, `ui-ios` jobs (see `docs/testing/multi-platform-tests.md` for
 the eventual layout), they'll publish their own pass/fail badge and never block the SonarCloud
 coverage rollup.
 

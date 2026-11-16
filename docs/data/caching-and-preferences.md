@@ -1,8 +1,4 @@
----
-description: "Caching + Preferences: what is cached, where, why, and how invalidation works"
-globs: "{src/Bible.Alarm/Services/Storage/**,src/Bible.Alarm/Common/Services/Storage/**,src/Bible.Alarm/Common/Helpers/LastPlayedMetadataHelper.cs,src/Bible.Alarm/Services/Bootstrap/ScheduleBootstrapService.cs,src/Bible.Alarm/Services/Media/MediaCacheService.cs,src/Bible.Alarm/Services/Media/MediaIndexService.cs,src/Bible.Alarm/Services/Database/*VersionService.cs,src/Bible.Alarm/Platforms/Android/Services/Media/MediaSessionHelper.cs,src/Bible.Alarm.Shared/Services/Schedule/GeneralSettingsService.cs}"
-alwaysApply: false
----
+# Caching + Preferences: what is cached, where, why, and how invalidation works
 
 ## Cache taxonomy (important distinction)
 

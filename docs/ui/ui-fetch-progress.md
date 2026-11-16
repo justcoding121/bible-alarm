@@ -1,8 +1,4 @@
----
-description: "UI busy/progress patterns for ad-hoc fetch (overlay vs per-row percent)"
-globs: "{src/Bible.Alarm/Views/**,src/Bible.Alarm/ViewModels/**}"
-alwaysApply: false
----
+# UI busy/progress patterns for ad-hoc fetch (overlay vs per-row percent)
 
 ## Goal (UX invariant)
 

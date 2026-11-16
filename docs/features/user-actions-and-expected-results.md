@@ -1,8 +1,4 @@
----
-description: "User actions → what happens (commands/actions/effects) and expected results"
-globs: "{src/Bible.Alarm/Views/**,src/Bible.Alarm/ViewModels/**,src/Bible.Alarm/Stores/Actions/**,src/Bible.Alarm/Stores/Effects/**,src/Bible.Alarm/Stores/Reducers/**,src/Bible.Alarm/Services/Schedule/**,src/Bible.Alarm/Services/Media/**,src/Bible.Alarm/Services/Scheduler/**}"
-alwaysApply: false
----
+# User actions → what happens (commands/actions/effects) and expected results
 
 ## Home page actions
 
@@ -118,7 +114,7 @@ Expected result:
 - The UI always ends up with a consistent (language, publication, section, track) selection.
  
 Deep dive:
-- `schedule-cascade-deep-dive.mdc`
+- `schedule-cascade-deep-dive.md`
 
 ### Action: Toggle “begin with music” / change music type/language/publication/track
 
@@ -134,7 +130,7 @@ Expected result:
 - Music selection stays valid and complete, with section/track auto-selected.
  
 Deep dive:
-- `schedule-cascade-deep-dive.mdc`
+- `schedule-cascade-deep-dive.md`
 
 ### Action: Category == “Music” (special case)
 

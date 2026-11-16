@@ -1,9 +1,3 @@
----
-description: Resume-from-progress behavior (AlwaysPlayFromStart) in playback
-globs: src/Bible.Alarm/Services/Media/**/*.cs
-alwaysApply: false
----
-
 # Resume from saved progress (schedule "main content" track)
 
 - **Where progress is saved**:

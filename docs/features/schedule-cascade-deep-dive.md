@@ -1,8 +1,4 @@
----
-description: "Schedule page cascade deep dive (Bible container + Music container + ad-hoc catalog + save persistence)"
-globs: "{src/Bible.Alarm/Stores/Effects/ScheduleEffects.cs,src/Bible.Alarm/Stores/Effects/ScheduleEffectsHelpers/**,src/Bible.Alarm/ViewModels/Schedule/**,src/Bible.Alarm/ViewModels/BiblePublications/**,src/Bible.Alarm/ViewModels/Music/**,src/Bible.Alarm/Services/Schedule/**,src/Bible.Alarm/Services/Media/**,src/Bible.Alarm.Shared/Services/Media/**}"
-alwaysApply: false
----
+# Schedule page cascade deep dive (Bible container + Music container + ad-hoc catalog + save persistence)
 
 ## Why this doc exists
 
@@ -180,7 +176,7 @@ Think in these axes:
 - **Catalog type** (Flat / Sectioned / MediatorSectioned)
 
 If you’re debugging “why did we build the wrong URL?” or “why is section missing?” see the explicit Media DB shape matrix:
-- `docs/data/databases-and-migrations.mdc` → “Media DB shape matrix (publication ↔ language ↔ sections)”
+- `docs/data/databases-and-migrations.md` → “Media DB shape matrix (publication ↔ language ↔ sections)”
 
 ### Language-bound + Sectioned (common Bible pattern)
 

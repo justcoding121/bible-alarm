@@ -1,8 +1,4 @@
----
-description: "Home page schedule listing: how it’s populated and how list text is computed"
-globs: "{src/Bible.Alarm/Views/Home.xaml*,src/Bible.Alarm/ViewModels/HomeViewModel*.cs,src/Bible.Alarm/ViewModels/HomeViewModelHelpers/**,src/Bible.Alarm/ViewModels/ScheduleListItemViewModel*.cs,src/Bible.Alarm/ViewModels/ScheduleListItemViewModelHelpers/**,src/Bible.Alarm/Services/Bootstrap/ScheduleBootstrapService.cs,src/Bible.Alarm/Services/Bootstrap/ScheduleStatePopulator.cs,src/Bible.Alarm/Services/Bootstrap/ScheduleStatePopulatorHelpers/**}"
-alwaysApply: false
----
+# Home page schedule listing: how it’s populated and how list text is computed
 
 ## What the Home list is bound to
 

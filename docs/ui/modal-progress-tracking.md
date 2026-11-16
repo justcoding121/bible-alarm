@@ -1,8 +1,3 @@
----
-description: Modal progress tracking patterns - message-based progress (WeakReferenceMessenger)
-alwaysApply: true
----
-
 # Modal Progress Tracking
 
 ## Two Progress Scenarios

@@ -1,9 +1,3 @@
----
-description: "How tests are organised in Bible.Alarm (Windows host-based, Android via an Activity-based runner driven by adb, iOS via xharness; shared cross-platform test source via Compile glob; SonarCloud coverage merge). Read first when asked to add tests, improve coverage, or debug a failing test job."
-globs: "**"
-alwaysApply: false
----
-
 # Bible.Alarm test architecture
 
 ## Repo layout — where do tests live?

@@ -1,8 +1,4 @@
----
-description: "Media index (mediaIndex.db): how it's cataloged, seeded, and used for ad-hoc downloads"
-globs: "{.tools/Bible.Alarm.Cataloger/**,src/Bible.Alarm/Services/Media/**,src/Bible.Alarm.Shared/Services/Media/**,src/Bible.Alarm.Shared/Models/Media/**,src/Bible.Alarm.Shared/Models/Enums/CatalogType.cs}"
-alwaysApply: false
----
+# Media index (mediaIndex.db): how it's cataloged, seeded, and used for ad-hoc downloads
 
 ## What "the media index" is
 
@@ -233,7 +229,7 @@ EF Core **cannot translate** `OrderBy(..., comparer)` into SQL, so code that nee
 See: `PublicationEnsurer.FetchFirstSectionWithTracksAsync(...)`.
 
 For the full "selection cascade ↔ tables ↔ ad-hoc fetch" story, see:
-- `schedule-cascade-deep-dive.mdc`
+- `schedule-cascade-deep-dive.md`
 
 ---
 

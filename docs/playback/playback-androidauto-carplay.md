@@ -1,8 +1,4 @@
----
-description: "Playback architecture (MediaElement) + Android Auto + iOS CarPlay + foreground service behavior"
-globs: "{src/Bible.Alarm/Services/Media/**,libraries/CommunityToolkit.Maui.MediaElement/**,src/Bible.Alarm/Platforms/Android/Services/AndroidAuto/**,src/Bible.Alarm/Platforms/Android/Services/Media/**,src/Bible.Alarm/Platforms/Android/Services/Media3/**,src/Bible.Alarm/Platforms/iOS/Services/CarPlay/**,src/Bible.Alarm/Platforms/iOS/Services/Media/**}"
-alwaysApply: false
----
+# Playback architecture (MediaElement) + Android Auto + iOS CarPlay + foreground service behavior
 
 ## Playback architecture (shared)
 
