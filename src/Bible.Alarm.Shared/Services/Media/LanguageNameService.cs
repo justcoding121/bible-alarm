@@ -21,7 +21,7 @@ public sealed class LanguageNameService(IServiceScopeFactory scopeFactory, ILogg
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-    private readonly object cacheLock = new();
+    private readonly Lock cacheLock = new();
     private string? warmedDisplayLanguageCode;
     private Dictionary<int, string>? cacheById;
     private Dictionary<string, string>? cacheByCode;

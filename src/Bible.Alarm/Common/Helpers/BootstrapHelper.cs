@@ -21,7 +21,7 @@ namespace Bible.Alarm.Common.Helpers;
 /// </summary>
 public static class BootstrapHelper
 {
-    private static readonly object bootstrapLock = new();
+    private static readonly Lock bootstrapLock = new();
     private static volatile bool bootstrapCompleted;
     private static readonly Lock bootstrapWaitLock = new();
     private static TaskCompletionSource<bool>? bootstrapCompletionSource;
@@ -209,11 +209,11 @@ public static class BootstrapHelper
 
     private static bool TryAcquireBootstrapLock(bool isForeground, IServiceProvider services)
     {
-        // Try to acquire lock without blocking (using Monitor.TryEnter)
-        bool lockAcquired = false;
+        // Try to acquire the lock without blocking.
+        var lockAcquired = false;
         try
         {
-            Monitor.TryEnter(bootstrapLock, 0, ref lockAcquired);
+            lockAcquired = bootstrapLock.TryEnter(0);
             if (!lockAcquired)
             {
                 return false;
@@ -246,7 +246,7 @@ public static class BootstrapHelper
         {
             if (lockAcquired)
             {
-                Monitor.Exit(bootstrapLock);
+                bootstrapLock.Exit();
             }
         }
     }

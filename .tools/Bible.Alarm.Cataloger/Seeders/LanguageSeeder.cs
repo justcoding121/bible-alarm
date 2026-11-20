@@ -3,6 +3,7 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using Bible.Alarm.Shared.Helpers;
+using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Utility;
 using Bible.Alarm.Shared.Constants;
@@ -22,7 +23,7 @@ internal sealed class LanguageSeeder
     private readonly ILogger logger;
     private readonly DownloadUtility downloadUtility;
     private JsonDocument? languagesCache;
-    private readonly object languagesCacheLock = new object();
+    private readonly Lock languagesCacheLock = new();
     private Task<JsonDocument>? languagesCacheTask;
 
     public LanguageSeeder(ILogger logger, DownloadUtility downloadUtility)

@@ -68,7 +68,7 @@ public sealed class TrackNavigator
 
     private readonly Dictionary<SectionsCacheKey, CacheEntry<SortedDictionary<string, BiblePublicationSection>>> sectionsCache = new();
     private readonly Dictionary<TracksCacheKey, CacheEntry<SortedDictionary<string, BiblePublicationTrack>>> tracksCache = new();
-    private readonly object cacheLock = new();
+    private readonly Lock cacheLock = new();
 
     private async Task<SortedDictionary<string, BiblePublicationSection>> GetSectionsCachedAsync(string languageCode, string publicationCode)
     {

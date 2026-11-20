@@ -19,7 +19,7 @@ public sealed class CategoryService(IServiceScopeFactory scopeFactory, ILogger l
     private readonly IServiceScopeFactory scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
     private bool isDisposed;
-    private readonly object categoriesCacheLock = new();
+    private readonly Lock categoriesCacheLock = new();
     private List<Category>? cachedCategories;
 
     public async Task<List<Category>> GetAllCategoriesAsync(CancellationToken cancellationToken = default)
