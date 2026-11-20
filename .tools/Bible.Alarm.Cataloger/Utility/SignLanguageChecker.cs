@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Bible.Alarm.Cataloger.Models;
 using Bible.Alarm.Shared.Constants;
@@ -19,7 +20,7 @@ internal sealed class SignLanguageChecker
     private readonly ILogger logger;
     private readonly DownloadUtility downloadUtility;
     private JsonDocument? languagesCache;
-    private readonly object languagesCacheLock = new object();
+    private readonly Lock languagesCacheLock = new();
     private Task<JsonDocument>? languagesCacheTask;
     private HashSet<string>? signLanguageCodesCache;
 

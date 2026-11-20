@@ -31,7 +31,7 @@ public class PlaylistMusicTrackBuilder
 
     private readonly Dictionary<MelodyTracksCacheKey, CacheEntry<SortedDictionary<int, MusicTrack>>> melodyTracksCache = new();
     private readonly Dictionary<VocalTracksCacheKey, CacheEntry<SortedDictionary<int, MusicTrack>>> vocalTracksCache = new();
-    private readonly object cacheLock = new();
+    private readonly Lock cacheLock = new();
 
     private readonly IMediaService mediaService;
     private readonly IMediaUrlRefreshService urlRefreshService;
