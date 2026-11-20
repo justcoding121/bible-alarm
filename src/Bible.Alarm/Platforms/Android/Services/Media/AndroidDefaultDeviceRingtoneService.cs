@@ -10,7 +10,7 @@ namespace Bible.Alarm.Platforms.Android.Services.Media;
 
 public sealed class AndroidDefaultDeviceRingtoneService(ILogger logger) : IDefaultDeviceRingtoneService
 {
-    private readonly object gate = new();
+    private readonly System.Threading.Lock gate = new();
     private MediaPlayer? mediaPlayer;
 
     public void StartLoopingAlarmRingtone()

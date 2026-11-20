@@ -17,7 +17,7 @@ internal static class IOsBackgroundTaskScheduler
     private static readonly ILogger logger = Log.ForContext(typeof(IOsBackgroundTaskScheduler));
 
     private static volatile bool isRegistered;
-    private static readonly object registerLock = new();
+    private static readonly System.Threading.Lock registerLock = new();
 
     internal static void RegisterAndSchedule()
     {

@@ -27,7 +27,7 @@ public sealed class AndroidAutoDefaultScheduleRotationService(
 
     private CancellationTokenSource? cts;
     private DateTime? lastRotationUtc;
-    private readonly object gate = new();
+    private readonly System.Threading.Lock gate = new();
 
     public void Start()
     {

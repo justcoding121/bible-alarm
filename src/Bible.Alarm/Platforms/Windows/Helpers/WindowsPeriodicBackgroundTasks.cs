@@ -17,7 +17,7 @@ public sealed partial class WindowsPeriodicBackgroundTasks : IDisposable
     // Periodic timers for Windows background tasks
     private PeriodicTimer? schedulerTimer; // Runs every 30 minutes (like Android SchedulerJob)
     private CancellationTokenSource? timersCancellationTokenSource;
-    private readonly object timersLock = new();
+    private readonly System.Threading.Lock timersLock = new();
     private bool isDisposed;
 
     public WindowsPeriodicBackgroundTasks(ILogger logger, IServiceProvider serviceProvider)

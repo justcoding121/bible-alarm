@@ -22,7 +22,7 @@ public class AndroidPlatformBootstrapService : IPlatformBootstrapService
 {
     private static readonly ILogger logger = Log.ForContext<AndroidPlatformBootstrapService>();
     private static volatile bool initialized;
-    private static readonly object initLock = new();
+    private static readonly System.Threading.Lock initLock = new();
 
     private static void MarkInitialized() => initialized = true;
 

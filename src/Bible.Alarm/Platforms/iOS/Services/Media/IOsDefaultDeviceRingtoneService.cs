@@ -25,7 +25,7 @@ public sealed class IOsDefaultDeviceRingtoneService(ILogger logger) : IDefaultDe
 {
     private const double IntervalSeconds = 2.0;
 
-    private readonly object gate = new();
+    private readonly System.Threading.Lock gate = new();
     private NSTimer? timer;
 
     public void StartLoopingAlarmRingtone()

@@ -18,7 +18,7 @@ public sealed class IosLogFileSink : Serilog.Core.ILogEventSink, IDisposable
     private readonly ITextFormatter formatter;
     private readonly string logFilePath;
     private readonly StreamWriter writer;
-    private readonly object lockObject = new();
+    private readonly System.Threading.Lock lockObject = new();
     private readonly StringBuilder recentLogBuffer = new();
     private const int MaxRecentLogLines = 1000;
     private int currentLineCount = 0;

@@ -14,7 +14,7 @@ public sealed class IosNotificationPermissionService : IDisposable
 {
     private static readonly ILogger logger = Log.ForContext<IosNotificationPermissionService>();
     private static IosNotificationPermissionService? instance;
-    private static readonly object instanceLock = new();
+    private static readonly System.Threading.Lock instanceLock = new();
 
     /// <summary>
     /// Gets the singleton instance of the iOS notification permission service.

@@ -21,7 +21,7 @@ public sealed class NotificationPermissionService : IDisposable
 {
     private static readonly ILogger logger = Log.ForContext<NotificationPermissionService>();
     private static NotificationPermissionService? instance;
-    private static readonly object instanceLock = new();
+    private static readonly System.Threading.Lock instanceLock = new();
     private bool promptExhausted;
 
     /// <summary>

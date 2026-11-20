@@ -16,7 +16,7 @@ namespace Bible.Alarm.Platforms.Android.Services.Media;
 public class AlarmForegroundService : Service
 {
     private static readonly ILogger logger = Log.ForContext<AlarmForegroundService>();
-    private static readonly object instanceLock = new();
+    private static readonly System.Threading.Lock instanceLock = new();
     private static AlarmForegroundService? instance;
     private CancellationTokenSource? safetyTimeoutCts;
 

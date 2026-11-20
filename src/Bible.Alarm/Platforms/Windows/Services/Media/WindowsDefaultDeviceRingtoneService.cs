@@ -9,7 +9,7 @@ namespace Bible.Alarm.Platforms.Windows.Services.Media;
 
 public sealed class WindowsDefaultDeviceRingtoneService(ILogger logger) : IDefaultDeviceRingtoneService
 {
-    private readonly object gate = new();
+    private readonly System.Threading.Lock gate = new();
     private MediaPlayer? player;
 
     public void StartLoopingAlarmRingtone()

@@ -22,7 +22,7 @@ public sealed class CategoryNameService(ILogger logger) : ICategoryNameService
 
     private readonly ILogger logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-    private readonly object cacheLock = new();
+    private readonly Lock cacheLock = new();
     private string? warmedDisplayLanguageCode;
     private Dictionary<string, string>? cacheByCategoryCode;
 

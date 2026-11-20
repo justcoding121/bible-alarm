@@ -39,7 +39,7 @@ public sealed class BiblePublicationService(IServiceScopeFactory scopeFactory, I
     // Cache for distinct languages (PublicationLanguages is effectively static at runtime).
     // This prevents expensive COUNT/DISTINCT queries during playback navigation (next/prev track),
     // schedule cache refresh, and other state updates.
-    private readonly object distinctLanguagesCacheLock = new();
+    private readonly Lock distinctLanguagesCacheLock = new();
     private Dictionary<string, Language>? cachedDistinctLanguagesAll;
     private readonly Dictionary<string, Dictionary<string, Language>> cachedDistinctLanguagesByCategory =
         new(StringComparer.OrdinalIgnoreCase);
