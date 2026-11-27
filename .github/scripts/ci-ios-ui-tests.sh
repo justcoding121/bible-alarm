@@ -20,9 +20,18 @@ export IOS_SIMULATOR_UDID="${DEVICE}"
 
 APP="$(find src/Bible.Alarm/bin -path '*iossimulator*' -name 'Bible.Alarm.app' -type d | head -n 1 || true)"
 if [[ -n "${APP}" ]]; then
-  # The hosted build skips identity signing. An unsigned simulator binary is killed
-  # immediately with codesign invalid-page, so sign it ad-hoc before install.
-  codesign --force --deep --sign - "${APP}"
+  # The hosted build skips identity signing. The arm64 simulator kills that binary
+  # with codesign invalid-page. `codesign --deep` on the bundle only replaces the
+  # bundle seal and leaves the linker signature on nested Mach-Os, which the
+  # kernel still rejects. Strip every signature and sign each Mach-O itself.
+  echo "Ad-hoc signing Mach-O files in ${APP}"
+  while IFS= read -r bin; do
+    if file -b "${bin}" | grep -q 'Mach-O'; then
+      codesign --remove-signature "${bin}" >/dev/null 2>&1 || true
+      codesign --force --sign - "${bin}"
+    fi
+  done < <(find "${APP}" -depth -type f)
+  codesign --verify --verbose=4 "${APP}/Bible.Alarm"
   xcrun simctl install "${DEVICE}" "${APP}"
   export BIBLE_ALARM_APP_PATH="${APP}"
 fi
