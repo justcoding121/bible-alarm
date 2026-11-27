@@ -139,7 +139,7 @@ jobs:
       - name: Build UITEST iOS app and tests
         run: |
           dotnet build src/Bible.Alarm/Bible.Alarm.csproj -c Debug -f net10.0-ios -m:1 \
-            -p:BUILD_IOS_ONLY=true -p:UiTestHooks=true \
+            -p:BUILD_IOS_ONLY=true -p:UiTestHooks=true -p:EnableCodeSigning=false \
             -p:RuntimeIdentifier=iossimulator-arm64 -p:MtouchLink=SdkOnly
           dotnet build tests/Bible.Alarm.UITests/Bible.Alarm.UITests.csproj -c Release
       - name: Run iOS UI tests
