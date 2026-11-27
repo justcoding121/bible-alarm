@@ -333,6 +333,12 @@
 		<BundleResource Include="Platforms\iOS\Resources\**" />
 		<BundleResource Include="Platforms\iOS\Assets.xcassets\**" />
 		<!-- Fonts are automatically handled by MAUI SDK from Resources/Fonts/ -->
+		<!--
+		  Syncfusion.Maui.Core and Syncfusion.Maui.Buttons are IsTrimmable, so the CI
+		  SdkOnly linker removes constructors that XAML reaches only by reflection.
+		  Home then fails to inflate and the scene never gets a window.
+		-->
+		<LinkDescription Include="Platforms\iOS\Linker.xml" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-windows'))">
