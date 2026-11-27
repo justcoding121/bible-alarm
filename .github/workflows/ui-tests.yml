@@ -105,7 +105,7 @@ jobs:
         env:
           UI_TEST_FILTER: UI=AndroidAuto
         with:
-          api-level: 34-ext9
+          api-level: 33
           target: android-automotive
           arch: x86_64
           profile: automotive_1024p_landscape

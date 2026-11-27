@@ -137,8 +137,15 @@ public sealed class AndroidAudioFocusUiTests : IClassFixture<AndroidAppiumFixtur
                 "home or playback");
             DeviceControl.AndroidBroadcast("com.jthomas.info.Bible.Alarm.UITEST_DUMP_STATE");
             DeviceControl.AndroidBroadcast("com.jthomas.info.Bible.Alarm.UITEST_FIRE_ALARM", "--es ScheduleId 1");
-            new PlaybackPage(fixture).WaitUntilReady();
-            new PlaybackPage(fixture).TapDismiss();
+            // The alarm can land on the full player or only the mini bar. Either one means playback started.
+            Waits.Until(
+                () => fixture.IsShown("PlaybackModal") || fixture.IsShown("MiniBar"),
+                TimeSpan.FromSeconds(90),
+                "playback");
+            if (fixture.IsShown("PlaybackModal"))
+            {
+                new PlaybackPage(fixture).TapDismiss();
+            }
         });
     }
 
