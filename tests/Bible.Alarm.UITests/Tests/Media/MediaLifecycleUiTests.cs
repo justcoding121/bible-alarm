@@ -453,6 +453,36 @@ public sealed class AndroidAudioFocusUiTests : IClassFixture<AndroidAppiumFixtur
     }
 
     [Fact]
+    public void Dismiss_stops_playback_and_removes_the_alarm_notification()
+    {
+        fixture.Run(nameof(Dismiss_stops_playback_and_removes_the_alarm_notification), () =>
+        {
+            var packageName = AndroidAppiumFixture.DefaultPackageName;
+            DeviceControl.BringAndroidAppToFront(packageName);
+            Waits.Until(
+                () => fixture.IsShown("HomePage") || fixture.IsShown("PlaybackModal"),
+                TimeSpan.FromSeconds(60),
+                "home or playback");
+            DeviceControl.AndroidBroadcast("com.jthomas.info.Bible.Alarm.UITEST_FIRE_ALARM", "--es ScheduleId 1");
+            Waits.Until(
+                () => fixture.IsShown("AlarmDismissButton") && Session().PlaybackState == 3,
+                TimeSpan.FromSeconds(90),
+                "alarm player");
+            Waits.Until(
+                () => NotificationIsPosted(packageName, 3),
+                TimeSpan.FromSeconds(20),
+                "alarm notification posted");
+            new PlaybackPage(fixture).TapDismiss();
+            Waits.Until(() => Session().PlaybackState is not 3, TimeSpan.FromSeconds(20), "stopped after dismiss");
+            Waits.Until(
+                () => !NotificationIsPosted(packageName, 3),
+                TimeSpan.FromSeconds(20),
+                "notification 3 removed");
+            new HomePage(fixture).WaitUntilReady();
+        });
+    }
+
+    [Fact]
     [Trait("Category", "Smoke")]
     public void Scheduled_alarm_two_minutes_out_is_left_to_the_nightly_run()
     {
