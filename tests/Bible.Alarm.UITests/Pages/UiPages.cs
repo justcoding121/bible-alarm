@@ -324,10 +324,11 @@ public sealed class SelectionModal
         for (var attempt = 0; attempt < 8; attempt++)
         {
             var list = fixture.WaitForAccessibilityId("SelectionList");
-            var chosen = Regex.Matches(driver.PageSource, "text=\"([^\"]+)\"")
+            var labels = Regex.Matches(driver.PageSource, "text=\"([^\"]+)\"")
                 .Select(match => match.Groups[1].Value)
-                .FirstOrDefault(text => IsOtherListLabel(text, current));
-            if (!string.IsNullOrEmpty(chosen))
+                .Where(text => IsOtherListLabel(text, current))
+                .Distinct(StringComparer.Ordinal);
+            foreach (var chosen in labels)
             {
                 var match = driver.FindElements(MobileBy.AndroidUIAutomator("new UiSelector().text(\"" + chosen + "\")"))
                     .FirstOrDefault(element =>
