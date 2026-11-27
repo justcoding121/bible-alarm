@@ -192,3 +192,67 @@ public sealed class AndroidDeniedPermissionsFixture : AndroidAppiumFixture
 {
     protected override bool GrantPermissions => false;
 }
+
+[Trait("UI", "Android")]
+[Trait("Category", "Alarm")]
+public sealed class AndroidNotificationFabUiTests : IClassFixture<AndroidAppiumFixture>
+{
+    private const string PostNotifications = "android.permission.POST_NOTIFICATIONS";
+    private readonly AndroidAppiumFixture fixture;
+
+    public AndroidNotificationFabUiTests(AndroidAppiumFixture fixture) => this.fixture = fixture;
+
+    [Fact]
+    public void Notification_fab_shows_when_denied_and_hides_when_granted()
+    {
+        fixture.Run(nameof(Notification_fab_shows_when_denied_and_hides_when_granted), () =>
+        {
+            var packageName = AndroidAppiumFixture.DefaultPackageName;
+            try
+            {
+                var home = new HomePage(fixture);
+                var schedule = new SchedulePage(fixture);
+                DeviceControl.AdbOrEmpty($"shell pm grant {packageName} {PostNotifications}");
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                var editor = new SelectionModal(fixture);
+                if (!editor.ShowsText("Require tap to start playback"))
+                {
+                    editor.TapText("Enable Alarm");
+                }
+
+                editor.TapText("Require tap to start playback");
+                schedule.TapSave();
+                home.WaitUntilReady();
+
+                DeviceControl.AdbOrEmpty($"shell pm revoke {packageName} {PostNotifications}");
+                Relaunch(packageName);
+                home.WaitUntilReady();
+                fixture.Tap(fixture.WaitForAccessibilityId("NotificationPermissionFloatingButton", TimeSpan.FromSeconds(20)));
+                fixture.WaitForAccessibilityId("NotificationPermissionModal");
+                fixture.Tap(fixture.WaitForAccessibilityId("NotificationPermissionDismissButton"));
+                home.WaitUntilReady();
+
+                DeviceControl.AdbOrEmpty($"shell pm grant {packageName} {PostNotifications}");
+                Relaunch(packageName);
+                home.WaitUntilReady();
+                Waits.Until(
+                    () => !fixture.IsShown("NotificationPermissionFloatingButton"),
+                    TimeSpan.FromSeconds(15),
+                    "notification button hidden");
+            }
+            finally
+            {
+                DeviceControl.AdbOrEmpty($"shell pm grant {packageName} {PostNotifications}");
+            }
+        });
+    }
+
+    private void Relaunch(string packageName)
+    {
+        var driver = (OpenQA.Selenium.Appium.Android.AndroidDriver)fixture.Driver!;
+        driver.TerminateApp(packageName);
+        driver.ActivateApp(packageName);
+    }
+}
