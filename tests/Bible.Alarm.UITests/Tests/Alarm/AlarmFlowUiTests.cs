@@ -87,10 +87,57 @@ public sealed class AndroidAlarmFlowUiTests : IClassFixture<AndroidAppiumFixture
         fixture.Run(nameof(Toggle_persists_after_relaunch_is_visible_on_the_card), () =>
         {
             var home = new HomePage(fixture);
-            home.WaitUntilReady();
-            home.ToggleFirst();
-            home.WaitUntilReady();
+            var schedule = new SchedulePage(fixture);
+            try
+            {
+                home.WaitUntilReady();
+                SetAlarmEnabled(home, schedule, enabled: true);
+                Relaunch();
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                Assert.True(new SelectionModal(fixture).ShowsText("Require tap to start playback"));
+                schedule.TapCancel();
+                home.WaitUntilReady();
+                SetAlarmEnabled(home, schedule, enabled: false);
+                Relaunch();
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                Assert.False(new SelectionModal(fixture).ShowsText("Require tap to start playback"));
+                schedule.TapCancel();
+                home.WaitUntilReady();
+            }
+            finally
+            {
+                if (fixture.IsShown("SchedulePage"))
+                {
+                    schedule.TapCancel();
+                }
+            }
         });
+    }
+
+    private void SetAlarmEnabled(HomePage home, SchedulePage schedule, bool enabled)
+    {
+        home.TapFirstCard();
+        schedule.WaitUntilReady();
+        var editor = new SelectionModal(fixture);
+        var shown = editor.ShowsText("Require tap to start playback");
+        if (shown != enabled)
+        {
+            editor.TapText("Enable Alarm");
+        }
+
+        schedule.TapSave();
+        home.WaitUntilReady();
+    }
+
+    private void Relaunch()
+    {
+        var driver = (OpenQA.Selenium.Appium.Android.AndroidDriver)fixture.Driver!;
+        driver.TerminateApp(AndroidAppiumFixture.DefaultPackageName);
+        driver.ActivateApp(AndroidAppiumFixture.DefaultPackageName);
     }
 
     [Fact]
