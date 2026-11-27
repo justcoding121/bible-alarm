@@ -134,6 +134,40 @@ export IOS_SIMULATOR_UDID="${udid}"
 export UI_SCREENSHOT_DIR="${TEST_RESULTS_DIR}"
 export CARPLAY_DISPLAY="${CARPLAY_DISPLAY:-0}"
 
+if [[ "$CARPLAY_DISPLAY" == "1" ]]; then
+    echo "[ui-mac] Turning the external display into a CarPlay screen"
+    plist_dir="$HOME/Library/Developer/CoreSimulator/Devices/$udid/data/Library/Application Support/Simulator"
+    mkdir -p "$plist_dir"
+    cat > "$plist_dir/extended_display.plist" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>hasTouchScreen</key>
+	<true/>
+	<key>height</key>
+	<integer>480</integer>
+	<key>scale</key>
+	<integer>2</integer>
+	<key>stark</key>
+	<integer>1</integer>
+	<key>width</key>
+	<integer>800</integer>
+</dict>
+</plist>
+EOF
+    xcrun -sdk iphonesimulator clang -arch arm64 -fobjc-arc \
+        -framework Foundation -framework IOSurface -framework ImageIO -framework CoreGraphics -framework QuartzCore \
+        "$repo_root/tests/Bible.Alarm.UITests/Tools/carplay-capture.m" \
+        -o /tmp/bible-alarm-carplay-capture
+    codesign -s - --force /tmp/bible-alarm-carplay-capture
+    export CARPLAY_CAPTURE_BIN=/tmp/bible-alarm-carplay-capture
+    xcrun simctl spawn "$udid" launchctl kickstart -k user/foreground/com.apple.backboardd
+    sleep 3
+    xcrun simctl spawn "$udid" launchctl kickstart -p user/foreground/com.apple.CarPlayApp
+    sleep 3
+fi
+
 echo "[ui-mac] dotnet test --filter UI=iOS"
 dotnet test tests/Bible.Alarm.UITests/Bible.Alarm.UITests.csproj \
     --filter "UI=iOS" \

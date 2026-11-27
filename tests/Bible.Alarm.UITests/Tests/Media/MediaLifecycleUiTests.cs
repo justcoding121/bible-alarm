@@ -209,19 +209,19 @@ public sealed class IosCarPlayHookUiTests : IClassFixture<IosAppiumFixture>
 
         fixture.Run(nameof(CarPlay_external_display_screenshot), () =>
         {
-            // The phone UI may still be the player from the hook test. The capture is the
-            // CarPlay screen (simctl name wireless0), not the phone home page.
+            // Xcode 27's simctl screenshot of the external display stays a black host
+            // framebuffer. The CarPlay pixels are in the guest compositor, so the capture
+            // tool renders the TVOut display from inside the simulator.
+            var helper = Environment.GetEnvironmentVariable("CARPLAY_CAPTURE_BIN");
+            Assert.False(string.IsNullOrWhiteSpace(helper), "CARPLAY_CAPTURE_BIN is not set.");
             const string shotPath = "/tmp/bible-alarm-carplay.png";
             if (File.Exists(shotPath))
             {
                 File.Delete(shotPath);
             }
 
-            DeviceControl.Run("xcrun", "simctl io booted screenConfig --display=wireless0 power on", throwOnError: false);
-            DeviceControl.Run("xcrun", $"simctl io booted screenshot --display=wireless0 --type=png {shotPath}", throwOnError: true);
+            DeviceControl.Run("xcrun", $"simctl spawn booted {helper} {shotPath}", throwOnError: true);
             var info = new FileInfo(shotPath);
-            // A powered-but-idle CarPlay framebuffer compresses to a few KB of black.
-            // A real CarPlay window is larger. Device Hub shows it via I/O > External Displays > CarPlay.
             Assert.True(info.Exists && info.Length > 12_000,
                 $"CarPlay display capture was missing or blank ({(info.Exists ? info.Length : 0)} bytes).");
         });
