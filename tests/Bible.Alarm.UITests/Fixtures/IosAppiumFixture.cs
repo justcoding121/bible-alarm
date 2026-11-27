@@ -51,6 +51,9 @@ public class IosAppiumFixture : AppiumFixtureBase
         options.AddAdditionalAppiumOption("simulatorStartupTimeout", 360_000);
         options.AddAdditionalAppiumOption("appLaunchStateTimeoutSec", 90);
         options.AddAdditionalAppiumOption("newCommandTimeout", 180);
+        // Xcode 27 removed Simulator.app. A headless session boots through simctl
+        // and does not try to open that missing app.
+        options.AddAdditionalAppiumOption("isHeadless", true);
 
         return options;
     }
