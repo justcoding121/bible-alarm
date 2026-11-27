@@ -274,7 +274,7 @@ public sealed class SelectionModal
     public void TapExactInList(string text)
     {
         var driver = fixture.Driver ?? throw new InvalidOperationException("Driver not initialised; did InitializeAsync run?");
-        for (var attempt = 0; attempt < 12; attempt++)
+        for (var attempt = 0; attempt < 16; attempt++)
         {
             var list = fixture.WaitForAccessibilityId("SelectionList");
             var match = driver.FindElements(MobileBy.AndroidUIAutomator("new UiSelector().text(\"" + text + "\")"))
@@ -288,7 +288,7 @@ public sealed class SelectionModal
                 return;
             }
 
-            SwipeList(driver, list);
+            SwipeList(driver, list, attempt < 8 ? "up" : "down");
         }
 
         throw new TimeoutException($"Could not find \"{text}\".");
@@ -307,7 +307,7 @@ public sealed class SelectionModal
             && !trimmed.StartsWith("Select ", StringComparison.Ordinal);
     }
 
-    private static void SwipeList(AppiumDriver driver, IWebElement list)
+    private static void SwipeList(AppiumDriver driver, IWebElement list, string direction = "up")
     {
         var location = list.Location;
         var size = list.Size;
@@ -317,7 +317,7 @@ public sealed class SelectionModal
             ["top"] = location.Y + 48,
             ["width"] = Math.Max(200, size.Width - 48),
             ["height"] = Math.Max(240, size.Height - 96),
-            ["direction"] = "up",
+            ["direction"] = direction,
             ["percent"] = 0.55
         });
     }

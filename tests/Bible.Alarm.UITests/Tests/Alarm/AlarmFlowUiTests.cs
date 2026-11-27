@@ -176,6 +176,84 @@ public sealed class AndroidAlarmFlowUiTests : IClassFixture<AndroidAppiumFixture
     }
 
     [Fact]
+    public void Bible_chapter_change_persists_after_relaunch()
+    {
+        fixture.Run(nameof(Bible_chapter_change_persists_after_relaunch), () =>
+        {
+            var home = new HomePage(fixture);
+            var schedule = new SchedulePage(fixture);
+            var modal = new SelectionModal(fixture);
+            try
+            {
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                var originalBook = schedule.RowLabel("BibleSectionRow");
+                var original = schedule.RowLabel("BibleTrackRow");
+                schedule.TapRow("BibleTrackRow");
+                if (!ChapterListOpened())
+                {
+                    schedule.TapRow("BibleSectionRow");
+                    modal.WaitUntilReady();
+                    modal.TapExactInList("Matthew");
+                    Waits.Until(
+                        () => fixture.IsShown("SchedulePage") && schedule.RowLabel("BibleSectionRow") == "Matthew",
+                        TimeSpan.FromSeconds(20),
+                        "book with chapters");
+                    original = schedule.RowLabel("BibleTrackRow");
+                    schedule.TapRow("BibleTrackRow");
+                }
+
+                modal.WaitUntilReady();
+                var chosen = modal.TapDifferentVisibleText(original);
+                Waits.Until(
+                    () => fixture.IsShown("SchedulePage") && schedule.RowLabel("BibleTrackRow") == chosen,
+                    TimeSpan.FromSeconds(20),
+                    "selected chapter");
+                schedule.TapSave();
+                home.WaitUntilReady();
+                Relaunch();
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                Assert.Equal(chosen, schedule.RowLabel("BibleTrackRow"));
+                schedule.TapRow("BibleTrackRow");
+                modal.WaitUntilReady();
+                modal.TapExactInList(original);
+                Waits.Until(
+                    () => fixture.IsShown("SchedulePage") && schedule.RowLabel("BibleTrackRow") == original,
+                    TimeSpan.FromSeconds(20),
+                    "restored chapter");
+                if (schedule.RowLabel("BibleSectionRow") != originalBook)
+                {
+                    schedule.TapRow("BibleSectionRow");
+                    modal.WaitUntilReady();
+                    modal.TapExactInList(originalBook);
+                    Waits.Until(
+                        () => fixture.IsShown("SchedulePage") && schedule.RowLabel("BibleSectionRow") == originalBook,
+                        TimeSpan.FromSeconds(20),
+                        "restored book");
+                }
+
+                schedule.TapSave();
+                home.WaitUntilReady();
+            }
+            finally
+            {
+                if (fixture.IsShown("SelectionList"))
+                {
+                    modal.Close();
+                }
+
+                if (fixture.IsShown("SchedulePage"))
+                {
+                    schedule.TapCancel();
+                }
+            }
+        });
+    }
+
+    [Fact]
     public void Category_row_opens_the_selection_list()
     {
         fixture.Run(nameof(Category_row_opens_the_selection_list), () =>
@@ -229,6 +307,22 @@ public sealed class AndroidAlarmFlowUiTests : IClassFixture<AndroidAppiumFixture
                 }
             }
         });
+    }
+
+    private bool ChapterListOpened()
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(4);
+        while (DateTime.UtcNow < deadline)
+        {
+            if (fixture.IsShown("SelectionList"))
+            {
+                return true;
+            }
+
+            Thread.Sleep(250);
+        }
+
+        return false;
     }
 
     private void SetAlarmEnabled(HomePage home, SchedulePage schedule, bool enabled)
