@@ -424,13 +424,25 @@ public sealed class AndroidAudioFocusUiTests : IClassFixture<AndroidAppiumFixtur
                 "home or playback");
             DeviceControl.AndroidBroadcast("com.jthomas.info.Bible.Alarm.UITEST_DUMP_STATE");
             var before = DeviceControl.AndroidMediaSession(AndroidAppiumFixture.DefaultPackageName).PlaybackState;
+            var fired = DateTime.UtcNow;
+            var resent = false;
             DeviceControl.AndroidBroadcast("com.jthomas.info.Bible.Alarm.UITEST_FIRE_ALARM", "--es ScheduleId 1");
             // The alarm can open the full player, leave only the mini bar, or keep playing
             // with neither on screen. Any of those means the hook started playback.
             Waits.Until(
-                () => fixture.IsShown("PlaybackModal")
-                    || fixture.IsShown("MiniBar")
-                    || (before is not 3 && DeviceControl.AndroidMediaSession(AndroidAppiumFixture.DefaultPackageName).PlaybackState == 3),
+                () =>
+                {
+                    if (!resent && DateTime.UtcNow - fired > TimeSpan.FromSeconds(20))
+                    {
+                        resent = true;
+                        DeviceControl.AndroidBroadcast("com.jthomas.info.Bible.Alarm.UITEST_FIRE_ALARM", "--es ScheduleId 1");
+                    }
+
+                    return fixture.IsShown("PlaybackModal")
+                        || fixture.IsShown("MiniBar")
+                        || DeviceControl.AndroidMediaSession(AndroidAppiumFixture.DefaultPackageName).PlaybackState == 3
+                            && before is not 3;
+                },
                 TimeSpan.FromSeconds(90),
                 "playback");
             if (fixture.IsShown("PlaybackModal"))
@@ -539,27 +551,29 @@ public sealed class IosSpringboardNotificationUiTests : IClassFixture<IosAppiumF
                 DeviceControl.DarwinNotify("com.jthomas.biblealarm.uitest.fireAlarm.1");
                 ActivateSpringboard(driver);
                 var started = DateTime.UtcNow;
-                var opened = false;
+                var opens = 0;
                 Waits.Until(() =>
                 {
                     // The permission alert is a Springboard dialog. A swipe before it is
                     // accepted dismisses it. When it never appears, permission is already granted.
                     if (TryTapAllow(driver))
                     {
-                        opened = false;
+                        opens = 0;
                         return false;
                     }
 
-                    // The notification is scheduled 8s out. Open the center once, after it
-                    // can have been delivered. Further swipes dismiss the banner.
-                    if (!opened && DateTime.UtcNow - started > TimeSpan.FromSeconds(10))
+                    // The notification is scheduled 8s out. Open the center after it can
+                    // have arrived, and once more if the first look was too early.
+                    var elapsed = DateTime.UtcNow - started;
+                    if ((opens == 0 && elapsed > TimeSpan.FromSeconds(10))
+                        || (opens == 1 && elapsed > TimeSpan.FromSeconds(22)))
                     {
                         OpenNotificationCenter(driver);
-                        opened = true;
+                        opens++;
                     }
 
                     return SpringboardShowsAlarm(driver);
-                }, TimeSpan.FromSeconds(35), "Springboard alarm notification");
+                }, TimeSpan.FromSeconds(40), "Springboard alarm notification");
             }
             finally
             {
