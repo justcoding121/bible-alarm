@@ -156,6 +156,54 @@ public sealed class AndroidScheduleEditorUiTests : IClassFixture<AndroidAppiumFi
     }
 
     [Fact]
+    public void Chapter_count_persists_after_relaunch()
+    {
+        Run(nameof(Chapter_count_persists_after_relaunch), () =>
+        {
+            var home = new HomePage(fixture);
+            var schedule = new SchedulePage(fixture);
+            var modal = new SelectionModal(fixture);
+            try
+            {
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                SetFiniteTrackCount(schedule, finite: true);
+                schedule.TapRow("NumberOfTracksRow");
+                modal.WaitUntilReady();
+                modal.TapExactInList("2 chapters");
+                Waits.Until(
+                    () => !fixture.IsShown("SelectionList") && schedule.RowValue("NumberOfTracksRow") == "2",
+                    TimeSpan.FromSeconds(20),
+                    "two chapters");
+                schedule.TapSave();
+                home.WaitUntilReady();
+                Relaunch();
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                schedule.ScrollTo("NumberOfTracksRow");
+                Assert.Equal("2", schedule.RowValue("NumberOfTracksRow"));
+                SetFiniteTrackCount(schedule, finite: false);
+                schedule.TapSave();
+                home.WaitUntilReady();
+            }
+            finally
+            {
+                if (fixture.IsShown("SelectionList"))
+                {
+                    modal.Close();
+                }
+
+                if (fixture.IsShown("SchedulePage"))
+                {
+                    schedule.TapCancel();
+                }
+            }
+        });
+    }
+
+    [Fact]
     public void Language_search_filters_the_list()
     {
         Run(nameof(Language_search_filters_the_list), () =>

@@ -257,6 +257,19 @@ public sealed class SchedulePage
         return label.Text ?? string.Empty;
     }
 
+    public string RowValue(string accessibilityId)
+    {
+        var row = fixture.WaitForAccessibilityId(accessibilityId);
+        var driver = fixture.Driver ?? throw new InvalidOperationException("Driver not initialised; did InitializeAsync run?");
+        var label = driver.FindElements(MobileBy.AndroidUIAutomator("new UiSelector().className(\"android.widget.TextView\")"))
+            .Where(element => element.Displayed && !string.IsNullOrWhiteSpace(element.Text))
+            .Select(element => (Text: element.Text!.Trim(), Distance: Math.Abs(element.Location.Y - row.Location.Y), X: element.Location.X))
+            .Where(item => item.Distance < 80 && item.X >= row.Location.X + (row.Size.Width / 2))
+            .OrderByDescending(item => item.X)
+            .FirstOrDefault();
+        return label.Text ?? string.Empty;
+    }
+
     public void TapRow(string accessibilityId)
     {
         ScrollTo(accessibilityId);
