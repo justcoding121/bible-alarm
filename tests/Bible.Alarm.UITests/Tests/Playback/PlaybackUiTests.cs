@@ -54,6 +54,35 @@ public sealed class AndroidPlaybackUiTests : IClassFixture<AndroidAppiumFixture>
     }
 
     [Fact]
+    public void Pause_and_play_change_the_session_state()
+    {
+        fixture.Run(nameof(Pause_and_play_change_the_session_state), () =>
+        {
+            var home = new HomePage(fixture);
+            var playback = new PlaybackPage(fixture);
+            home.WaitUntilReady();
+            home.TapFirstPlay();
+            playback.WaitUntilReady();
+            Waits.Until(() => SessionState() == 3, TimeSpan.FromSeconds(20), "playing");
+            fixture.Tap(fixture.WaitForAccessibilityId("PlaybackPauseButton"));
+            Waits.Until(
+                () => SessionState() is 2 or 1 && fixture.IsShown("PlaybackPlayButton"),
+                TimeSpan.FromSeconds(15),
+                "paused");
+            fixture.Tap(fixture.WaitForAccessibilityId("PlaybackPlayButton"));
+            Waits.Until(
+                () => SessionState() == 3 && fixture.IsShown("PlaybackPauseButton"),
+                TimeSpan.FromSeconds(15),
+                "playing again");
+            playback.TapDismiss();
+            home.WaitUntilReady();
+        });
+    }
+
+    private static int? SessionState() =>
+        DeviceControl.AndroidMediaSession(AndroidAppiumFixture.DefaultPackageName).PlaybackState;
+
+    [Fact]
     public void Slider_drag_seeks_and_relaunch_resumes_that_position()
     {
         fixture.Run(nameof(Slider_drag_seeks_and_relaunch_resumes_that_position), () =>
