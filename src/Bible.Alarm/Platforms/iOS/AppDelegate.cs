@@ -146,6 +146,9 @@ public class AppDelegate : MauiUIApplicationDelegate, IUNUserNotificationCenterD
         try
         {
             MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: true);
+#if UITEST
+            UiTest.UiTestHooks.Register();
+#endif
             SetupBackgroundTasks();
             SetupNotifications();
         }

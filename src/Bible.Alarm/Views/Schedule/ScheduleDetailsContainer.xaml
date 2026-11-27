@@ -91,7 +91,7 @@
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding ToggleDayCommand}"
-                        CommandParameter="{StaticResource Sunday}"
+                        AutomationId="DayButton_Sun" CommandParameter="{StaticResource Sunday}"
                         FontAttributes="Bold"
                         FontSize="{StaticResource LargeFontSize}"
                         Text="S">
@@ -127,7 +127,7 @@
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding ToggleDayCommand}"
-                        CommandParameter="{StaticResource Monday}"
+                        AutomationId="DayButton_Mon" CommandParameter="{StaticResource Monday}"
                         FontAttributes="Bold"
                         FontSize="{StaticResource LargeFontSize}"
                         Text="M">
@@ -163,7 +163,7 @@
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding ToggleDayCommand}"
-                        CommandParameter="{StaticResource Tuesday}"
+                        AutomationId="DayButton_Tue" CommandParameter="{StaticResource Tuesday}"
                         FontAttributes="Bold"
                         FontSize="{StaticResource LargeFontSize}"
                         Text="T">
@@ -199,7 +199,7 @@
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding ToggleDayCommand}"
-                        CommandParameter="{StaticResource Wednesday}"
+                        AutomationId="DayButton_Wed" CommandParameter="{StaticResource Wednesday}"
                         FontAttributes="Bold"
                         FontSize="{StaticResource LargeFontSize}"
                         Text="W">
@@ -235,7 +235,7 @@
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding ToggleDayCommand}"
-                        CommandParameter="{StaticResource Thursday}"
+                        AutomationId="DayButton_Thu" CommandParameter="{StaticResource Thursday}"
                         FontAttributes="Bold"
                         FontSize="{StaticResource LargeFontSize}"
                         Text="T">
@@ -271,7 +271,7 @@
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding ToggleDayCommand}"
-                        CommandParameter="{StaticResource Friday}"
+                        AutomationId="DayButton_Fri" CommandParameter="{StaticResource Friday}"
                         FontAttributes="Bold"
                         FontSize="{StaticResource LargeFontSize}"
                         Text="F">
@@ -307,7 +307,7 @@
                         BorderWidth="0"
                         BorderColor="Transparent"
                         Command="{Binding ToggleDayCommand}"
-                        CommandParameter="{StaticResource Saturday}"
+                        AutomationId="DayButton_Sat" CommandParameter="{StaticResource Saturday}"
                         FontAttributes="Bold"
                         FontSize="{StaticResource LargeFontSize}"
                         Text="S">
@@ -346,7 +346,7 @@
                             Radius="4"
                             Opacity="0.1" />
                 </Border.Shadow>
-                <Entry x:Name="ScheduleNameEntry"
+                <Entry x:Name="ScheduleNameEntry" AutomationId="ScheduleNameEntry"
                        Margin="0"
                        MaxLength="30"
                        HorizontalOptions="FillAndExpand"

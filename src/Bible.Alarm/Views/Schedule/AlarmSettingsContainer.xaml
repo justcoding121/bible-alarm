@@ -77,6 +77,7 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <shared:PlatformSwitch
+                            AutomationId="AlarmEnabledSwitch"
                             Grid.Column="0"
                             Margin="0"
                             HorizontalOptions="End"
@@ -143,7 +144,7 @@
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <shared:PlatformSwitch
+                            <shared:PlatformSwitch AutomationId="NotificationEnabledSwitch"
                                 Grid.Column="0"
                                 Margin="0"
                                 HorizontalOptions="End"

@@ -25,7 +25,7 @@ internal static class Media3LibraryCatalog
 
     public static IList<MediaItem> LoadChildren(Context? context)
     {
-        var schedules = AndroidAutoScheduleHelper.LoadScheduleStateItemsFromState();
+        var schedules = AndroidAutoScheduleHelper.LoadScheduleStateItems();
         var items = new List<MediaItem>(schedules.Count);
         foreach (var schedule in schedules)
         {
@@ -42,7 +42,7 @@ internal static class Media3LibraryCatalog
             return null;
         }
 
-        var schedule = AndroidAutoScheduleHelper.LoadScheduleStateItemsFromState()
+        var schedule = AndroidAutoScheduleHelper.LoadScheduleStateItems()
             .FirstOrDefault(item => item.Id == scheduleId);
         return schedule == null ? null : CreateItem(schedule, context);
     }

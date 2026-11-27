@@ -2,7 +2,7 @@
 
 <ContentView
     x:Class="Bible.Alarm.Views.Shared.MiniPlaybackBar"
-    x:Name="MiniBarView"
+    x:Name="MiniBarView" AutomationId="MiniBar"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:fn="clr-namespace:Bible.Alarm.Views"
@@ -17,6 +17,7 @@
 
         <!-- Row 0: Thin progress bar at top edge (tappable to maximize) -->
         <ProgressBar
+            AutomationId="MiniBarProgress"
             Grid.Row="0"
             Progress="{Binding Progress}"
             ProgressColor="{StaticResource PrimaryColor}"
@@ -81,7 +82,7 @@
             <!-- Title (tappable to maximize) -->
             <Label
                 Grid.Column="1"
-                Text="{Binding Title}"
+                AutomationId="MiniBarTitle" Text="{Binding Title}"
                 TextColor="{DynamicResource TextPrimaryColor}"
                 FontSize="{DynamicResource SmallFontSize}"
                 LineBreakMode="TailTruncation"
@@ -104,7 +105,7 @@
                     Padding="0"
                     BackgroundColor="Transparent"
                     BorderWidth="0"
-                    Command="{Binding StopCommand}"
+                    AutomationId="MiniBarStop" Command="{Binding StopCommand}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                     FontSize="18"
                     Text="{x:Static fn:GlyphNames.Xmark}"
@@ -135,7 +136,7 @@
                     Padding="0"
                     BackgroundColor="Transparent"
                     BorderWidth="0"
-                    Command="{Binding PreviousCommand}"
+                    AutomationId="MiniBarPrevious" Command="{Binding PreviousCommand}"
                     IsEnabled="{Binding IsPreviousEnabled}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                     FontSize="18"
@@ -176,6 +177,7 @@
                     Padding="0"
                     BackgroundColor="{StaticResource PrimaryColor}"
                     BorderWidth="0"
+                    AutomationId="MiniBarPlayPause"
                     Command="{Binding PlayPauseCommand}"
                     IsEnabled="{Binding AreControlsEnabled}"
                     IsVisible="{Binding PlayVisible}"
@@ -203,6 +205,7 @@
                     Padding="0"
                     BackgroundColor="{StaticResource PrimaryColor}"
                     BorderWidth="0"
+                    AutomationId="MiniBarPlayPause"
                     Command="{Binding PlayPauseCommand}"
                     IsEnabled="{Binding AreControlsEnabled}"
                     IsVisible="{Binding PauseVisible}"
@@ -239,7 +242,7 @@
                     Padding="0"
                     BackgroundColor="Transparent"
                     BorderWidth="0"
-                    Command="{Binding NextCommand}"
+                    AutomationId="MiniBarNext" Command="{Binding NextCommand}"
                     IsEnabled="{Binding IsNextEnabled}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                     FontSize="18"
@@ -280,6 +283,7 @@
                     Padding="0"
                     BackgroundColor="Transparent"
                     BorderWidth="0"
+                    AutomationId="MiniBarMaximize"
                     Command="{Binding MaximizeCommand}"
                     IsEnabled="{Binding AreControlsEnabled}"
                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"

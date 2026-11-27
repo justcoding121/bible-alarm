@@ -42,7 +42,7 @@ public abstract class AppiumFixtureBase : IAsyncLifetime
     /// <summary>Constructs the platform-specific driver instance. Default overrides are sufficient for most cases.</summary>
     protected abstract AppiumDriver CreateDriver(Uri serverUrl, AppiumOptions options);
 
-    public Task InitializeAsync()
+    public virtual Task InitializeAsync()
     {
         Directory.CreateDirectory(ScreenshotDirectory);
         var options = BuildOptions();
@@ -93,6 +93,36 @@ public abstract class AppiumFixtureBase : IAsyncLifetime
             throw;
         }
     }
+
+    /// <summary>Runs a test body and keeps a screenshot plus device logs when it fails.</summary>
+    public void Run(string name, Action body)
+    {
+        try
+        {
+            body();
+        }
+        catch
+        {
+            DumpScreenshot(name);
+            DumpDiagnostics(name);
+            throw;
+        }
+    }
+
+    public void DumpDiagnostics(string label)
+    {
+        try
+        {
+            var path = Path.Combine(ScreenshotDirectory, $"{label}-diagnostics.txt");
+            File.WriteAllText(path, CollectDiagnostics());
+        }
+        catch
+        {
+            // Diagnostics must not hide the original failure.
+        }
+    }
+
+    protected virtual string CollectDiagnostics() => string.Empty;
 
     /// <summary>Dumps the current viewport to <see cref="ScreenshotDirectory"/>; safe to call from cleanup.</summary>
     public void DumpScreenshot(string label)

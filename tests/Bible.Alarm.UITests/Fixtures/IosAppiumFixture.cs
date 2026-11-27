@@ -11,9 +11,11 @@ namespace Bible.Alarm.UITests.Fixtures;
 /// team id; for now this fixture only targets the simulator (set <c>BIBLE_ALARM_APP_PATH</c>
 /// to the .app bundle path).
 /// </summary>
-public sealed class IosAppiumFixture : AppiumFixtureBase
+public class IosAppiumFixture : AppiumFixtureBase
 {
     public const string DefaultBundleId = "com.jthomas.info.Bible.Alarm";
+
+    protected override string CollectDiagnostics() => Bible.Alarm.UITests.Infrastructure.DeviceControl.TryIosDiagnostics();
 
     protected override AppiumOptions BuildOptions()
     {
@@ -44,7 +46,7 @@ public sealed class IosAppiumFixture : AppiumFixtureBase
         // default but we still bump it to keep the smoke test from flaking on slow runners.
         options.AddAdditionalAppiumOption("wdaLaunchTimeout", 90_000);
         options.AddAdditionalAppiumOption("appLaunchStateTimeoutSec", 90);
-        options.AddAdditionalAppiumOption("newCommandTimeout", 120);
+        options.AddAdditionalAppiumOption("newCommandTimeout", 180);
 
         return options;
     }

@@ -89,6 +89,7 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <Border Grid.Row="0"
+                            AutomationId="NotificationPermissionRequestButton"
                             IsVisible="{Binding IsRequestButtonVisible}"
                             BackgroundColor="{StaticResource PrimaryColor}"
                             HorizontalOptions="Fill"
@@ -118,6 +119,7 @@
                         </Border>
                         
                         <Border Grid.Row="1"
+                            AutomationId="NotificationPermissionOpenSettings"
                             IsVisible="{Binding IsOpenSettingsButtonVisible}"
                             BackgroundColor="{StaticResource PrimaryColor}"
                             HorizontalOptions="Fill"

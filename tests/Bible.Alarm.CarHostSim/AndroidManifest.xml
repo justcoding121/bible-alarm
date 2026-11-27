@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- Android 11+ hides other apps unless they are declared. Media3 refuses the session token when it cannot see the service. -->
+  <queries>
+    <package android:name="com.jthomas.info.Bible.Alarm" />
+    <intent>
+      <action android:name="androidx.media3.session.MediaLibraryService" />
+    </intent>
+  </queries>
+</manifest>

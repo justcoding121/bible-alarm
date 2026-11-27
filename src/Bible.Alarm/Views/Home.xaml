@@ -180,8 +180,9 @@
                 VerticalOptions="Start"
                 InputTransparent="{Binding IsProgressBarHidden}"
                 BindingContext="{Binding}" />
-            <CollectionView
+            <CollectionView AutomationId="ScheduleList"
                 x:Name="SchedulesCollectionView"
+                IsVisible="{Binding IsBootstrapReady}"
                 Grid.Row="2"
                 BackgroundColor="Transparent"
                 HorizontalOptions="Fill"
@@ -199,7 +200,7 @@
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:ScheduleListItemViewModel">
-                        <SwipeView>
+                        <SwipeView AutomationId="ScheduleDeleteSwipe">
                             <SwipeView.RightItems>
                                 <SwipeItems>
                                     <SwipeItem
@@ -230,7 +231,7 @@
                                         <TapGestureRecognizer Tapped="OnScheduleItemTapped" />
                                     </core:SfEffectsView.GestureRecognizers>
                                 <Border
-                                        x:Name="ScheduleItemBorder"
+                                        x:Name="ScheduleItemBorder" AutomationId="ScheduleCard"
                                         Padding="{StaticResource PaddingLarge}"
                                         BackgroundColor="{DynamicResource CardBackgroundColor}"
                                         StrokeThickness="0">
@@ -320,7 +321,7 @@
                                                        Padding="{DynamicResource PaddingThickness0}"
                                                        FontSize="{StaticResource AlarmTimeFontSize}"
                                                        FontAttributes="Bold"
-                                                       Text="{Binding TimeText}"
+                                                       AutomationId="ScheduleTimeText" Text="{Binding TimeText}"
                                                        VerticalOptions="Center"
                                                        TextColor="{Binding IsEnabled, Converter={StaticResource isEnabledColorConverter}}"
                                                        LineBreakMode="NoWrap" />
@@ -483,6 +484,7 @@
                                             </VerticalStackLayout>
                                             <!-- Enable/disable toggle -->
                                             <shared:PlatformSwitch
+                                                    AutomationId="ScheduleEnableSwitch"
                                                     Grid.Column="1"
                                                     IsToggled="{Binding IsEnabled, Mode=TwoWay}"
                                                     Margin="{DynamicResource MarginThickness0}"
@@ -520,6 +522,7 @@
                                                    Spacing="{StaticResource SpacingSmall}">
                                                 <Label FontSize="{DynamicResource LargeFontSize}"
                                                        FontAttributes="Bold"
+                                                       AutomationId="ScheduleName"
                                                        Text="{Binding Name}"
                                                        TextColor="{DynamicResource TextPrimaryColor}"
                                                        LineBreakMode="WordWrap"

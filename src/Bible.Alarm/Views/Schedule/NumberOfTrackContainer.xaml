@@ -51,7 +51,7 @@
                     <TapGestureRecognizer Command="{Binding TogglePlayIndefinitelyCommand}"
                                           NumberOfTapsRequired="1" />
                 </core:SfEffectsView.GestureRecognizers>
-                <Grid x:Name="PlayIndefinitelyButton"
+                <Grid x:Name="PlayIndefinitelyButton" AutomationId="IndefiniteRow"
                       Margin="0"
                       Padding="16,16"
                       BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -108,7 +108,7 @@
                     <TapGestureRecognizer Command="{Binding OpenModalCommand}"
                                           NumberOfTapsRequired="1" />
                 </core:SfEffectsView.GestureRecognizers>
-                <Grid x:Name="TracksButton"
+                <Grid x:Name="TracksButton" AutomationId="NumberOfTracksRow"
                       Margin="0"
                       Padding="16,16"
                       BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -163,7 +163,7 @@
                     <TapGestureRecognizer Command="{Binding ToggleAlwaysPlayFromStartCommand}"
                                           NumberOfTapsRequired="1" />
                 </core:SfEffectsView.GestureRecognizers>
-                <Grid x:Name="AlwaysPlayFromStartButton"
+                <Grid x:Name="AlwaysPlayFromStartButton" AutomationId="AlwaysFromStartRow"
                       Margin="0"
                       Padding="16,16"
                       BackgroundColor="{DynamicResource ControlBackgroundColor}"

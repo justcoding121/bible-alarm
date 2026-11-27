@@ -57,7 +57,7 @@
                     <TapGestureRecognizer Command="{Binding SelectLanguageCommand}"
                                           NumberOfTapsRequired="1" />
                 </core:SfEffectsView.GestureRecognizers>
-                <Grid x:Name="BibleLanguageButton"
+                <Grid x:Name="BibleLanguageButton" AutomationId="BibleLanguageRow"
                       Margin="0"
                       Padding="16,16"
                       BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -124,7 +124,7 @@
                     <TapGestureRecognizer Command="{Binding SelectCategoryCommand}"
                                           NumberOfTapsRequired="1" />
                 </core:SfEffectsView.GestureRecognizers>
-                <Grid x:Name="BibleCategoryButton"
+                <Grid x:Name="BibleCategoryButton" AutomationId="CategoryRow"
                       Margin="0"
                       Padding="16,16"
                       BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -191,7 +191,7 @@
                     <TapGestureRecognizer Command="{Binding SelectBibleCommand}"
                                           NumberOfTapsRequired="1" />
                 </core:SfEffectsView.GestureRecognizers>
-                <Grid x:Name="BiblePublicationButton"
+                <Grid x:Name="BiblePublicationButton" AutomationId="BiblePublicationRow"
                       Margin="0"
                       Padding="16,16"
                       BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -256,7 +256,7 @@
                     <TapGestureRecognizer Command="{Binding SelectSectionCommand}"
                                           NumberOfTapsRequired="1" />
                 </core:SfEffectsView.GestureRecognizers>
-                <Grid x:Name="BiblePublicationSectionButton"
+                <Grid x:Name="BiblePublicationSectionButton" AutomationId="BibleSectionRow"
                       Margin="0"
                       Padding="16,16"
                       BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -319,7 +319,7 @@
                     <TapGestureRecognizer Command="{Binding SelectTrackCommand}"
                                           NumberOfTapsRequired="1" />
                 </core:SfEffectsView.GestureRecognizers>
-                <Grid x:Name="BiblePublicationTrackButton"
+                <Grid x:Name="BiblePublicationTrackButton" AutomationId="BibleTrackRow"
                       Margin="0"
                       Padding="16,16"
                       BackgroundColor="{DynamicResource ControlBackgroundColor}"

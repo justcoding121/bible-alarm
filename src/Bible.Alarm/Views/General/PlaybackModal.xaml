@@ -181,6 +181,7 @@
                                 VerticalOptions="Center"
                                 Margin="0,8,0,0">
                                 <Border
+                                    AutomationId="PlaybackRetryButton"
                                     BackgroundColor="{StaticResource PrimaryColor}"
                                     HeightRequest="{DynamicResource IconLargeContainerSize}"
                                     WidthRequest="{DynamicResource IconLargeContainerSize}"
@@ -317,7 +318,7 @@
                                 LineHeight="1.25"
                                 HorizontalOptions="Fill"
                                 HorizontalTextAlignment="Center"
-                                Text="{Binding Title}"
+                                AutomationId="PlaybackTitle" Text="{Binding Title}"
                                 TextColor="{DynamicResource TextPrimaryColor}"
                                 LineBreakMode="TailTruncation"
                                 MaxLines="2"
@@ -358,6 +359,7 @@
                 InputTransparent="False"
                 ZIndex="10">
                 <Button
+                    AutomationId="PlaybackMinimizeButton"
                     Padding="0"
                     BackgroundColor="Transparent"
                     BorderWidth="0"
@@ -471,13 +473,13 @@
                             FontAttributes="Bold"
                             HorizontalOptions="Start"
                             HorizontalTextAlignment="Start"
-                            Text="{Binding CurrentTime}"
+                            AutomationId="PlaybackCurrentTime" Text="{Binding CurrentTime}"
                             Style="{StaticResource ControlLabelTextColorStyle}"
                             VerticalOptions="Center" />
                         <!-- Slider (hidden when buffering or transitioning track) -->
                         <Slider
                             Grid.Column="1"
-                            x:Name="ProgressSlider"
+                            x:Name="ProgressSlider" AutomationId="PlaybackProgressSlider"
                             HorizontalOptions="Fill"
                             VerticalOptions="Center"
                             Minimum="0"
@@ -504,7 +506,7 @@
                             FontAttributes="Bold"
                             HorizontalOptions="End"
                             HorizontalTextAlignment="End"
-                            Text="{Binding EndTime}"
+                            AutomationId="PlaybackEndTime" Text="{Binding EndTime}"
                             Style="{StaticResource ControlLabelTextColorStyle}"
                             VerticalOptions="Center" />
                     </Grid>
@@ -546,7 +548,7 @@
                                     BackgroundColor="Transparent"
                                     BorderWidth="0"
                                     BorderColor="Transparent"
-                                    Command="{Binding PreviousCommand}"
+                                    AutomationId="PlaybackPreviousButton" Command="{Binding PreviousCommand}"
                                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                     FontSize="{DynamicResource IconStandardFontSize}"
                                     HorizontalOptions="Fill"
@@ -591,7 +593,7 @@
                                 BackgroundColor="Transparent"
                                 BorderWidth="0"
                                 BorderColor="Transparent"
-                                Command="{Binding BackwardCommand}"
+                                AutomationId="PlaybackBackwardButton" Command="{Binding BackwardCommand}"
                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                 FontSize="{DynamicResource HeaderFontSize}"
                                 HorizontalOptions="Fill"
@@ -633,7 +635,7 @@
                                     BackgroundColor="Transparent"
                                     BorderWidth="0"
                                     BorderColor="Transparent"
-                                    Command="{Binding PlayCommand}"
+                                    AutomationId="PlaybackPlayButton" Command="{Binding PlayCommand}"
                                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                     FontSize="{DynamicResource IconLargeFontSize}"
                                     HorizontalOptions="Fill"
@@ -655,7 +657,7 @@
                                     BackgroundColor="Transparent"
                                     BorderWidth="0"
                                     BorderColor="Transparent"
-                                    Command="{Binding PauseCommand}"
+                                    AutomationId="PlaybackPauseButton" Command="{Binding PauseCommand}"
                                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                     FontSize="{DynamicResource IconLargeFontSize}"
                                     HorizontalOptions="Fill"
@@ -692,7 +694,7 @@
                                 BackgroundColor="Transparent"
                                 BorderWidth="0"
                                 BorderColor="Transparent"
-                                Command="{Binding ForwardCommand}"
+                                AutomationId="PlaybackForwardButton" Command="{Binding ForwardCommand}"
                                 FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                 FontSize="{DynamicResource HeaderFontSize}"
                                 HorizontalOptions="Fill"
@@ -732,7 +734,7 @@
                                     BackgroundColor="Transparent"
                                     BorderWidth="0"
                                     BorderColor="Transparent"
-                                    Command="{Binding NextCommand}"
+                                    AutomationId="PlaybackNextButton" Command="{Binding NextCommand}"
                                     FontFamily="{x:Static fn:FontFileResources.FontAwesomeSolid}"
                                     FontSize="{DynamicResource IconStandardFontSize}"
                                     HorizontalOptions="Fill"

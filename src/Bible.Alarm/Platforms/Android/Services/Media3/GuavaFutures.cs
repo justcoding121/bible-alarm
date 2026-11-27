@@ -42,11 +42,25 @@ internal static class GuavaFutures
             ?? throw new InvalidOperationException("SettableFuture.create returned null.");
     }
 
-    public static void SetResult(IListenableFuture future, JniObject value)
+    /// <summary>
+    /// Completes a settable future. Returns false when the Java <c>set</c> method is missing or returns false.
+    /// </summary>
+    public static bool SetResult(IListenableFuture future, JniObject value)
     {
         var settable = Java.Lang.Class.ForName("com.google.common.util.concurrent.SettableFuture")
             ?? throw new InvalidOperationException("Guava SettableFuture is not on the classpath.");
         var method = settable.GetMethod("set", Java.Lang.Class.FromType(typeof(JniObject)));
-        method?.Invoke(future as JniObject, value);
+        if (method == null)
+        {
+            return false;
+        }
+
+        var invoked = method.Invoke(future as JniObject, value);
+        if (invoked is Java.Lang.Boolean boolean)
+        {
+            return boolean.BooleanValue();
+        }
+
+        return invoked != null;
     }
 }

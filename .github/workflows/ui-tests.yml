@@ -1,0 +1,154 @@
+name: UI tests
+
+# Appium UI, visual, and media lifecycle tests. Not a required check.
+# Android phone and Android Automotive run on Linux with KVM. iOS runs on macOS.
+# CarPlay's external display stays on the Mac Mini (see tests/UITESTS.md).
+
+on:
+  pull_request:
+    branches:
+      - develop
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  ui-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - name: Apply CI SDK pin
+        run: cp -f .github/dotnet/global.ci.json global.json
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+      - name: Build UITEST app and car host
+        run: |
+          dotnet build src/Bible.Alarm/Bible.Alarm.csproj -c Release -f net10.0-android -m:1 \
+            -p:BUILD_ANDROID_ONLY=true -p:UiTestHooks=true -p:AndroidPackageFormat=apk
+          dotnet build tests/Bible.Alarm.CarHostSim/Bible.Alarm.CarHostSim.csproj -c Release -f net10.0-android -m:1
+          dotnet build tests/Bible.Alarm.UITests/Bible.Alarm.UITests.csproj -c Release
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run Android UI tests
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        env:
+          UI_TEST_FILTER: UI=Android
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          emulator-boot-timeout: 900
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash "${GITHUB_WORKSPACE}/.github/scripts/ci-android-ui-tests.sh"
+      - name: Upload Android UI artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ui-android
+          path: artifacts/ui-android/**
+          retention-days: 14
+          if-no-files-found: ignore
+
+  ui-android-auto:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - name: Apply CI SDK pin
+        run: cp -f .github/dotnet/global.ci.json global.json
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Install MAUI Android workload
+        run: dotnet workload install maui-android
+      - name: Build UITEST app and car host
+        run: |
+          dotnet build src/Bible.Alarm/Bible.Alarm.csproj -c Release -f net10.0-android -m:1 \
+            -p:BUILD_ANDROID_ONLY=true -p:UiTestHooks=true -p:AndroidPackageFormat=apk
+          dotnet build tests/Bible.Alarm.CarHostSim/Bible.Alarm.CarHostSim.csproj -c Release -f net10.0-android -m:1
+          dotnet build tests/Bible.Alarm.UITests/Bible.Alarm.UITests.csproj -c Release
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Run Android Automotive UI tests
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        env:
+          UI_TEST_FILTER: UI=AndroidAuto
+        with:
+          api-level: 34
+          target: android-automotive
+          arch: x86_64
+          emulator-boot-timeout: 900
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          disable-animations: true
+          script: bash "${GITHUB_WORKSPACE}/.github/scripts/ci-android-ui-tests.sh"
+      - name: Upload Android Automotive UI artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ui-android-auto
+          path: artifacts/ui-android/**
+          retention-days: 14
+          if-no-files-found: ignore
+
+  ui-ios:
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - name: Apply CI SDK pin
+        run: cp -f .github/dotnet/global.ci.json global.json
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+      - name: Install MAUI iOS workload
+        run: dotnet workload install maui-ios
+      - name: Build UITEST iOS app and tests
+        run: |
+          dotnet build src/Bible.Alarm/Bible.Alarm.csproj -c Debug -f net10.0-ios -m:1 \
+            -p:BUILD_IOS_ONLY=true -p:UiTestHooks=true \
+            -p:RuntimeIdentifier=iossimulator-arm64 -p:MtouchLink=SdkOnly
+          dotnet build tests/Bible.Alarm.UITests/Bible.Alarm.UITests.csproj -c Release
+      - name: Run iOS UI tests
+        run: bash .github/scripts/ci-ios-ui-tests.sh
+      - name: Upload iOS UI artifacts
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: ui-ios
+          path: artifacts/ui-ios/**
+          retention-days: 14
+          if-no-files-found: ignore

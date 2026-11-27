@@ -29,7 +29,7 @@
                 Margin="0"
                 IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
                 RowSpacing="0">
-                <CollectionView
+                <CollectionView AutomationId="SelectionList"
                     x:Name="trackCollectionView"
                     Margin="0,8,0,0"
                     BackgroundColor="Transparent"

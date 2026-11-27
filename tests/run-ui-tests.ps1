@@ -36,18 +36,36 @@
 
 [CmdletBinding()]
 param(
-    [ValidateSet('Windows','Android','iOS','All')]
+    [ValidateSet('Windows','Android','AndroidAuto','iOS','All')]
     [string]$Platform = 'Windows',
     [string]$Aumid,
     [switch]$SkipDeploy,
     [int]$AppiumPort = 4723,
-    [string]$MacHost = $env:MAC_HOST
+    [string]$MacHost = $env:MAC_HOST,
+    [string]$RemoteHost
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot   = Split-Path -Parent $PSScriptRoot
 $uiTestProj = Join-Path $repoRoot 'tests/Bible.Alarm.UITests/Bible.Alarm.UITests.csproj'
 $appiumUrl  = "http://127.0.0.1:$AppiumPort/"
+
+function Add-ToolDirectory([string]$Directory) {
+    if ([string]::IsNullOrWhiteSpace($Directory) -or -not (Test-Path $Directory)) {
+        return
+    }
+    $normalized = $Directory.TrimEnd('\')
+    if ($env:PATH.Split(';') -notcontains $normalized) {
+        $env:PATH = "$normalized;" + $env:PATH
+    }
+}
+
+Add-ToolDirectory "$env:LOCALAPPDATA\Android\Sdk\platform-tools"
+Add-ToolDirectory "$env:LOCALAPPDATA\Android\Sdk\emulator"
+Add-ToolDirectory "$env:LOCALAPPDATA\Android\Sdk\cmdline-tools\19.0\bin"
+Add-ToolDirectory "$env:APPDATA\npm"
+Add-ToolDirectory "C:\Program Files\nodejs"
+Add-ToolDirectory "C:\Program Files\dotnet"
 
 function Assert-Tool($name, $hint) {
     if (-not (Get-Command $name -ErrorAction SilentlyContinue)) {
@@ -59,8 +77,15 @@ function Start-Appium {
     Write-Output "[ui] starting Appium 2 server on $appiumUrl ..."
     $appiumLog = Join-Path $env:TEMP "appium-ui-tests.log"
     if (Test-Path $appiumLog) { Remove-Item $appiumLog -Force }
-    $proc = Start-Process -FilePath 'appium' -ArgumentList @('--port', $AppiumPort, '--log-level', 'info') `
-        -RedirectStandardOutput $appiumLog -RedirectStandardError $appiumLog -PassThru -WindowStyle Hidden
+    # npm's appium.ps1 is not a Win32 process. Launch the CLI through node so stdout and stderr can be logged.
+    $node = (Get-Command node).Source
+    $appiumIndex = Join-Path $env:APPDATA "npm\node_modules\appium\index.js"
+    if (-not (Test-Path $appiumIndex)) {
+        throw "Appium CLI not found at $appiumIndex. Install with: npm install -g appium@2"
+    }
+    $appiumErr = Join-Path $env:TEMP "appium-ui-tests.err.log"
+    $proc = Start-Process -FilePath $node -ArgumentList @($appiumIndex, '--port', "$AppiumPort", '--log-level', 'info') `
+        -RedirectStandardOutput $appiumLog -RedirectStandardError $appiumErr -PassThru -WindowStyle Hidden
 
     # Poll the /status endpoint for up to 30s.
     $deadline = (Get-Date).AddSeconds(30)
@@ -126,32 +151,54 @@ function Invoke-WindowsUITests {
     }
 }
 
-function Invoke-AndroidUITests {
+function Invoke-AndroidAppiumTests([string]$Filter) {
     Assert-Tool 'appium' 'Install with: npm install -g appium@2'
     Assert-Tool 'adb' 'Install Android command-line tools and add platform-tools to PATH.'
 
     $devices = & adb devices | Select-String -Pattern '^\S+\s+device$'
     if (-not $devices) {
-        throw "No connected ADB device. Boot an emulator first: emulator -avd <name> &"
+        throw "No connected ADB device. Boot an emulator first: emulator -avd BA_Pixel6_API34"
     }
 
     if (-not $SkipDeploy) {
         Write-Output "[ui] building + installing Android APK..."
         dotnet build (Join-Path $repoRoot 'src/Bible.Alarm/Bible.Alarm.csproj') `
-            -c Debug -f net10.0-android -t:Install -p:BUILD_ANDROID_ONLY=true
+            -c Debug -f net10.0-android -t:Install -p:BUILD_ANDROID_ONLY=true `
+            -p:UiTestHooks=true -p:AndroidPackageFormat=apk
         if ($LASTEXITCODE -ne 0) { throw "Android install failed ($LASTEXITCODE)." }
+        dotnet build (Join-Path $repoRoot 'tests/Bible.Alarm.CarHostSim/Bible.Alarm.CarHostSim.csproj') `
+            -c Debug -f net10.0-android -t:Install
+        if ($LASTEXITCODE -ne 0) { throw "CarHostSim install failed ($LASTEXITCODE)." }
     }
+
+    dotnet build $uiTestProj -c Release
+    if ($LASTEXITCODE -ne 0) { throw "UI test build failed ($LASTEXITCODE)." }
 
     $env:APPIUM_URL = $appiumUrl
     $appium = Start-Appium
     try {
         dotnet test $uiTestProj --no-build --verbosity normal `
-            --filter 'UI=Android' `
+            --filter $Filter `
             --logger 'console;verbosity=detailed'
-        if ($LASTEXITCODE -ne 0) { throw "Android UI tests failed ($LASTEXITCODE)." }
+        if ($LASTEXITCODE -ne 0) { throw "Android UI tests failed for filter '$Filter' ($LASTEXITCODE)." }
     } finally {
         Stop-Appium $appium
     }
+}
+
+function Invoke-AndroidUITests {
+    Invoke-AndroidAppiumTests -Filter 'UI=Android'
+}
+
+function Invoke-AndroidAutoUITests {
+    if ($RemoteHost) {
+        $remoteCmd = "cd ~/bible-alarm && bash ./tests/run-ui-tests-linux.sh auto"
+        & ssh $RemoteHost $remoteCmd
+        if ($LASTEXITCODE -ne 0) { throw "Remote Android Automotive UI tests failed ($LASTEXITCODE)." }
+        return
+    }
+
+    Invoke-AndroidAppiumTests -Filter 'UI=AndroidAuto'
 }
 
 function Invoke-IosUITests {
@@ -174,6 +221,7 @@ function Invoke-IosUITests {
 switch ($Platform) {
     'Windows' { Invoke-WindowsUITests }
     'Android' { Invoke-AndroidUITests }
+    'AndroidAuto' { Invoke-AndroidAutoUITests }
     'iOS'     { Invoke-IosUITests }
     'All'     {
         Invoke-WindowsUITests

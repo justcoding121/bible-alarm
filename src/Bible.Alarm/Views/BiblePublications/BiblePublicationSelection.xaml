@@ -32,7 +32,7 @@
                 Margin="0"
                 RowSpacing="0">
                 <!-- Enhanced Collection View with Card Layout -->
-                <CollectionView
+                <CollectionView AutomationId="SelectionList"
                     x:Name="publicationsCollectionView"
                     Margin="0,8,0,0"
                     BackgroundColor="Transparent"

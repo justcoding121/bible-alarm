@@ -61,7 +61,7 @@
             </Border>
             
             <!-- Collection View -->
-            <CollectionView
+            <CollectionView AutomationId="SelectionList"
                 x:Name="songPublicationsCollectionView"
                 Grid.Row="1"
                 Margin="0,8,0,20"
@@ -201,7 +201,7 @@
             </core:SfEffectsView>
             <!-- Regular button for Android/iOS -->
             <Border Grid.Row="2"
-                x:Name="CloseButtonNoEffects"
+                x:Name="CloseButtonNoEffects" AutomationId="ModalCloseButton"
                 Margin="{DynamicResource MarginThicknessModalClose}"
                 BackgroundColor="{DynamicResource CardBackgroundColor}"
                 HorizontalOptions="Fill"

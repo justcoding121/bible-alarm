@@ -63,14 +63,27 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
     public override void OnCreate()
     {
         SetCurrent(this);
-        ForegroundServiceOperations.StartForegroundMinimal(this, LibraryForegroundNotificationId);
-        SetIsForeground(true);
-        ReleaseAlarmIfPlaybackRunning();
-        _ = SessionStatePlayer.Instance;
-        base.OnCreate();
-
         try
         {
+            if (!MauiAppHolder.IsInitialized)
+            {
+                MauiAppHolder.CreateAndStore();
+            }
+
+            ForegroundServiceOperations.StartForegroundMinimal(this, LibraryForegroundNotificationId);
+            SetIsForeground(true);
+            try
+            {
+                ReleaseAlarmIfPlaybackRunning();
+            }
+            catch (Exception releaseEx)
+            {
+                logger.Warning(releaseEx, "Could not release the alarm foreground service during OnCreate");
+            }
+
+            _ = SessionStatePlayer.Instance;
+            base.OnCreate();
+
             // Same id and channel as the startup placeholder, so Media3 replaces
             // "Starting..." in place instead of posting a second notification.
             var provider = new DefaultMediaNotificationProvider.Builder(this)
@@ -84,17 +97,33 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
             session = new MediaLibraryService.MediaLibrarySession.Builder(this, SessionStatePlayer.Instance, callback)
                 .SetId("BibleAlarmSession")!
                 .Build();
+            if (session == null)
+            {
+                logger.Error("Media3 library session was not created. Stopping the service so the car host does not bind a null session.");
+                StopSelf();
+                return;
+            }
+
             // The platform sees a MediaSession as soon as it is built. The service
             // posts its media notification only for sessions passed to AddSession.
             AddSession(session);
             ApplySessionActive(SessionStatePlayer.Instance.IsSessionActive);
-            subscription.SetSession(session!);
+            subscription.SetSession(session);
             _ = subscription.InitializeAsync();
             StartBootstrap();
         }
         catch (Exception ex)
         {
             logger.Error(ex, "Media3 library service failed during OnCreate");
+            session = null;
+            try
+            {
+                StopSelf();
+            }
+            catch (Exception stopEx)
+            {
+                logger.Error(stopEx, "Media3 library service could not stop after OnCreate failed");
+            }
         }
     }
 
@@ -138,6 +167,11 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
         {
             try
             {
+                if (!MauiAppHolder.IsInitialized)
+                {
+                    MauiAppHolder.CreateAndStore();
+                }
+
                 MauiProgram.InitializePlatformBootstrap(MauiAppHolder.Services, isForeground: false);
                 var rotation = ServiceProviderManager.GetService<IAndroidAutoDefaultScheduleRotationService>();
                 rotation?.Start();

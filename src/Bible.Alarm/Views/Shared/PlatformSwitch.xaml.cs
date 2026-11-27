@@ -57,6 +57,25 @@ public partial class PlatformSwitch : ContentView
         };
         Content = sfSwitch;
 #endif
+        ApplyAutomationId();
+    }
+
+    private void ApplyAutomationId()
+    {
+        if (string.IsNullOrEmpty(AutomationId))
+        {
+            return;
+        }
+
+        if (winUISwitch != null)
+        {
+            winUISwitch.AutomationId = AutomationId;
+        }
+
+        if (sfSwitch != null)
+        {
+            sfSwitch.AutomationId = AutomationId;
+        }
     }
 
     public bool IsToggled
@@ -150,6 +169,11 @@ public partial class PlatformSwitch : ContentView
     protected override void OnPropertyChanged(string? propertyName = null)
     {
         base.OnPropertyChanged(propertyName);
+
+        if (propertyName == AutomationIdProperty.PropertyName)
+        {
+            ApplyAutomationId();
+        }
 
         // Sync Scale / HorizontalOptions to child control (Android and iOS SfSwitch)
         if (sfSwitch != null)

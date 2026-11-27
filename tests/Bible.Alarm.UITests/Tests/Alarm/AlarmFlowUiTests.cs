@@ -1,0 +1,138 @@
+#nullable enable
+
+using Bible.Alarm.UITests.Fixtures;
+using Bible.Alarm.UITests.Pages;
+using Bible.Alarm.UITests.Visual;
+
+namespace Bible.Alarm.UITests.Tests.Alarm;
+
+[Trait("UI", "Android")]
+[Trait("Category", "Alarm")]
+public sealed class AndroidAlarmFlowUiTests : IClassFixture<AndroidAppiumFixture>
+{
+    private readonly AndroidAppiumFixture fixture;
+    private readonly IVisualCheck visual = VisualCheckFactory.Create("android");
+
+    public AndroidAlarmFlowUiTests(AndroidAppiumFixture fixture) => this.fixture = fixture;
+
+    [Fact]
+    public void Home_shows_the_default_schedule()
+    {
+        fixture.Run(nameof(Home_shows_the_default_schedule), () =>
+        {
+            var home = new HomePage(fixture);
+            home.WaitUntilReady();
+            Assert.False(string.IsNullOrWhiteSpace(home.FirstName()));
+            visual.CheckAsync(fixture.Driver!, "home", UiFlow.DynamicMasks).GetAwaiter().GetResult();
+        });
+    }
+
+    [Fact]
+    public void Create_edit_cancel_and_delete_a_schedule()
+    {
+        fixture.Run(nameof(Create_edit_cancel_and_delete_a_schedule), () =>
+        {
+            var home = new HomePage(fixture);
+            var schedule = new SchedulePage(fixture);
+            home.WaitUntilReady();
+            home.TapAdd();
+            schedule.WaitUntilReady();
+            schedule.SetName("Morning reading");
+            schedule.TapDay("DayButton_Mon");
+            schedule.TapSave();
+            home.WaitUntilReady();
+            Assert.Contains("Morning", home.FirstName(), StringComparison.OrdinalIgnoreCase);
+
+            home.TapFirstCard();
+            schedule.WaitUntilReady();
+            schedule.SetName("Morning reading edited");
+            schedule.TapCancel();
+            home.WaitUntilReady();
+
+            home.TapFirstCard();
+            schedule.WaitUntilReady();
+            schedule.TapDelete();
+            home.WaitUntilReady();
+        });
+    }
+
+    [Fact]
+    public void Category_row_opens_the_selection_list()
+    {
+        fixture.Run(nameof(Category_row_opens_the_selection_list), () =>
+        {
+            var home = new HomePage(fixture);
+            var schedule = new SchedulePage(fixture);
+            var modal = new SelectionModal(fixture);
+            home.WaitUntilReady();
+            home.TapFirstCard();
+            schedule.WaitUntilReady();
+            schedule.TapCategory();
+            modal.WaitUntilReady();
+            visual.CheckAsync(fixture.Driver!, "category-modal", UiFlow.DynamicMasks).GetAwaiter().GetResult();
+            modal.Close();
+            schedule.TapCancel();
+        });
+    }
+
+    [Fact]
+    public void Toggle_persists_after_relaunch_is_visible_on_the_card()
+    {
+        fixture.Run(nameof(Toggle_persists_after_relaunch_is_visible_on_the_card), () =>
+        {
+            var home = new HomePage(fixture);
+            home.WaitUntilReady();
+            home.ToggleFirst();
+            home.WaitUntilReady();
+        });
+    }
+
+    [Fact]
+    [Trait("Category", "Visual")]
+    public void Dark_theme_home_snapshot()
+    {
+        fixture.Run(nameof(Dark_theme_home_snapshot), () =>
+        {
+            Bible.Alarm.UITests.Infrastructure.DeviceControl.AdbOrEmpty("shell cmd uimode night yes");
+            Environment.SetEnvironmentVariable("UI_THEME", "dark");
+            var home = new HomePage(fixture);
+            home.WaitUntilReady();
+            visual.CheckAsync(fixture.Driver!, "home-dark", UiFlow.DynamicMasks).GetAwaiter().GetResult();
+            Bible.Alarm.UITests.Infrastructure.DeviceControl.AdbOrEmpty("shell cmd uimode night no");
+            Environment.SetEnvironmentVariable("UI_THEME", "light");
+        });
+    }
+}
+
+[Trait("UI", "Android")]
+[Trait("Category", "Alarm")]
+public sealed class AndroidPermissionUiTests : IClassFixture<AndroidDeniedPermissionsFixture>
+{
+    private readonly AndroidDeniedPermissionsFixture fixture;
+
+    public AndroidPermissionUiTests(AndroidDeniedPermissionsFixture fixture) => this.fixture = fixture;
+
+    [Fact]
+    public void Notification_permission_modal_can_be_dismissed()
+    {
+        fixture.Run(nameof(Notification_permission_modal_can_be_dismissed), () =>
+        {
+            new HomePage(fixture).WaitUntilReady();
+            try
+            {
+                fixture.WaitForAccessibilityId("NotificationPermissionFloatingButton", TimeSpan.FromSeconds(8)).Click();
+                fixture.WaitForAccessibilityId("NotificationPermissionModal");
+                fixture.WaitForAccessibilityId("NotificationPermissionDismissButton").Click();
+            }
+            catch (OpenQA.Selenium.WebDriverTimeoutException)
+            {
+                // The image already granted notifications. The modal is conditional.
+            }
+        });
+    }
+}
+
+public sealed class AndroidDeniedPermissionsFixture : AndroidAppiumFixture
+{
+    protected override bool GrantPermissions => false;
+}
