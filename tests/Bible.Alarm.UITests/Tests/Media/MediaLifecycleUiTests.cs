@@ -208,6 +208,204 @@ public sealed class AndroidAudioFocusUiTests : IClassFixture<AndroidAppiumFixtur
     }
 
     [Fact]
+    public void Transient_focus_pauses_and_resumes_on_release()
+    {
+        fixture.Run(nameof(Transient_focus_pauses_and_resumes_on_release), () =>
+        {
+            PlayFromHome();
+            try
+            {
+                Assert.Contains("\"ok\":true", DeviceControl.CarHost("focus", "transient"), StringComparison.Ordinal);
+                Waits.Until(() => Session().PlaybackState is 2 or 1, TimeSpan.FromSeconds(15), "paused for transient focus");
+                Assert.Contains("\"ok\":true", DeviceControl.CarHost("focus", "release"), StringComparison.Ordinal);
+                Waits.Until(() => Session().PlaybackState == 3, TimeSpan.FromSeconds(20), "resumed after transient focus");
+            }
+            finally
+            {
+                _ = DeviceControl.CarHost("focus", "release");
+            }
+        });
+    }
+
+    [Fact]
+    public void Duck_focus_pauses_or_keeps_playing()
+    {
+        fixture.Run(nameof(Duck_focus_pauses_or_keeps_playing), () =>
+        {
+            PlayFromHome();
+            try
+            {
+                Assert.Contains("\"ok\":true", DeviceControl.CarHost("focus", "duck"), StringComparison.Ordinal);
+                // This app pauses on a duckable loss. Keeping playback at lower volume is also acceptable.
+                Waits.Until(() => Session().PlaybackState is 3 or 2 or 1, TimeSpan.FromSeconds(15), "duck focus settled");
+            }
+            finally
+            {
+                _ = DeviceControl.CarHost("focus", "release");
+            }
+        });
+    }
+
+    [Fact]
+    public void Permanent_focus_loss_stays_paused()
+    {
+        fixture.Run(nameof(Permanent_focus_loss_stays_paused), () =>
+        {
+            PlayFromHome();
+            try
+            {
+                Assert.Contains("\"ok\":true", DeviceControl.CarHost("focus", "gain"), StringComparison.Ordinal);
+                Waits.Until(() => Session().PlaybackState is 2 or 1, TimeSpan.FromSeconds(15), "paused for permanent focus loss");
+                Assert.Contains("\"ok\":true", DeviceControl.CarHost("focus", "release"), StringComparison.Ordinal);
+                var deadline = DateTime.UtcNow.AddSeconds(10);
+                while (DateTime.UtcNow < deadline)
+                {
+                    Assert.NotEqual(3, Session().PlaybackState);
+                    Thread.Sleep(500);
+                }
+            }
+            finally
+            {
+                _ = DeviceControl.CarHost("focus", "release");
+            }
+        });
+    }
+
+    [Fact]
+    public void Phone_call_pauses_and_cancel_resumes()
+    {
+        fixture.Run(nameof(Phone_call_pauses_and_cancel_resumes), () =>
+        {
+            PlayFromHome();
+            try
+            {
+                DeviceControl.Adb("emu gsm call 5551234");
+                Waits.Until(() => Session().PlaybackState is 2 or 1, TimeSpan.FromSeconds(20), "paused for the phone call");
+                DeviceControl.Adb("emu gsm cancel 5551234");
+                Waits.Until(() => Session().PlaybackState == 3, TimeSpan.FromSeconds(20), "resumed after the phone call");
+            }
+            finally
+            {
+                DeviceControl.AdbOrEmpty("emu gsm cancel 5551234");
+            }
+        });
+    }
+
+    [Fact]
+    public void Alarm_takes_focus_back_and_dismiss_removes_notification_3()
+    {
+        fixture.Run(nameof(Alarm_takes_focus_back_and_dismiss_removes_notification_3), () =>
+        {
+            EnsureHome();
+            try
+            {
+                Assert.Contains("\"ok\":true", DeviceControl.CarHost("focus", "gain"), StringComparison.Ordinal);
+                DeviceControl.BringAndroidAppToFront(AndroidAppiumFixture.DefaultPackageName);
+                DeviceControl.AndroidBroadcast("com.jthomas.info.Bible.Alarm.UITEST_FIRE_ALARM", "--es ScheduleId 1");
+                Waits.Until(
+                    () => fixture.IsShown("PlaybackModal")
+                        || fixture.IsShown("MiniBar")
+                        || Session().PlaybackState == 3,
+                    TimeSpan.FromSeconds(90),
+                    "alarm playback while another app holds focus");
+                if (fixture.IsShown("AlarmDismissButton"))
+                {
+                    new PlaybackPage(fixture).TapDismiss();
+                }
+                else if (fixture.IsShown("MiniBar"))
+                {
+                    new MiniBarPage(fixture).TapStop();
+                }
+
+                Waits.Until(() => Session().PlaybackState is not 3, TimeSpan.FromSeconds(20), "stopped after dismiss");
+                Waits.Until(
+                    () => !NotificationIsPosted(AndroidAppiumFixture.DefaultPackageName, 3),
+                    TimeSpan.FromSeconds(20),
+                    "notification 3 removed");
+            }
+            finally
+            {
+                _ = DeviceControl.CarHost("focus", "release");
+            }
+        });
+    }
+
+    private void PlayFromHome()
+    {
+        EnsureHome();
+        new HomePage(fixture).TapFirstPlay();
+        // A later play can resume in the mini bar instead of opening the full modal.
+        Waits.Until(
+            () => Session().PlaybackState == 3
+                || fixture.IsShown("PlaybackModal")
+                || fixture.IsShown("MiniBar"),
+            TimeSpan.FromSeconds(30),
+            "playback visible");
+        Waits.Until(() => Session().PlaybackState == 3, TimeSpan.FromSeconds(20), "playing");
+    }
+
+    private void EnsureHome()
+    {
+        DeviceControl.AdbOrEmpty("shell cmd statusbar collapse");
+        var deadline = DateTime.UtcNow.AddSeconds(25);
+        while (DateTime.UtcNow < deadline)
+        {
+            DeviceControl.BringAndroidAppToFront(AndroidAppiumFixture.DefaultPackageName);
+            if (fixture.IsShown("AlarmDismissButton") || fixture.IsShown("AlarmDismissButtonLandscape"))
+            {
+                new PlaybackPage(fixture).TapDismiss();
+                Thread.Sleep(500);
+                continue;
+            }
+
+            if (fixture.IsShown("MiniBarStop") || fixture.IsShown("MiniBar"))
+            {
+                new MiniBarPage(fixture).TapStop();
+                Thread.Sleep(500);
+                continue;
+            }
+
+            if (fixture.IsShown("HomePage")
+                && !fixture.IsShown("MiniBar")
+                && !fixture.IsShown("PlaybackModal")
+                && !fixture.IsShown("AlarmDismissButton"))
+            {
+                Thread.Sleep(800);
+                if (!fixture.IsShown("MiniBar")
+                    && !fixture.IsShown("PlaybackModal")
+                    && !fixture.IsShown("AlarmDismissButton"))
+                {
+                    return;
+                }
+            }
+
+            Thread.Sleep(400);
+        }
+
+        new HomePage(fixture).WaitUntilReady();
+    }
+
+    private static MediaSessionSnapshot Session()
+        => DeviceControl.AndroidMediaSession(AndroidAppiumFixture.DefaultPackageName);
+
+    private static bool NotificationIsPosted(string packageName, int id)
+    {
+        var dump = DeviceControl.AdbOrEmpty("shell dumpsys notification --noredact");
+        var packageMarker = $"pkg={packageName}";
+        var idMarker = $"id={id}";
+        foreach (var record in dump.Split("NotificationRecord", StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (record.Contains(packageMarker, StringComparison.Ordinal)
+                && record.Contains(idMarker, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    [Fact]
     public void Alarm_hook_starts_playback()
     {
         fixture.Run(nameof(Alarm_hook_starts_playback), () =>

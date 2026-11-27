@@ -16,6 +16,7 @@ namespace Bible.Alarm.CarHostSim;
 public class HarnessActivity : Activity
 {
     private const string Tag = "CarHostSim";
+    private AudioFocusRequestClass? heldFocus;
     private const string TargetPackage = "com.jthomas.info.Bible.Alarm";
     private const string TargetService = "bible.alarm.platforms.android.services.media3.BibleAlarmMediaLibraryService";
 
@@ -280,8 +281,19 @@ public class HarnessActivity : Activity
         };
         if (focus == AudioFocus.None)
         {
-            manager.AbandonAudioFocus(null);
+            if (heldFocus != null)
+            {
+                manager.AbandonAudioFocusRequest(heldFocus);
+                heldFocus = null;
+            }
+
             return Result("focus", true, started, 0, "released");
+        }
+
+        if (heldFocus != null)
+        {
+            manager.AbandonAudioFocusRequest(heldFocus);
+            heldFocus = null;
         }
 
         var attributes = new MediaAudioAttributes.Builder()
@@ -291,6 +303,7 @@ public class HarnessActivity : Activity
         var request = new AudioFocusRequestClass.Builder(focus)
             .SetAudioAttributes(attributes)!
             .Build();
+        heldFocus = request;
         var granted = manager.RequestAudioFocus(request!);
         PlayTone();
         return Result("focus", granted == AudioFocusRequest.Granted, started, 1, granted.ToString());

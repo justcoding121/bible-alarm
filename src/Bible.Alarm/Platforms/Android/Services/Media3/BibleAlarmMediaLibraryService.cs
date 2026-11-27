@@ -61,7 +61,7 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
         // MediaSessionService checks the main looper. Bootstrap effects call this from a worker thread.
         if (Looper.MyLooper() == Looper.MainLooper)
         {
-            service.SetShowNotificationForIdlePlayer(mode);
+            ApplyIdleNotificationMode(service, mode, active);
             return;
         }
 
@@ -74,13 +74,35 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
                     return;
                 }
 
-                service.SetShowNotificationForIdlePlayer(mode);
+                ApplyIdleNotificationMode(service, mode, active);
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "Failed to update the idle media notification");
             }
         });
+    }
+
+    private static void ApplyIdleNotificationMode(BibleAlarmMediaLibraryService service, int mode, bool active)
+    {
+        service.SetShowNotificationForIdlePlayer(mode);
+        if (active)
+        {
+            return;
+        }
+
+        // An inactive session must not keep the library foreground notification.
+        if (OperatingSystem.IsAndroidVersionAtLeast(33))
+        {
+            service.StopForeground(StopForegroundFlags.Remove);
+        }
+        else
+        {
+            service.StopForeground(true);
+        }
+
+        var manager = service.GetSystemService(NotificationService) as NotificationManager;
+        manager?.Cancel(LibraryForegroundNotificationId);
     }
 
     public override void OnCreate()
