@@ -20,6 +20,9 @@ export IOS_SIMULATOR_UDID="${DEVICE}"
 
 APP="$(find src/Bible.Alarm/bin -path '*iossimulator*' -name 'Bible.Alarm.app' -type d | head -n 1 || true)"
 if [[ -n "${APP}" ]]; then
+  # The hosted build skips identity signing. An unsigned simulator binary is killed
+  # immediately with codesign invalid-page, so sign it ad-hoc before install.
+  codesign --force --deep --sign - "${APP}"
   xcrun simctl install "${DEVICE}" "${APP}"
   export BIBLE_ALARM_APP_PATH="${APP}"
 fi
@@ -44,6 +47,6 @@ dotnet test tests/Bible.Alarm.UITests/Bible.Alarm.UITests.csproj \
 STATUS=$?
 set -e
 
-xcrun simctl spawn booted log show --last 10m --style compact > artifacts/ui-ios/simulator.log || true
+xcrun simctl spawn booted log show --last 10m --style compact --predicate 'processImagePath CONTAINS "Bible.Alarm" OR eventMessage CONTAINS "com.jthomas.info.Bible.Alarm"' > artifacts/ui-ios/simulator.log || true
 kill "${APPIUM_PID}" || true
 exit "${STATUS}"
