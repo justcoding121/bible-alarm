@@ -532,26 +532,25 @@ public sealed class IosSpringboardNotificationUiTests : IClassFixture<IosAppiumF
                 DeviceControl.DarwinNotify("com.jthomas.biblealarm.uitest.fireAlarm.1");
                 ActivateSpringboard(driver);
                 var started = DateTime.UtcNow;
-                var opened = false;
+                var nextOpen = started.AddSeconds(2);
                 Waits.Until(() =>
                 {
                     // The permission alert is a Springboard dialog. A swipe before it is
                     // accepted dismisses it. When it never appears, permission is already granted.
-                    var tapped = TryTapAllow(driver);
-                    if (tapped)
+                    if (TryTapAllow(driver))
                     {
-                        opened = false;
+                        nextOpen = DateTime.UtcNow.AddSeconds(2);
+                        return false;
                     }
 
-                    var promptSettled = tapped || DateTime.UtcNow - started > TimeSpan.FromSeconds(6);
-                    if (promptSettled && !opened)
+                    if (DateTime.UtcNow >= nextOpen)
                     {
                         OpenNotificationCenter(driver);
-                        opened = true;
+                        nextOpen = DateTime.UtcNow.AddSeconds(4);
                     }
 
                     return SpringboardShowsAlarm(driver);
-                }, TimeSpan.FromSeconds(25), "Springboard alarm notification");
+                }, TimeSpan.FromSeconds(40), "Springboard alarm notification");
             }
             finally
             {

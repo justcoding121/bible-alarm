@@ -47,7 +47,7 @@ public class IosAppiumFixture : AppiumFixtureBase
         // default but we still bump it to keep the smoke test from flaking on slow runners.
         // A hosted iOS 26 simulator often needs more than the 120s boot budget. The first
         // session otherwise dies with "failed to finish booting" and the rest of the class never runs.
-        options.AddAdditionalAppiumOption("wdaLaunchTimeout", 90_000);
+        options.AddAdditionalAppiumOption("wdaLaunchTimeout", 180_000);
         options.AddAdditionalAppiumOption("simulatorStartupTimeout", 360_000);
         options.AddAdditionalAppiumOption("appLaunchStateTimeoutSec", 90);
         options.AddAdditionalAppiumOption("newCommandTimeout", 180);

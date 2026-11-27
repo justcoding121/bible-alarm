@@ -169,7 +169,8 @@ public static class UiTestHooks
                     Sound = UNNotificationSound.Default
                 };
                 content.UserInfo = new NSDictionary(new NSString("ScheduleId"), new NSString(scheduleId.ToString()));
-                var trigger = UNTimeIntervalNotificationTrigger.CreateTrigger(3, false);
+                // Long enough for the UI test to background the app before iOS delivers it.
+                var trigger = UNTimeIntervalNotificationTrigger.CreateTrigger(8, false);
                 var request = UNNotificationRequest.FromIdentifier($"uitest-fire-{scheduleId}", content, trigger);
                 center.AddNotificationRequest(request, err =>
                 {
