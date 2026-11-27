@@ -209,10 +209,21 @@ public sealed class IosCarPlayHookUiTests : IClassFixture<IosAppiumFixture>
 
         fixture.Run(nameof(CarPlay_external_display_screenshot), () =>
         {
-            new HomePage(fixture).WaitUntilReady();
-            _ = DeviceControl.Run("osascript", "-e 'tell application \"Simulator\" to activate'", throwOnError: false);
-            var shot = DeviceControl.Run("xcrun", "simctl io booted screenshot --display=external /tmp/bible-alarm-carplay.png", throwOnError: false);
-            Assert.False(string.IsNullOrWhiteSpace(shot) && !File.Exists("/tmp/bible-alarm-carplay.png"));
+            // The phone UI may still be the player from the hook test. The capture is the
+            // CarPlay screen (simctl name wireless0), not the phone home page.
+            const string shotPath = "/tmp/bible-alarm-carplay.png";
+            if (File.Exists(shotPath))
+            {
+                File.Delete(shotPath);
+            }
+
+            DeviceControl.Run("xcrun", "simctl io booted screenConfig --display=wireless0 power on", throwOnError: false);
+            DeviceControl.Run("xcrun", $"simctl io booted screenshot --display=wireless0 --type=png {shotPath}", throwOnError: true);
+            var info = new FileInfo(shotPath);
+            // A powered-but-idle CarPlay framebuffer compresses to a few KB of black.
+            // A real CarPlay window is larger. Device Hub shows it via I/O > External Displays > CarPlay.
+            Assert.True(info.Exists && info.Length > 12_000,
+                $"CarPlay display capture was missing or blank ({(info.Exists ? info.Length : 0)} bytes).");
         });
     }
 }
