@@ -95,6 +95,41 @@ public sealed class AndroidScheduleEditorUiTests : IClassFixture<AndroidAppiumFi
     }
 
     [Fact]
+    public void Start_with_music_persists_after_relaunch()
+    {
+        Run(nameof(Start_with_music_persists_after_relaunch), () =>
+        {
+            var home = new HomePage(fixture);
+            var schedule = new SchedulePage(fixture);
+            try
+            {
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                Assert.False(MusicChoicesShown(schedule), "The sample schedule does not start with music.");
+                SetStartWithMusic(schedule, enabled: true);
+                schedule.TapSave();
+                home.WaitUntilReady();
+                Relaunch();
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                Assert.True(MusicChoicesShown(schedule));
+                SetStartWithMusic(schedule, enabled: false);
+                schedule.TapSave();
+                home.WaitUntilReady();
+            }
+            finally
+            {
+                if (fixture.IsShown("SchedulePage"))
+                {
+                    schedule.TapCancel();
+                }
+            }
+        });
+    }
+
+    [Fact]
     public void Indefinite_track_count_hides_the_finite_row()
     {
         Run(nameof(Indefinite_track_count_hides_the_finite_row), () =>
@@ -409,6 +444,44 @@ public sealed class AndroidScheduleEditorUiTests : IClassFixture<AndroidAppiumFi
         }
 
         return fixture.IsShown("MusicEnabledRow");
+    }
+
+    private bool MusicChoicesShown(SchedulePage schedule)
+    {
+        schedule.ScrollTo("MusicEnabledRow");
+        if (fixture.IsShown("MusicLanguageRow"))
+        {
+            return true;
+        }
+
+        if (fixture.Driver is AndroidDriver driver)
+        {
+            driver.ExecuteScript("mobile: swipeGesture", new Dictionary<string, object>
+            {
+                ["left"] = 100,
+                ["top"] = 700,
+                ["width"] = 800,
+                ["height"] = 900,
+                ["direction"] = "up",
+                ["percent"] = 0.35
+            });
+        }
+
+        return fixture.IsShown("MusicLanguageRow");
+    }
+
+    private void SetStartWithMusic(SchedulePage schedule, bool enabled)
+    {
+        if (MusicChoicesShown(schedule) == enabled)
+        {
+            return;
+        }
+
+        schedule.TapRow("MusicEnabledRow");
+        Waits.Until(
+            () => fixture.IsShown("MusicLanguageRow") == enabled,
+            TimeSpan.FromSeconds(15),
+            enabled ? "music choices" : "music choices hidden");
     }
 
     private bool FiniteTrackRowShown(SchedulePage schedule)
