@@ -55,9 +55,32 @@ public class BibleAlarmMediaLibraryService : MediaLibraryService
             return;
         }
 
-        service.SetShowNotificationForIdlePlayer(active
+        var mode = active
             ? AndroidX.Media3.Session.MediaSessionService.ShowNotificationForIdlePlayerAlways
-            : AndroidX.Media3.Session.MediaSessionService.ShowNotificationForIdlePlayerNever);
+            : AndroidX.Media3.Session.MediaSessionService.ShowNotificationForIdlePlayerNever;
+        // MediaSessionService checks the main looper. Bootstrap effects call this from a worker thread.
+        if (Looper.MyLooper() == Looper.MainLooper)
+        {
+            service.SetShowNotificationForIdlePlayer(mode);
+            return;
+        }
+
+        new Handler(Looper.MainLooper!).Post(() =>
+        {
+            try
+            {
+                if (current == null)
+                {
+                    return;
+                }
+
+                service.SetShowNotificationForIdlePlayer(mode);
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Failed to update the idle media notification");
+            }
+        });
     }
 
     public override void OnCreate()

@@ -1,6 +1,7 @@
 #nullable enable
 
 using Bible.Alarm.UITests.Fixtures;
+using Bible.Alarm.UITests.Infrastructure;
 using Bible.Alarm.UITests.Pages;
 using Bible.Alarm.UITests.Visual;
 
@@ -35,21 +36,26 @@ public sealed class AndroidAlarmFlowUiTests : IClassFixture<AndroidAppiumFixture
             var home = new HomePage(fixture);
             var schedule = new SchedulePage(fixture);
             home.WaitUntilReady();
+            _ = home.FirstName();
             home.TapAdd();
             schedule.WaitUntilReady();
             schedule.SetName("Morning reading");
             schedule.TapDay("DayButton_Mon");
             schedule.TapSave();
             home.WaitUntilReady();
-            Assert.Contains("Morning", home.FirstName(), StringComparison.OrdinalIgnoreCase);
+            // The seeded schedule stays first. The created schedule is appended.
+            Waits.Until(
+                () => home.Names().Any(name => name.Contains("Morning", StringComparison.OrdinalIgnoreCase)),
+                TimeSpan.FromSeconds(20),
+                "created schedule name");
 
-            home.TapFirstCard();
+            home.TapCardNamed("Morning");
             schedule.WaitUntilReady();
             schedule.SetName("Morning reading edited");
             schedule.TapCancel();
             home.WaitUntilReady();
 
-            home.TapFirstCard();
+            home.TapCardNamed("Morning");
             schedule.WaitUntilReady();
             schedule.TapDelete();
             home.WaitUntilReady();
@@ -93,13 +99,19 @@ public sealed class AndroidAlarmFlowUiTests : IClassFixture<AndroidAppiumFixture
     {
         fixture.Run(nameof(Dark_theme_home_snapshot), () =>
         {
-            Bible.Alarm.UITests.Infrastructure.DeviceControl.AdbOrEmpty("shell cmd uimode night yes");
-            Environment.SetEnvironmentVariable("UI_THEME", "dark");
-            var home = new HomePage(fixture);
-            home.WaitUntilReady();
-            visual.CheckAsync(fixture.Driver!, "home-dark", UiFlow.DynamicMasks).GetAwaiter().GetResult();
-            Bible.Alarm.UITests.Infrastructure.DeviceControl.AdbOrEmpty("shell cmd uimode night no");
-            Environment.SetEnvironmentVariable("UI_THEME", "light");
+            try
+            {
+                Bible.Alarm.UITests.Infrastructure.DeviceControl.AdbOrEmpty("shell cmd uimode night yes");
+                Environment.SetEnvironmentVariable("UI_THEME", "dark");
+                var home = new HomePage(fixture);
+                home.WaitUntilReady();
+                visual.CheckAsync(fixture.Driver!, "home-dark", UiFlow.DynamicMasks).GetAwaiter().GetResult();
+            }
+            finally
+            {
+                Bible.Alarm.UITests.Infrastructure.DeviceControl.AdbOrEmpty("shell cmd uimode night no");
+                Environment.SetEnvironmentVariable("UI_THEME", "light");
+            }
         });
     }
 }

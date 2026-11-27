@@ -62,6 +62,7 @@ public sealed class AndroidCarHostUiTests : IClassFixture<AndroidAppiumFixture>
     {
         fixture.Run(nameof(Warm_start_play_keeps_a_single_session), () =>
         {
+            DeviceControl.BringAndroidAppToFront(AndroidAppiumFixture.DefaultPackageName);
             var home = new HomePage(fixture);
             home.WaitUntilReady();
             home.TapFirstPlay();
@@ -129,7 +130,11 @@ public sealed class AndroidAudioFocusUiTests : IClassFixture<AndroidAppiumFixtur
     {
         fixture.Run(nameof(Alarm_hook_starts_playback), () =>
         {
-            new HomePage(fixture).WaitUntilReady();
+            DeviceControl.BringAndroidAppToFront(AndroidAppiumFixture.DefaultPackageName);
+            Waits.Until(
+                () => fixture.IsShown("HomePage") || fixture.IsShown("PlaybackModal"),
+                TimeSpan.FromSeconds(60),
+                "home or playback");
             DeviceControl.AndroidBroadcast("com.jthomas.info.Bible.Alarm.UITEST_DUMP_STATE");
             DeviceControl.AndroidBroadcast("com.jthomas.info.Bible.Alarm.UITEST_FIRE_ALARM", "--es ScheduleId 1");
             new PlaybackPage(fixture).WaitUntilReady();

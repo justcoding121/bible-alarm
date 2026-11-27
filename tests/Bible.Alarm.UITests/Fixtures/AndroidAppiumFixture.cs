@@ -27,6 +27,8 @@ public class AndroidAppiumFixture : AppiumFixtureBase
 
     public override Task InitializeAsync()
     {
+        Bible.Alarm.UITests.Infrastructure.DeviceControl.EnableAndroidWindowAnimations();
+
         if (ResetBeforeSession)
         {
             Bible.Alarm.UITests.Infrastructure.DeviceControl.TryClearAndroidPackage(

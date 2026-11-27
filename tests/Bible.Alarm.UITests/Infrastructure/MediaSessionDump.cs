@@ -56,7 +56,7 @@ public static partial class MediaSessionDump
         return new MediaSessionSnapshot(sessionCount, state, title);
     }
 
-    [GeneratedRegex(@"state=(\d+)")]
+    [GeneratedRegex(@"state=(?:[A-Z_]+\()?(\d+)\)?")]
     private static partial Regex StatePattern();
 
     [GeneratedRegex(@"description=([^,}\r\n]+)")]

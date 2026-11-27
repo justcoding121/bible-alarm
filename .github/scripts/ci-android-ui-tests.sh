@@ -9,6 +9,11 @@ mkdir -p artifacts/ui-android "$APK_DIR"
 
 adb wait-for-device
 adb shell input keyevent 82 || true
+# A zero animator duration scale spins MAUI's repeating ValueAnimator and the home screen never leaves the spinner.
+adb shell settings put global animator_duration_scale 1 || true
+adb shell settings put global transition_animation_scale 1 || true
+adb shell settings put global window_animation_scale 1 || true
+adb shell settings put global hide_error_dialogs 1 || true
 
 APP_APK="$(find src/Bible.Alarm/bin -name '*Signed*.apk' -o -name '*.apk' | head -n 1 || true)"
 if [[ -z "${APP_APK}" ]]; then

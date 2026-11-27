@@ -39,73 +39,204 @@ public class HarnessActivity : Activity
         var argument = intent?.GetStringExtra("arg");
         var started = SystemClock.ElapsedRealtime();
         Android.Util.Log.Info(Tag, "start " + command);
-        // Media3 completes session futures on the main looper. Blocking Get() here deadlocks the car host.
-        _ = Task.Run(() =>
+        // MediaBrowser checks the main looper, and its futures also complete there.
+        // Get() on that looper deadlocks, so each future reports through a listener instead.
+        new Handler(Looper.MainLooper!).Post(() => Begin(command, argument, started));
+    }
+
+    private void Begin(string command, string? argument, long started)
+    {
+        try
         {
-            try
+            if (command == "focus")
             {
-                Android.Util.Log.Info(Tag, Execute(command, argument, started));
+                Android.Util.Log.Info(Tag, Focus(argument, started));
+                return;
             }
-            catch (Exception ex)
+
+            var component = new ComponentName(TargetPackage, TargetService);
+            var token = new SessionToken(this, component);
+            var future = new MediaBrowser.Builder(this, token).BuildAsync();
+            if (future == null)
             {
-                Android.Util.Log.Error(Tag, ex.ToString());
-                Android.Util.Log.Info(Tag, "{\"cmd\":\"" + command + "\",\"ok\":false,\"error\":\"" + Escape(ex.Message) + "\"}");
+                Fail(command, started, "browser was not created");
+                return;
             }
+
+            WhenComplete(future, () =>
+            {
+                MediaBrowser? browser = null;
+                try
+                {
+                    browser = future.Get() as MediaBrowser;
+                    if (browser == null)
+                    {
+                        Fail(command, started, "browser was not created");
+                        return;
+                    }
+
+                    Dispatch(browser, command, argument, started);
+                }
+                catch (Exception ex)
+                {
+                    Report(command, started, ex);
+                    Release(browser);
+                }
+            }, command, started);
+        }
+        catch (Exception ex)
+        {
+            Report(command, started, ex);
+        }
+    }
+
+    private void Dispatch(MediaBrowser browser, string command, string? argument, long started)
+    {
+        switch (command)
+        {
+            case "root":
+                var rootFuture = browser.GetLibraryRoot(null);
+                if (rootFuture == null)
+                {
+                    Finish(browser, Result(command, false, started, 0, "root future was null"));
+                    return;
+                }
+
+                WhenComplete(rootFuture, () =>
+                {
+                    var root = rootFuture.Get() as LibraryResult;
+                    var ok = root?.ResultCode == LibraryResult.ResultSuccess;
+                    Finish(browser, Result("root", ok, started, ok ? 1 : 0, root?.ResultCode.ToString()));
+                }, command, started, browser);
+                return;
+            case "children":
+                var childrenFuture = browser.GetChildren(argument ?? "__ID_ROOT__", 0, 50, null);
+                if (childrenFuture == null)
+                {
+                    Finish(browser, Result(command, false, started, 0, "children future was null"));
+                    return;
+                }
+
+                WhenComplete(childrenFuture, () =>
+                {
+                    var list = childrenFuture.Get() as LibraryResult;
+                    var count = Count(list);
+                    var ok = list?.ResultCode == LibraryResult.ResultSuccess && count > 0;
+                    Finish(browser, Result("children", ok, started, count, ok ? null : list?.ResultCode.ToString()));
+                }, command, started, browser);
+                return;
+            case "play":
+                Finish(browser, Play(browser, argument, started));
+                return;
+            case "pause":
+                Finish(browser, Transport(browser, static player => player.Pause(), "pause", started));
+                return;
+            case "next":
+                Finish(browser, Transport(browser, static player => player.SeekToNext(), "next", started));
+                return;
+            case "state":
+                Finish(browser, State(browser, started));
+                return;
+            default:
+                Finish(browser, Result(command, false, started, 0, "unknown command"));
+                return;
+        }
+    }
+
+    private static void WhenComplete(
+        object? future,
+        Action completed,
+        string command,
+        long started,
+        MediaBrowser? browser = null)
+    {
+        // Guava's ListenableFuture is a private runtime dependency of Media3, so the listener is invoked by name.
+        var addListener = future?.GetType().GetMethods().FirstOrDefault(method =>
+            method.Name == "AddListener" && method.GetParameters().Length == 2);
+        if (addListener == null)
+        {
+            Fail(command, started, "future was not listenable");
+            Release(browser);
+            return;
+        }
+
+        addListener.Invoke(future, new object?[]
+        {
+            new Java.Lang.Runnable(() =>
+            {
+                try
+                {
+                    completed();
+                }
+                catch (Exception ex)
+                {
+                    Report(command, started, ex);
+                    Release(browser);
+                }
+            }),
+            new DirectExecutor()
         });
     }
 
-    private string Execute(string command, string? argument, long started)
+    private static int Count(LibraryResult? list)
     {
-        if (command == "focus")
-        {
-            return Focus(argument, started);
-        }
-
-        var component = new ComponentName(TargetPackage, TargetService);
-        var token = new SessionToken(this, component);
-        var built = new MediaBrowser.Builder(this, token).BuildAsync()?.Get();
-        if (built is not MediaBrowser browser)
-        {
-            return Result(command, false, started, 0, "browser was not created");
-        }
-
-        try
-        {
-            return command switch
-            {
-                "root" => Root(browser, started),
-                "children" => Children(browser, argument ?? "__ID_ROOT__", started),
-                "play" => Play(browser, argument, started),
-                "pause" => Transport(browser, static player => player.Pause(), "pause", started),
-                "next" => Transport(browser, static player => player.SeekToNext(), "next", started),
-                "state" => State(browser, started),
-                _ => Result(command, false, started, 0, "unknown command")
-            };
-        }
-        finally
-        {
-            browser.Release();
-        }
-    }
-
-    private static string Root(MediaBrowser browser, long started)
-    {
-        var root = browser.GetLibraryRoot(null)?.Get() as LibraryResult;
-        var ok = root?.ResultCode == LibraryResult.ResultSuccess;
-        return Result("root", ok, started, ok ? 1 : 0, root?.ResultCode.ToString());
-    }
-
-    private static string Children(MediaBrowser browser, string parentId, long started)
-    {
-        var list = browser.GetChildren(parentId, 0, 50, null)?.Get() as LibraryResult;
-        var count = list?.Value switch
+        return list?.Value switch
         {
             Java.Util.AbstractCollection collection => collection.Size(),
             System.Collections.ICollection items => items.Count,
             _ => 0
         };
-        var ok = list?.ResultCode == LibraryResult.ResultSuccess;
-        return Result("children", ok && count > 0, started, count, ok ? null : list?.ResultCode.ToString());
+    }
+
+    private static void Finish(MediaBrowser browser, string json)
+    {
+        Android.Util.Log.Info(Tag, json);
+        Release(browser);
+    }
+
+    private static void Release(MediaBrowser? browser)
+    {
+        if (browser == null)
+        {
+            return;
+        }
+
+        // The browse listener runs on the future's thread. Release only succeeds on the main looper.
+        if (Looper.MyLooper() == Looper.MainLooper)
+        {
+            ReleaseNow(browser);
+            return;
+        }
+
+        new Handler(Looper.MainLooper!).Post(() => ReleaseNow(browser));
+    }
+
+    private static void ReleaseNow(MediaBrowser browser)
+    {
+        try
+        {
+            browser.Release();
+        }
+        catch (Exception ex)
+        {
+            Android.Util.Log.Error(Tag, "release failed: " + ex.Message);
+        }
+    }
+
+    private static void Fail(string command, long started, string error)
+    {
+        Android.Util.Log.Info(Tag, Result(command, false, started, 0, error));
+    }
+
+    private static void Report(string command, long started, Exception ex)
+    {
+        Android.Util.Log.Error(Tag, ex.ToString());
+        Android.Util.Log.Info(Tag, "{\"cmd\":\"" + command + "\",\"ok\":false,\"error\":\"" + Escape(ex.Message) + "\"}");
+    }
+
+    private sealed class DirectExecutor : Java.Lang.Object, Java.Util.Concurrent.IExecutor
+    {
+        public void Execute(Java.Lang.IRunnable? command) => command?.Run();
     }
 
     private static string Play(MediaBrowser browser, string? mediaId, long started)

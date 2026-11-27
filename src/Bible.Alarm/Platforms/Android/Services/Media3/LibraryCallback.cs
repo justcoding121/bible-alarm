@@ -92,17 +92,31 @@ public sealed class LibraryCallback : Java.Lang.Object, MediaLibraryService.Medi
         MediaLibraryService.LibraryParams? libraryParams)
     {
         _ = session;
-        _ = libraryParams;
-        if (!AndroidAutoHostValidator.IsCarHostPackage(browser?.PackageName))
+        try
         {
-            return GuavaFutures.Immediate(LibraryResult.OfError(LibraryResult.ResultErrorPermissionDenied)!);
-        }
+            if (!AndroidAutoHostValidator.IsCarHostPackage(browser?.PackageName))
+            {
+                return GuavaFutures.Immediate(LibraryResult.OfError(LibraryResult.ResultErrorPermissionDenied)!);
+            }
 
-        var root = new MediaItem.Builder()
-            .SetMediaId(Media3LibraryCatalog.RootId)!
-            .SetMediaMetadata(new MediaMetadata.Builder().SetTitle("Bible Alarm")!.SetIsBrowsable(Java.Lang.Boolean.True)!.Build())!
-            .Build();
-        return GuavaFutures.Immediate(LibraryResult.OfItem(root, libraryParams)!);
+            // LibraryResult.ofItem rejects metadata that leaves isPlayable unset, and an
+            // exception here leaves the JNI callback and kills the process. The car host
+            // then reports RESULT_INFO_SKIPPED after its session times out.
+            var root = new MediaItem.Builder()
+                .SetMediaId(Media3LibraryCatalog.RootId)!
+                .SetMediaMetadata(new MediaMetadata.Builder()
+                    .SetTitle("Bible Alarm")!
+                    .SetIsBrowsable(Java.Lang.Boolean.True)!
+                    .SetIsPlayable(Java.Lang.Boolean.False)!
+                    .Build())!
+                .Build();
+            return GuavaFutures.Immediate(LibraryResult.OfItem(root, libraryParams)!);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Android Auto library root failed");
+            return GuavaFutures.Immediate(LibraryResult.OfError(LibraryResult.ResultErrorBadValue)!);
+        }
     }
 
     public IListenableFuture? OnGetChildren(

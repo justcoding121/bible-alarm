@@ -14,6 +14,17 @@ public static class DeviceControl
         _ = Run("adb", $"shell pm clear {packageName}", throwOnError: false);
     }
 
+    public static void EnableAndroidWindowAnimations()
+    {
+        // A duration scale of 0 makes MAUI's repeating ValueAnimator finish and restart
+        // without returning to the looper, so the home screen never leaves the bootstrap spinner.
+        _ = Run("adb", "shell settings put global animator_duration_scale 1", throwOnError: false);
+        _ = Run("adb", "shell settings put global transition_animation_scale 1", throwOnError: false);
+        _ = Run("adb", "shell settings put global window_animation_scale 1", throwOnError: false);
+        // A slow first frame raises an ANR dialog that covers the app, so later finds never see it.
+        _ = Run("adb", "shell settings put global hide_error_dialogs 1", throwOnError: false);
+    }
+
     public static string TryAndroidDiagnostics(string packageName)
     {
         var log = Run("adb", "logcat -d -t 400 -v time", throwOnError: false);
@@ -49,6 +60,12 @@ public static class DeviceControl
         _ = Run("adb", arguments, throwOnError: true);
     }
 
+    public static void BringAndroidAppToFront(string packageName)
+    {
+        // A car-host activity stays in front after a browse, so the next UI test cannot see HomePage.
+        _ = Run("adb", $"shell monkey -p {packageName} -c android.intent.category.LAUNCHER 1", throwOnError: false);
+    }
+
     public static string CarHost(string command, string? argument = null)
     {
         var extras = $"--es cmd {command}";
@@ -62,13 +79,15 @@ public static class DeviceControl
             "adb",
             $"shell am start -n com.google.android.carhostsim/com.google.android.projection.gearhead.HarnessActivity {extras}",
             throwOnError: true);
-        var deadline = DateTime.UtcNow.AddSeconds(30);
+        var deadline = DateTime.UtcNow.AddSeconds(45);
         var log = string.Empty;
         var needle = "\"cmd\":\"" + command + "\"";
         while (DateTime.UtcNow < deadline)
         {
             Thread.Sleep(1000);
-            log = Run("adb", "logcat -d -t 80 -s CarHostSim:I", throwOnError: false);
+            // -t N keeps the newest N lines and only then applies the tag filter, so a cold
+            // start's log flood hides the one CarHostSim result line.
+            log = Run("adb", "logcat -d -s CarHostSim:I", throwOnError: false);
             if (log.Contains(needle, StringComparison.Ordinal)
                 && (log.Contains("\"ok\":true", StringComparison.Ordinal) || log.Contains("\"ok\":false", StringComparison.Ordinal)))
             {

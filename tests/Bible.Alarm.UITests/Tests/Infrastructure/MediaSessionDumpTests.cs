@@ -28,6 +28,19 @@ public sealed class MediaSessionDumpTests
     }
 
     [Fact]
+    public void Parse_reads_the_named_playback_state_used_by_current_android()
+    {
+        const string dump = """
+            package=com.jthomas.info.Bible.Alarm
+            state=PlaybackState {state=PAUSED(2), position=10}
+            """;
+
+        var snapshot = MediaSessionDump.Parse(dump, "com.jthomas.info.Bible.Alarm");
+
+        Assert.Equal(2, snapshot.PlaybackState);
+    }
+
+    [Fact]
     public void Parse_returns_empty_when_the_package_is_absent()
     {
         var snapshot = MediaSessionDump.Parse("package=com.example.other\nstate=2", "com.jthomas.info.Bible.Alarm");

@@ -4,6 +4,7 @@ using Bible.Alarm.UITests.Fixtures;
 using Bible.Alarm.UITests.Infrastructure;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Appium.Android;
 
 namespace Bible.Alarm.UITests.Pages;
 
@@ -15,13 +16,42 @@ public sealed class HomePage
 
     public void WaitUntilReady() => fixture.WaitForAccessibilityId("HomePage", TimeSpan.FromSeconds(60));
 
-    public void TapAdd() => fixture.WaitForAccessibilityId("AddScheduleButton").Click();
+    public void TapAdd()
+    {
+        var driver = fixture.Driver ?? throw new InvalidOperationException("Driver not initialised; did InitializeAsync run?");
+        // WinUI and Android each declare AddScheduleButton. The Android control is the later one.
+        var button = driver.FindElements(By.Id("AddScheduleButton"))
+            .LastOrDefault(element => element.Displayed && element.Size.Height > 0);
+        if (button == null)
+        {
+            fixture.Tap(fixture.WaitForAccessibilityId("AddScheduleButton"));
+            return;
+        }
+
+        fixture.Tap(button);
+    }
 
     public void TapFirstPlay() => fixture.WaitForAccessibilityId("ScheduleListPlayButton").Click();
 
     public void TapFirstCard() => fixture.WaitForAccessibilityId("ScheduleCard").Click();
 
     public string FirstName() => fixture.WaitForAccessibilityId("ScheduleName").Text ?? string.Empty;
+
+    public IReadOnlyList<string> Names()
+    {
+        var driver = fixture.Driver ?? throw new InvalidOperationException("Driver not initialised; did InitializeAsync run?");
+        return driver.FindElements(By.Id("ScheduleName"))
+            .Select(element => element.Text ?? string.Empty)
+            .ToList();
+    }
+
+    public void TapCardNamed(string text)
+    {
+        var driver = fixture.Driver ?? throw new InvalidOperationException("Driver not initialised; did InitializeAsync run?");
+        var match = driver.FindElements(By.Id("ScheduleName"))
+            .First(element => element.Text?.Contains(text, StringComparison.OrdinalIgnoreCase) == true);
+        fixture.Tap(match);
+    }
 
     public void ToggleFirst() => fixture.WaitForAccessibilityId("ScheduleEnableSwitch").Click();
 }
@@ -37,6 +67,7 @@ public sealed class SchedulePage
     public void SetName(string name)
     {
         var entry = fixture.WaitForAccessibilityId("ScheduleNameEntry");
+        entry.Click();
         entry.Clear();
         entry.SendKeys(name);
     }
@@ -49,7 +80,35 @@ public sealed class SchedulePage
 
     public void TapCancel() => fixture.WaitForAccessibilityId("CancelButton").Click();
 
-    public void TapDelete() => fixture.WaitForAccessibilityId("DeleteScheduleButton").Click();
+    public void TapDelete()
+    {
+        if (fixture.Driver is AndroidDriver driver)
+        {
+            for (var attempt = 0; attempt < 4; attempt++)
+            {
+                var shown = driver.FindElements(By.Id("DeleteScheduleButton"))
+                    .FirstOrDefault(element => element.Displayed);
+                if (shown != null)
+                {
+                    fixture.Tap(shown);
+                    return;
+                }
+
+                // The delete control is below the schedule form, and the MAUI ScrollView is not always marked scrollable.
+                driver.ExecuteScript("mobile: swipeGesture", new Dictionary<string, object>
+                {
+                    ["left"] = 100,
+                    ["top"] = 500,
+                    ["width"] = 800,
+                    ["height"] = 1200,
+                    ["direction"] = "up",
+                    ["percent"] = 0.7
+                });
+            }
+        }
+
+        fixture.Tap(fixture.WaitForAccessibilityId("DeleteScheduleButton"));
+    }
 
     public void TapIndefinite() => fixture.WaitForAccessibilityId("IndefiniteRow").Click();
 
@@ -140,15 +199,5 @@ public static class UiFlow
     ];
 
     public static void UntilHome(AppiumFixtureBase fixture) =>
-        Waits.Until(() =>
-        {
-            try
-            {
-                return fixture.Driver?.FindElement(MobileBy.AccessibilityId("HomePage")).Displayed == true;
-            }
-            catch (NoSuchElementException)
-            {
-                return false;
-            }
-        }, TimeSpan.FromSeconds(60), "home page");
+        fixture.WaitForAccessibilityId("HomePage", TimeSpan.FromSeconds(60));
 }
