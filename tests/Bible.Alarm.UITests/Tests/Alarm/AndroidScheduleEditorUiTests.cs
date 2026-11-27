@@ -63,6 +63,41 @@ public sealed class AndroidScheduleEditorUiTests : IClassFixture<AndroidAppiumFi
     }
 
     [Fact]
+    public void Finite_track_count_persists_after_relaunch()
+    {
+        Run(nameof(Finite_track_count_persists_after_relaunch), () =>
+        {
+            var home = new HomePage(fixture);
+            var schedule = new SchedulePage(fixture);
+            try
+            {
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                Assert.False(FiniteTrackRowShown(schedule), "The sample schedule plays indefinitely.");
+                SetFiniteTrackCount(schedule, finite: true);
+                schedule.TapSave();
+                home.WaitUntilReady();
+                Relaunch();
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                Assert.True(FiniteTrackRowShown(schedule));
+                SetFiniteTrackCount(schedule, finite: false);
+                schedule.TapSave();
+                home.WaitUntilReady();
+            }
+            finally
+            {
+                if (fixture.IsShown("SchedulePage"))
+                {
+                    schedule.TapCancel();
+                }
+            }
+        });
+    }
+
+    [Fact]
     public void Language_search_filters_the_list()
     {
         Run(nameof(Language_search_filters_the_list), () =>
@@ -199,6 +234,51 @@ public sealed class AndroidScheduleEditorUiTests : IClassFixture<AndroidAppiumFi
         }
 
         new HomePage(fixture).WaitUntilReady();
+    }
+
+    private bool FiniteTrackRowShown(SchedulePage schedule)
+    {
+        schedule.ScrollTo("IndefiniteRow");
+        if (fixture.IsShown("NumberOfTracksRow"))
+        {
+            return true;
+        }
+
+        if (fixture.Driver is AndroidDriver driver)
+        {
+            driver.ExecuteScript("mobile: swipeGesture", new Dictionary<string, object>
+            {
+                ["left"] = 100,
+                ["top"] = 700,
+                ["width"] = 800,
+                ["height"] = 900,
+                ["direction"] = "up",
+                ["percent"] = 0.35
+            });
+        }
+
+        return fixture.IsShown("NumberOfTracksRow");
+    }
+
+    private void SetFiniteTrackCount(SchedulePage schedule, bool finite)
+    {
+        if (FiniteTrackRowShown(schedule) == finite)
+        {
+            return;
+        }
+
+        new SelectionModal(fixture).TapText("Play indefinitely");
+        Waits.Until(
+            () => fixture.IsShown("NumberOfTracksRow") == finite,
+            TimeSpan.FromSeconds(15),
+            finite ? "finite track row" : "indefinite track row");
+    }
+
+    private void Relaunch()
+    {
+        var driver = (AndroidDriver)(fixture.Driver ?? throw new InvalidOperationException("Driver not initialised."));
+        driver.TerminateApp(AndroidAppiumFixture.DefaultPackageName);
+        driver.ActivateApp(AndroidAppiumFixture.DefaultPackageName);
     }
 
     private SchedulePage OpenFirstSchedule()
