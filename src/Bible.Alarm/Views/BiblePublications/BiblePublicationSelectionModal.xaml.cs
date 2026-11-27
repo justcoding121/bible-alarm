@@ -105,7 +105,7 @@ public sealed partial class BiblePublicationSelectionModal : BaseContentPage, ID
         }
 
         publicationItem.IsNavigating = true;
-        await Task.Delay(50, cancellationTokenSource.Token);
+        await Task.Delay(50);
 
         try
         {

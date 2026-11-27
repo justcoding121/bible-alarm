@@ -100,7 +100,7 @@ public sealed partial class BiblePublicationSectionSelectionModal : BaseContentP
         isSelectingSection = true;
 
         sectionItem.IsNavigating = true;
-        await Task.Delay(50, cancellationTokenSource.Token);
+        await Task.Delay(50);
 
         try
         {

@@ -100,7 +100,7 @@ public sealed partial class MusicPublicationSelectionModal : BaseContentPage, ID
         isSelectingPublication = true;
 
         publicationItem.IsNavigating = true;
-        await Task.Delay(50, cancellationTokenSource.Token);
+        await Task.Delay(50);
 
         try
         {

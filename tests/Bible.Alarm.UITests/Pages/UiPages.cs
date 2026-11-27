@@ -110,9 +110,48 @@ public sealed class SchedulePage
         fixture.Tap(fixture.WaitForAccessibilityId("DeleteScheduleButton"));
     }
 
-    public void TapIndefinite() => fixture.WaitForAccessibilityId("IndefiniteRow").Click();
+    public void TapIndefinite() => TapRow("IndefiniteRow");
 
-    public void TapMusic() => fixture.WaitForAccessibilityId("MusicEnabledRow").Click();
+    public void TapMusic() => TapRow("MusicEnabledRow");
+
+    public void TapRow(string accessibilityId)
+    {
+        ScrollTo(accessibilityId);
+        fixture.Tap(fixture.WaitForAccessibilityId(accessibilityId));
+    }
+
+    public void ScrollTo(string accessibilityId)
+    {
+        if (fixture.IsShown(accessibilityId))
+        {
+            return;
+        }
+
+        if (fixture.Driver is not AndroidDriver driver)
+        {
+            fixture.WaitForAccessibilityId(accessibilityId);
+            return;
+        }
+
+        for (var attempt = 0; attempt < 6; attempt++)
+        {
+            driver.ExecuteScript("mobile: swipeGesture", new Dictionary<string, object>
+            {
+                ["left"] = 100,
+                ["top"] = 500,
+                ["width"] = 800,
+                ["height"] = 1200,
+                ["direction"] = "up",
+                ["percent"] = 0.55
+            });
+            if (fixture.IsShown(accessibilityId))
+            {
+                return;
+            }
+        }
+
+        fixture.WaitForAccessibilityId(accessibilityId);
+    }
 }
 
 public sealed class SelectionModal
@@ -130,6 +169,49 @@ public sealed class SelectionModal
         var search = fixture.WaitForAccessibilityId("LanguageSearchBar");
         search.Clear();
         search.SendKeys(text);
+    }
+
+    public void RevealText(string text) => FindExactText(text);
+
+    public void TapText(string text) => fixture.Tap(FindExactText(text));
+
+    private IWebElement FindExactText(string text)
+    {
+        var driver = fixture.Driver ?? throw new InvalidOperationException("Driver not initialised; did InitializeAsync run?");
+        for (var attempt = 0; attempt < 14; attempt++)
+        {
+            var match = driver.FindElements(MobileBy.AndroidUIAutomator("new UiSelector().text(\"" + text + "\")"))
+                .FirstOrDefault(element => element.Displayed && element.Location.Y > 250 && element.Location.Y < 2000);
+            if (match != null)
+            {
+                return match;
+            }
+
+            driver.ExecuteScript("mobile: swipeGesture", new Dictionary<string, object>
+            {
+                ["left"] = 80,
+                ["top"] = 400,
+                ["width"] = 900,
+                ["height"] = 1100,
+                ["direction"] = "up",
+                ["percent"] = 0.45
+            });
+        }
+
+        throw new TimeoutException($"Could not find \"{text}\".");
+    }
+
+    public bool ShowsText(string text)
+    {
+        var driver = fixture.Driver;
+        if (driver == null)
+        {
+            return false;
+        }
+
+        return driver.FindElements(MobileBy.AndroidUIAutomator(
+                "new UiSelector().textContains(\"" + text + "\")"))
+            .Any(element => element.Displayed);
     }
 }
 

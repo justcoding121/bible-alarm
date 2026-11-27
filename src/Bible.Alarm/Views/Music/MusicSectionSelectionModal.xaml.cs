@@ -99,7 +99,7 @@ public sealed partial class MusicSectionSelectionModal : BaseContentPage, IDispo
         isSelectingSection = true;
 
         sectionItem.IsNavigating = true;
-        await Task.Delay(50, cancellationTokenSource.Token);
+        await Task.Delay(50);
 
         try
         {

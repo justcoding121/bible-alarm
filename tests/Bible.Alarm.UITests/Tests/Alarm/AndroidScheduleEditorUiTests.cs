@@ -1,0 +1,229 @@
+#nullable enable
+
+using Bible.Alarm.UITests.Fixtures;
+using Bible.Alarm.UITests.Infrastructure;
+using Bible.Alarm.UITests.Pages;
+using OpenQA.Selenium.Appium.Android;
+
+namespace Bible.Alarm.UITests.Tests.Alarm;
+
+[Trait("UI", "Android")]
+[Trait("Category", "Alarm")]
+public sealed class AndroidScheduleEditorUiTests : IClassFixture<AndroidAppiumFixture>
+{
+    private readonly AndroidAppiumFixture fixture;
+
+    public AndroidScheduleEditorUiTests(AndroidAppiumFixture fixture) => this.fixture = fixture;
+
+    [Fact]
+    public void Music_category_hides_start_with_music()
+    {
+        Run(nameof(Music_category_hides_start_with_music), () =>
+        {
+            var schedule = OpenFirstSchedule();
+            schedule.ScrollTo("MusicEnabledRow");
+            Assert.True(fixture.IsShown("MusicEnabledRow"), "A Bible schedule shows Start with music.");
+            schedule.TapCategory();
+            var modal = new SelectionModal(fixture);
+            modal.WaitUntilReady();
+            modal.TapText("Music");
+            Waits.Until(
+                () => fixture.IsShown("SchedulePage") && !fixture.IsShown("MusicEnabledRow"),
+                TimeSpan.FromSeconds(30),
+                "Start with music hidden for Music");
+            schedule.TapCancel();
+            new HomePage(fixture).WaitUntilReady();
+        });
+    }
+
+    [Fact]
+    public void Indefinite_track_count_hides_the_finite_row()
+    {
+        Run(nameof(Indefinite_track_count_hides_the_finite_row), () =>
+        {
+            var schedule = OpenFirstSchedule();
+            var labels = new SelectionModal(fixture);
+            labels.TapText("Play indefinitely");
+            if (!fixture.IsShown("NumberOfTracksRow"))
+            {
+                Waits.Until(
+                    () => fixture.IsShown("NumberOfTracksRow"),
+                    TimeSpan.FromSeconds(10),
+                    "finite track row shown");
+            }
+
+            labels.TapText("Play indefinitely");
+            Waits.Until(
+                () => !fixture.IsShown("NumberOfTracksRow"),
+                TimeSpan.FromSeconds(10),
+                "finite track row hidden");
+            schedule.TapCancel();
+            new HomePage(fixture).WaitUntilReady();
+        });
+    }
+
+    [Fact]
+    public void Language_search_filters_the_list()
+    {
+        Run(nameof(Language_search_filters_the_list), () =>
+        {
+            var schedule = OpenFirstSchedule();
+            schedule.TapRow("BibleLanguageRow");
+            var modal = new SelectionModal(fixture);
+            modal.WaitUntilReady();
+            modal.RevealText("English");
+            Assert.True(modal.ShowsText("English"), "English is in the language list before search.");
+            modal.TypeLanguageSearch("zzzqqq");
+            Waits.Until(
+                () => !modal.ShowsText("English"),
+                TimeSpan.FromSeconds(15),
+                "language search hid English");
+            modal.Close();
+            schedule.TapCancel();
+            new HomePage(fixture).WaitUntilReady();
+        });
+    }
+
+    [Fact]
+    public void Last_schedule_cannot_be_deleted()
+    {
+        Run(nameof(Last_schedule_cannot_be_deleted), () =>
+        {
+            var home = new HomePage(fixture);
+            home.WaitUntilReady();
+            var name = home.FirstName();
+            Assert.False(string.IsNullOrWhiteSpace(name));
+            SwipeCardLeft();
+            var schedule = new SchedulePage(fixture);
+            home.TapFirstCard();
+            schedule.WaitUntilReady();
+            schedule.TapDelete();
+            Thread.Sleep(1000);
+            if (fixture.IsShown("SchedulePage"))
+            {
+                schedule.TapCancel();
+            }
+
+            home.WaitUntilReady();
+            Assert.Contains(name, home.Names(), StringComparer.Ordinal);
+        });
+    }
+
+    [Fact]
+    public void Battery_and_dnd_modal_opens_and_dismisses()
+    {
+        Run(nameof(Battery_and_dnd_modal_opens_and_dismisses), () =>
+        {
+            new HomePage(fixture).WaitUntilReady();
+            Waits.Until(
+                () => fixture.IsShown("AlarmSettingsFloatingButton"),
+                TimeSpan.FromSeconds(20),
+                "battery warning button");
+            fixture.Tap(fixture.WaitForAccessibilityId("AlarmSettingsFloatingButton"));
+            fixture.WaitForAccessibilityId("AndroidAlarmPermissionModal", TimeSpan.FromSeconds(15));
+            Assert.True(
+                fixture.IsShown("BatteryOptimizationButton") || fixture.IsShown("DndPermissionButton"),
+                "The modal offers battery or Do Not Disturb.");
+            fixture.Tap(fixture.WaitForAccessibilityId("BatteryOptimizationDismissButton"));
+            Waits.Until(
+                () => !fixture.IsShown("AndroidAlarmPermissionModal"),
+                TimeSpan.FromSeconds(15),
+                "battery modal dismissed");
+        });
+    }
+
+    private void Run(string name, Action body)
+    {
+        fixture.Run(name, () =>
+        {
+            DismissToHome();
+            body();
+        });
+    }
+
+    private void DismissToHome()
+    {
+        DeviceControl.BringAndroidAppToFront(AndroidAppiumFixture.DefaultPackageName);
+        if (!fixture.IsShown("HomePage")
+            && !fixture.IsShown("SchedulePage")
+            && !fixture.IsShown("SelectionList")
+            && !fixture.IsShown("ModalCloseButton")
+            && !fixture.IsShown("AndroidAlarmPermissionModal")
+            && !fixture.IsShown("PlaybackModal")
+            && !fixture.IsShown("MiniBar"))
+        {
+            new HomePage(fixture).WaitUntilReady();
+            return;
+        }
+
+        for (var attempt = 0; attempt < 6; attempt++)
+        {
+            if (fixture.IsShown("HomePage")
+                && !fixture.IsShown("SchedulePage")
+                && !fixture.IsShown("SelectionList")
+                && !fixture.IsShown("AndroidAlarmPermissionModal")
+                && !fixture.IsShown("PlaybackModal")
+                && !fixture.IsShown("MiniBar"))
+            {
+                return;
+            }
+
+            if (fixture.IsShown("BatteryOptimizationDismissButton"))
+            {
+                fixture.Tap(fixture.WaitForAccessibilityId("BatteryOptimizationDismissButton"));
+            }
+            else if (fixture.IsShown("ModalCloseButton"))
+            {
+                fixture.Tap(fixture.WaitForAccessibilityId("ModalCloseButton"));
+            }
+            else if (fixture.IsShown("AlarmDismissButton") || fixture.IsShown("AlarmDismissButtonLandscape"))
+            {
+                new PlaybackPage(fixture).TapDismiss();
+            }
+            else if (fixture.IsShown("MiniBarStop") || fixture.IsShown("MiniBar"))
+            {
+                new MiniBarPage(fixture).TapStop();
+            }
+            else if (fixture.IsShown("SchedulePage"))
+            {
+                new SchedulePage(fixture).TapCancel();
+            }
+            else
+            {
+                DeviceControl.BringAndroidAppToFront(AndroidAppiumFixture.DefaultPackageName);
+            }
+
+            Thread.Sleep(400);
+        }
+
+        new HomePage(fixture).WaitUntilReady();
+    }
+
+    private SchedulePage OpenFirstSchedule()
+    {
+        var home = new HomePage(fixture);
+        home.WaitUntilReady();
+        home.TapFirstCard();
+        var schedule = new SchedulePage(fixture);
+        schedule.WaitUntilReady();
+        return schedule;
+    }
+
+    private void SwipeCardLeft()
+    {
+        var driver = (AndroidDriver)(fixture.Driver ?? throw new InvalidOperationException("Driver not initialised."));
+        var card = fixture.WaitForAccessibilityId("ScheduleCard");
+        var location = card.Location;
+        var size = card.Size;
+        driver.ExecuteScript("mobile: swipeGesture", new Dictionary<string, object>
+        {
+            ["left"] = location.X,
+            ["top"] = location.Y,
+            ["width"] = Math.Max(size.Width, 1),
+            ["height"] = Math.Max(size.Height, 1),
+            ["direction"] = "left",
+            ["percent"] = 0.75
+        });
+    }
+
+}

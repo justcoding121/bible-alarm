@@ -85,7 +85,7 @@ public sealed partial class MusicTrackSelectionModal : BaseContentPage, IDisposa
         isSelectingTrack = true;
 
         trackItem.IsNavigating = true;
-        await Task.Delay(50, cancellationTokenSource.Token);
+        await Task.Delay(50);
 
         try
         {
