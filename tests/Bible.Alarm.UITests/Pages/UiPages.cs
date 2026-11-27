@@ -38,6 +38,8 @@ public sealed class HomePage
 
     public string FirstName() => fixture.WaitForAccessibilityId("ScheduleName").Text ?? string.Empty;
 
+    public string FirstTime() => fixture.WaitForAccessibilityId("ScheduleTimeText").Text ?? string.Empty;
+
     public IReadOnlyList<string> Names()
     {
         var driver = fixture.Driver ?? throw new InvalidOperationException("Driver not initialised; did InitializeAsync run?");
@@ -78,6 +80,57 @@ public sealed class SchedulePage
     public void TapCategory() => fixture.WaitForAccessibilityId("CategoryRow").Click();
 
     public void TapSave() => fixture.WaitForAccessibilityId("SaveButton").Click();
+
+    public void SetTime(int hour, int minute)
+    {
+        fixture.Tap(fixture.WaitForAccessibilityId("AlarmTimePicker"));
+        var driver = fixture.Driver as AndroidDriver
+            ?? throw new InvalidOperationException("Time entry is implemented for the Android driver.");
+        Waits.Until(
+            () => driver.FindElements(By.Id("android:id/radial_picker")).Any(element => element.Displayed),
+            TimeSpan.FromSeconds(10),
+            "time dialog");
+        TapClockValue(driver, hour.ToString());
+        var minuteLabels = minute == 0
+            ? new[] { "0", "00" }
+            : new[] { minute.ToString("00"), minute.ToString() };
+        if (!ClockValueShown(driver, minuteLabels))
+        {
+            var minuteHeader = driver.FindElements(By.Id("android:id/minutes")).FirstOrDefault(element => element.Displayed);
+            if (minuteHeader != null)
+            {
+                fixture.Tap(minuteHeader);
+            }
+        }
+
+        Waits.Until(() => ClockValueShown(driver, minuteLabels), TimeSpan.FromSeconds(5), "minute dial");
+        TapClockValue(driver, minuteLabels.First(label => ClockValueShown(driver, [label])));
+        driver.FindElements(By.Id("android:id/button1")).First(element => element.Displayed).Click();
+        Waits.Until(
+            () => !driver.FindElements(By.Id("android:id/radial_picker")).Any(element => element.Displayed),
+            TimeSpan.FromSeconds(5),
+            "time dialog closed");
+    }
+
+    private static bool ClockValueShown(AndroidDriver driver, IEnumerable<string> values)
+        => values.Any(value => driver.FindElements(MobileBy.AccessibilityId(value)).Any(element => element.Displayed));
+
+    private void TapClockValue(AndroidDriver driver, string value)
+    {
+        var target = driver.FindElements(MobileBy.AccessibilityId(value)).First(element => element.Displayed);
+        fixture.Tap(target);
+    }
+
+    public void DismissTimeDialog()
+    {
+        if (fixture.Driver is not AndroidDriver driver)
+        {
+            return;
+        }
+
+        var cancel = driver.FindElements(By.Id("android:id/button2")).FirstOrDefault(element => element.Displayed);
+        cancel?.Click();
+    }
 
     public void TapCancel() => fixture.WaitForAccessibilityId("CancelButton").Click();
 

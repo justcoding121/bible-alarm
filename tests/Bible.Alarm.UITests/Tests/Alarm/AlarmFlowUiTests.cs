@@ -84,6 +84,45 @@ public sealed class AndroidAlarmFlowUiTests : IClassFixture<AndroidAppiumFixture
     }
 
     [Fact]
+    public void Schedule_time_persists_after_relaunch()
+    {
+        fixture.Run(nameof(Schedule_time_persists_after_relaunch), () =>
+        {
+            var home = new HomePage(fixture);
+            var schedule = new SchedulePage(fixture);
+            try
+            {
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                schedule.SetTime(7, 30);
+                schedule.TapSave();
+                home.WaitUntilReady();
+                Waits.Until(
+                    () => home.FirstTime().Contains("07:30", StringComparison.Ordinal),
+                    TimeSpan.FromSeconds(15),
+                    "updated time");
+                Relaunch();
+                home.WaitUntilReady();
+                Assert.Contains("07:30", home.FirstTime(), StringComparison.Ordinal);
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                schedule.SetTime(6, 0);
+                schedule.TapSave();
+                home.WaitUntilReady();
+            }
+            finally
+            {
+                schedule.DismissTimeDialog();
+                if (fixture.IsShown("SchedulePage"))
+                {
+                    schedule.TapCancel();
+                }
+            }
+        });
+    }
+
+    [Fact]
     public void Bible_section_change_persists_after_relaunch()
     {
         fixture.Run(nameof(Bible_section_change_persists_after_relaunch), () =>
