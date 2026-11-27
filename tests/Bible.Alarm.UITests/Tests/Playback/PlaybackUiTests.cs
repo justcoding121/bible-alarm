@@ -28,14 +28,21 @@ public sealed class AndroidPlaybackUiTests : IClassFixture<AndroidAppiumFixture>
             home.TapFirstPlay();
             playback.WaitUntilReady();
             visual.CheckAsync(fixture.Driver!, "playback", UiFlow.DynamicMasks).GetAwaiter().GetResult();
-            var title = playback.Title();
+            var title = WaitForTitle(playback, current => current.Length > 0, "playback title");
             playback.TapPause();
             playback.TapPlay();
             playback.TapForward();
             playback.TapBackward();
             playback.TapNext();
-            Waits.Until(() => playback.Title() != title || !string.IsNullOrWhiteSpace(playback.Title()), TimeSpan.FromSeconds(30), "next track title");
+            var nextTitle = WaitForTitle(
+                playback,
+                current => !string.Equals(current, title, StringComparison.Ordinal),
+                "next track title");
             playback.TapPrevious();
+            WaitForTitle(
+                playback,
+                current => !string.Equals(current, nextTitle, StringComparison.Ordinal),
+                "previous track title");
             playback.TapMinimize();
             mini.WaitUntilReady();
             mini.TapPlayPause();
@@ -97,6 +104,17 @@ public sealed class AndroidPlaybackUiTests : IClassFixture<AndroidAppiumFixture>
             playback.TapDismiss();
             home.WaitUntilReady();
         });
+    }
+
+    private static string WaitForTitle(PlaybackPage playback, Func<string, bool> match, string description)
+    {
+        var seen = string.Empty;
+        Waits.Until(() =>
+        {
+            seen = playback.Title();
+            return match(seen);
+        }, TimeSpan.FromSeconds(30), description);
+        return seen;
     }
 
     private static int WaitForSeconds(PlaybackPage playback, Func<int, bool> match, string description)
