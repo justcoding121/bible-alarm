@@ -147,6 +147,10 @@ public abstract class AppiumFixtureBase : IAsyncLifetime
         {
             return FindDisplayed(driver, accessibilityId) != null;
         }
+        catch (StaleElementReferenceException)
+        {
+            return false;
+        }
         catch (NoSuchElementException)
         {
             return false;

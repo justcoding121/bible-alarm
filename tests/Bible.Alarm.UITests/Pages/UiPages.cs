@@ -233,6 +233,29 @@ public sealed class PlaybackPage
 
     public void TapPrevious() => fixture.WaitForAccessibilityId("PlaybackPreviousButton").Click();
 
+    public string CurrentTime() => fixture.WaitForAccessibilityId("PlaybackCurrentTime").Text ?? string.Empty;
+
+    public void DragProgress(double endFraction)
+    {
+        var slider = fixture.WaitForAccessibilityId("PlaybackProgressSlider");
+        if (fixture.Driver is not AndroidDriver driver)
+        {
+            throw new InvalidOperationException("Slider drag is implemented for the Android driver.");
+        }
+
+        var location = slider.Location;
+        var size = slider.Size;
+        var y = location.Y + (size.Height / 2);
+        driver.ExecuteScript("mobile: dragGesture", new Dictionary<string, object>
+        {
+            ["startX"] = location.X + Math.Max(8, size.Width / 10),
+            ["startY"] = y,
+            ["endX"] = location.X + (int)(size.Width * endFraction),
+            ["endY"] = y,
+            ["speed"] = 900
+        });
+    }
+
     public void TapForward() => fixture.WaitForAccessibilityId("PlaybackForwardButton").Click();
 
     public void TapBackward() => fixture.WaitForAccessibilityId("PlaybackBackwardButton").Click();

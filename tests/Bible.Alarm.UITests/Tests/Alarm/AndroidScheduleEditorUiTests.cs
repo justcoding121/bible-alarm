@@ -93,9 +93,8 @@ public sealed class AndroidScheduleEditorUiTests : IClassFixture<AndroidAppiumFi
             home.WaitUntilReady();
             var name = home.FirstName();
             Assert.False(string.IsNullOrWhiteSpace(name));
-            SwipeCardLeft();
-            var schedule = new SchedulePage(fixture);
             home.TapFirstCard();
+            var schedule = new SchedulePage(fixture);
             schedule.WaitUntilReady();
             schedule.TapDelete();
             Thread.Sleep(1000);
@@ -104,6 +103,9 @@ public sealed class AndroidScheduleEditorUiTests : IClassFixture<AndroidAppiumFi
                 schedule.TapCancel();
             }
 
+            home.WaitUntilReady();
+            Assert.Contains(name, home.Names(), StringComparer.Ordinal);
+            SwipeCardLeft();
             home.WaitUntilReady();
             Assert.Contains(name, home.Names(), StringComparer.Ordinal);
         });

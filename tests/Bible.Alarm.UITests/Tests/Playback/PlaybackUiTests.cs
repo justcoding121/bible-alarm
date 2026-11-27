@@ -45,6 +45,57 @@ public sealed class AndroidPlaybackUiTests : IClassFixture<AndroidAppiumFixture>
             home.WaitUntilReady();
         });
     }
+
+    [Fact]
+    public void Slider_drag_seeks_and_relaunch_resumes_that_position()
+    {
+        fixture.Run(nameof(Slider_drag_seeks_and_relaunch_resumes_that_position), () =>
+        {
+            var home = new HomePage(fixture);
+            var playback = new PlaybackPage(fixture);
+            home.WaitUntilReady();
+            home.TapFirstPlay();
+            playback.WaitUntilReady();
+            var start = WaitForSeconds(playback, seconds => seconds >= 0, "playback clock");
+            playback.DragProgress(0.65);
+            var sought = WaitForSeconds(playback, seconds => Math.Abs(seconds - start) > 15, "seeked position");
+            playback.TapDismiss();
+            home.WaitUntilReady();
+            var driver = (OpenQA.Selenium.Appium.Android.AndroidDriver)fixture.Driver!;
+            driver.TerminateApp(AndroidAppiumFixture.DefaultPackageName);
+            driver.ActivateApp(AndroidAppiumFixture.DefaultPackageName);
+            home.WaitUntilReady();
+            home.TapFirstPlay();
+            playback.WaitUntilReady();
+            WaitForSeconds(playback, seconds => seconds >= Math.Max(0, sought - 20), "resumed position");
+            playback.TapDismiss();
+            home.WaitUntilReady();
+        });
+    }
+
+    private static int WaitForSeconds(PlaybackPage playback, Func<int, bool> match, string description)
+    {
+        var seen = -1;
+        Waits.Until(() =>
+        {
+            seen = ClockSeconds(playback.CurrentTime());
+            return match(seen);
+        }, TimeSpan.FromSeconds(25), description);
+        return seen;
+    }
+
+    private static int ClockSeconds(string text)
+    {
+        var parts = text.Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 2
+            && int.TryParse(parts[0], out var minutes)
+            && int.TryParse(parts[1], out var seconds))
+        {
+            return (minutes * 60) + seconds;
+        }
+
+        return -1;
+    }
 }
 
 [Trait("UI", "iOS")]
