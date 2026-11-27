@@ -79,6 +79,34 @@ public sealed class AndroidPlaybackUiTests : IClassFixture<AndroidAppiumFixture>
         });
     }
 
+    [Fact]
+    public void Minimize_returns_and_mini_bar_stop_ends_playback()
+    {
+        fixture.Run(nameof(Minimize_returns_and_mini_bar_stop_ends_playback), () =>
+        {
+            var home = new HomePage(fixture);
+            var playback = new PlaybackPage(fixture);
+            var mini = new MiniBarPage(fixture);
+            home.WaitUntilReady();
+            home.TapFirstPlay();
+            playback.WaitUntilReady();
+            Waits.Until(() => SessionState() == 3, TimeSpan.FromSeconds(20), "playing");
+            fixture.Tap(fixture.WaitForAccessibilityId("PlaybackMinimizeButton"));
+            mini.WaitUntilReady();
+            Waits.Until(() => !fixture.IsShown("PlaybackModal"), TimeSpan.FromSeconds(10), "player minimized");
+            fixture.Tap(fixture.WaitForAccessibilityId("MiniBarMaximize"));
+            playback.WaitUntilReady();
+            fixture.Tap(fixture.WaitForAccessibilityId("PlaybackMinimizeButton"));
+            mini.WaitUntilReady();
+            fixture.Tap(fixture.WaitForAccessibilityId("MiniBarStop"));
+            Waits.Until(
+                () => SessionState() is not 3 && !fixture.IsShown("MiniBar"),
+                TimeSpan.FromSeconds(15),
+                "stopped from the mini bar");
+            home.WaitUntilReady();
+        });
+    }
+
     private static int? SessionState() =>
         DeviceControl.AndroidMediaSession(AndroidAppiumFixture.DefaultPackageName).PlaybackState;
 
