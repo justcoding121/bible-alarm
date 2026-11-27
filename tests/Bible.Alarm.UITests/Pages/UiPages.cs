@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Text.RegularExpressions;
 using Bible.Alarm.UITests.Fixtures;
 using Bible.Alarm.UITests.Infrastructure;
 using OpenQA.Selenium;
@@ -114,6 +115,19 @@ public sealed class SchedulePage
 
     public void TapMusic() => TapRow("MusicEnabledRow");
 
+    public string RowLabel(string accessibilityId)
+    {
+        var row = fixture.WaitForAccessibilityId(accessibilityId);
+        var driver = fixture.Driver ?? throw new InvalidOperationException("Driver not initialised; did InitializeAsync run?");
+        var label = driver.FindElements(MobileBy.AndroidUIAutomator("new UiSelector().className(\"android.widget.TextView\")"))
+            .Where(element => element.Displayed && !string.IsNullOrWhiteSpace(element.Text))
+            .Select(element => (Text: element.Text!.Trim(), Distance: Math.Abs(element.Location.Y - row.Location.Y)))
+            .Where(item => item.Text.Length > 2 && item.Distance < 80)
+            .OrderBy(item => item.Distance)
+            .FirstOrDefault();
+        return label.Text ?? string.Empty;
+    }
+
     public void TapRow(string accessibilityId)
     {
         ScrollTo(accessibilityId);
@@ -174,6 +188,86 @@ public sealed class SelectionModal
     public void RevealText(string text) => FindExactText(text);
 
     public void TapText(string text) => fixture.Tap(FindExactText(text));
+
+    public string TapDifferentVisibleText(string current)
+    {
+        var driver = fixture.Driver ?? throw new InvalidOperationException("Driver not initialised; did InitializeAsync run?");
+        for (var attempt = 0; attempt < 8; attempt++)
+        {
+            var list = fixture.WaitForAccessibilityId("SelectionList");
+            var chosen = Regex.Matches(driver.PageSource, "text=\"([^\"]+)\"")
+                .Select(match => match.Groups[1].Value)
+                .FirstOrDefault(text => IsOtherListLabel(text, current));
+            if (!string.IsNullOrEmpty(chosen))
+            {
+                var match = driver.FindElements(MobileBy.AndroidUIAutomator("new UiSelector().text(\"" + chosen + "\")"))
+                    .FirstOrDefault(element =>
+                        element.Displayed
+                        && element.Location.Y > list.Location.Y
+                        && element.Location.Y < list.Location.Y + list.Size.Height);
+                if (match != null)
+                {
+                    fixture.Tap(match);
+                    return chosen;
+                }
+            }
+
+            SwipeList(driver, list);
+        }
+
+        throw new TimeoutException("Could not find another list item.");
+    }
+
+    public void TapExactInList(string text)
+    {
+        var driver = fixture.Driver ?? throw new InvalidOperationException("Driver not initialised; did InitializeAsync run?");
+        for (var attempt = 0; attempt < 12; attempt++)
+        {
+            var list = fixture.WaitForAccessibilityId("SelectionList");
+            var match = driver.FindElements(MobileBy.AndroidUIAutomator("new UiSelector().text(\"" + text + "\")"))
+                .FirstOrDefault(element =>
+                    element.Displayed
+                    && element.Location.Y > list.Location.Y
+                    && element.Location.Y < list.Location.Y + list.Size.Height);
+            if (match != null)
+            {
+                fixture.Tap(match);
+                return;
+            }
+
+            SwipeList(driver, list);
+        }
+
+        throw new TimeoutException($"Could not find \"{text}\".");
+    }
+
+    private static bool IsOtherListLabel(string? text, string current)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        var trimmed = text.Trim();
+        return trimmed.Length > 2
+            && !string.Equals(trimmed, current, StringComparison.Ordinal)
+            && !trimmed.StartsWith("Select ", StringComparison.Ordinal);
+    }
+
+    private static void SwipeList(AppiumDriver driver, IWebElement list)
+    {
+        var location = list.Location;
+        var size = list.Size;
+        driver.ExecuteScript("mobile: swipeGesture", new Dictionary<string, object>
+        {
+            ["left"] = location.X + 24,
+            ["top"] = location.Y + 48,
+            ["width"] = Math.Max(200, size.Width - 48),
+            ["height"] = Math.Max(240, size.Height - 96),
+            ["direction"] = "up",
+            ["percent"] = 0.55
+        });
+    }
 
     private IWebElement FindExactText(string text)
     {

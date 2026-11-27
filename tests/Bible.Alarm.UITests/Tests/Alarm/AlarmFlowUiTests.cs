@@ -84,6 +84,59 @@ public sealed class AndroidAlarmFlowUiTests : IClassFixture<AndroidAppiumFixture
     }
 
     [Fact]
+    public void Bible_section_change_persists_after_relaunch()
+    {
+        fixture.Run(nameof(Bible_section_change_persists_after_relaunch), () =>
+        {
+            var home = new HomePage(fixture);
+            var schedule = new SchedulePage(fixture);
+            var modal = new SelectionModal(fixture);
+            try
+            {
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                var original = schedule.RowLabel("BibleSectionRow");
+                schedule.TapRow("BibleSectionRow");
+                modal.WaitUntilReady();
+                var chosen = modal.TapDifferentVisibleText(original);
+                Waits.Until(
+                    () => fixture.IsShown("SchedulePage") && schedule.RowLabel("BibleSectionRow") == chosen,
+                    TimeSpan.FromSeconds(20),
+                    "selected book");
+                schedule.TapSave();
+                home.WaitUntilReady();
+                Relaunch();
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                Assert.Equal(chosen, schedule.RowLabel("BibleSectionRow"));
+                schedule.TapRow("BibleSectionRow");
+                modal.WaitUntilReady();
+                modal.TapExactInList(original);
+                Waits.Until(
+                    () => fixture.IsShown("SchedulePage") && schedule.RowLabel("BibleSectionRow") == original,
+                    TimeSpan.FromSeconds(20),
+                    "restored book");
+                schedule.TapSave();
+                home.WaitUntilReady();
+            }
+            finally
+            {
+                if (fixture.IsShown("SelectionList"))
+                {
+                    modal.Close();
+                }
+
+                if (fixture.IsShown("SchedulePage"))
+                {
+                    schedule.TapCancel();
+                }
+            }
+        });
+    }
+
+    [Fact]
     public void Category_row_opens_the_selection_list()
     {
         fixture.Run(nameof(Category_row_opens_the_selection_list), () =>
