@@ -17,11 +17,15 @@ adb shell settings put global hide_error_dialogs 1 || true
 sudo apt-get update -qq
 sudo apt-get install -y libfontconfig1
 
-APP_APK="$(find src/Bible.Alarm/bin -name '*Signed*.apk' -o -name '*.apk' | head -n 1 || true)"
+# find's -o binds looser than the path, so '*Signed*.apk' OR '*.apk' was returning the
+# unsigned package first. That package has no certificates and install aborts the job.
+APP_APK="$(find src/Bible.Alarm/bin -name '*-Signed.apk' -print | head -n 1 || true)"
 if [[ -z "${APP_APK}" ]]; then
-  APP_APK="$(find . -path ./tests/Bible.Alarm.CarHostSim -prune -o -name '*-Signed.apk' -print | head -n 1 || true)"
+  echo "Signed Bible Alarm APK was not found under src/Bible.Alarm/bin"
+  exit 1
 fi
-HARNESS_APK="$(find tests/Bible.Alarm.CarHostSim/bin -name '*.apk' | head -n 1 || true)"
+echo "Installing ${APP_APK}"
+HARNESS_APK="$(find tests/Bible.Alarm.CarHostSim/bin -name '*-Signed.apk' -print | head -n 1 || true)"
 
 if [[ -n "${APP_APK}" ]]; then
   adb install -r -t "${APP_APK}"
