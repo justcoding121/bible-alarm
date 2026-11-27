@@ -54,11 +54,32 @@ public sealed class AndroidAlarmFlowUiTests : IClassFixture<AndroidAppiumFixture
             schedule.SetName("Morning reading edited");
             schedule.TapCancel();
             home.WaitUntilReady();
+            Waits.Until(
+                () => home.Names().Any(name => name.Contains("Morning reading", StringComparison.OrdinalIgnoreCase))
+                    && home.Names().All(name => !name.Contains("edited", StringComparison.OrdinalIgnoreCase)),
+                TimeSpan.FromSeconds(20),
+                "cancelled edit discarded");
 
             home.TapCardNamed("Morning");
             schedule.WaitUntilReady();
+            schedule.SetName("Morning reading edited");
+            schedule.TapSave();
+            home.WaitUntilReady();
+            Relaunch();
+            home.WaitUntilReady();
+            Waits.Until(
+                () => home.Names().Any(name => name.Contains("edited", StringComparison.OrdinalIgnoreCase)),
+                TimeSpan.FromSeconds(20),
+                "edited schedule name");
+
+            home.TapCardNamed("edited");
+            schedule.WaitUntilReady();
             schedule.TapDelete();
             home.WaitUntilReady();
+            Waits.Until(
+                () => home.Names().All(name => !name.Contains("edited", StringComparison.OrdinalIgnoreCase)),
+                TimeSpan.FromSeconds(20),
+                "deleted schedule name");
         });
     }
 
