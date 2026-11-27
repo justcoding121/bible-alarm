@@ -194,6 +194,70 @@ public sealed class AndroidScheduleEditorUiTests : IClassFixture<AndroidAppiumFi
     }
 
     [Fact]
+    public void Music_publication_change_persists_after_relaunch()
+    {
+        Run(nameof(Music_publication_change_persists_after_relaunch), () =>
+        {
+            var home = new HomePage(fixture);
+            var schedule = new SchedulePage(fixture);
+            var modal = new SelectionModal(fixture);
+            try
+            {
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                SetStartWithMusic(schedule, enabled: true);
+                Waits.Until(
+                    () => !string.IsNullOrWhiteSpace(schedule.RowLabel("MusicPublicationRow")),
+                    TimeSpan.FromSeconds(20),
+                    "music publication");
+                var original = schedule.RowLabel("MusicPublicationRow");
+                schedule.TapRow("MusicPublicationRow");
+                modal.WaitUntilReady();
+                var chosen = modal.TapDifferentVisibleText(original);
+                Waits.Until(
+                    () => !fixture.IsShown("SelectionList")
+                        && fixture.IsShown("SchedulePage")
+                        && schedule.RowLabel("MusicPublicationRow") == chosen,
+                    TimeSpan.FromSeconds(45),
+                    "selected music publication");
+                schedule.TapSave();
+                home.WaitUntilReady();
+                Relaunch();
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                schedule.ScrollTo("MusicPublicationRow");
+                Assert.Equal(chosen, schedule.RowLabel("MusicPublicationRow"));
+                schedule.TapRow("MusicPublicationRow");
+                modal.WaitUntilReady();
+                modal.TapExactInList(original);
+                Waits.Until(
+                    () => !fixture.IsShown("SelectionList")
+                        && fixture.IsShown("SchedulePage")
+                        && schedule.RowLabel("MusicPublicationRow") == original,
+                    TimeSpan.FromSeconds(45),
+                    "restored music publication");
+                SetStartWithMusic(schedule, enabled: false);
+                schedule.TapSave();
+                home.WaitUntilReady();
+            }
+            finally
+            {
+                if (fixture.IsShown("SelectionList"))
+                {
+                    modal.Close();
+                }
+
+                if (fixture.IsShown("SchedulePage"))
+                {
+                    schedule.TapCancel();
+                }
+            }
+        });
+    }
+
+    [Fact]
     public void Indefinite_track_count_hides_the_finite_row()
     {
         Run(nameof(Indefinite_track_count_hides_the_finite_row), () =>
