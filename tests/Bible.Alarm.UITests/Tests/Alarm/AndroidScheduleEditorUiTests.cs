@@ -348,6 +348,51 @@ public sealed class AndroidScheduleEditorUiTests : IClassFixture<AndroidAppiumFi
     }
 
     [Fact]
+    public void Restart_from_the_beginning_persists_after_relaunch()
+    {
+        Run(nameof(Restart_from_the_beginning_persists_after_relaunch), () =>
+        {
+            var home = new HomePage(fixture);
+            var schedule = new SchedulePage(fixture);
+            try
+            {
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                ShowRestartRow(schedule);
+                var off = schedule.RowEndColor("AlwaysFromStartRow");
+                fixture.Tap(fixture.WaitForAccessibilityId("AlwaysFromStartRow"));
+                Waits.Until(
+                    () => schedule.RowEndDiffers("AlwaysFromStartRow", off),
+                    TimeSpan.FromSeconds(10),
+                    "restart from the beginning");
+                schedule.TapSave();
+                home.WaitUntilReady();
+                Relaunch();
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                ShowRestartRow(schedule);
+                Assert.True(schedule.RowEndDiffers("AlwaysFromStartRow", off));
+                fixture.Tap(fixture.WaitForAccessibilityId("AlwaysFromStartRow"));
+                Waits.Until(
+                    () => !schedule.RowEndDiffers("AlwaysFromStartRow", off),
+                    TimeSpan.FromSeconds(10),
+                    "restart from the beginning off");
+                schedule.TapSave();
+                home.WaitUntilReady();
+            }
+            finally
+            {
+                if (fixture.IsShown("SchedulePage"))
+                {
+                    schedule.TapCancel();
+                }
+            }
+        });
+    }
+
+    [Fact]
     public void Language_search_filters_the_list()
     {
         Run(nameof(Language_search_filters_the_list), () =>
@@ -484,6 +529,23 @@ public sealed class AndroidScheduleEditorUiTests : IClassFixture<AndroidAppiumFi
         }
 
         new HomePage(fixture).WaitUntilReady();
+    }
+
+    private void ShowRestartRow(SchedulePage schedule)
+    {
+        schedule.ScrollTo("AlwaysFromStartRow");
+        if (fixture.Driver is AndroidDriver driver)
+        {
+            driver.ExecuteScript("mobile: swipeGesture", new Dictionary<string, object>
+            {
+                ["left"] = 100,
+                ["top"] = 700,
+                ["width"] = 800,
+                ["height"] = 900,
+                ["direction"] = "up",
+                ["percent"] = 0.4
+            });
+        }
     }
 
     private bool StartWithMusicShown(SchedulePage schedule)

@@ -123,6 +123,48 @@ public sealed class SchedulePage
         return new SKColor(dominant.R, dominant.G, dominant.B);
     }
 
+    public SKColor RowEndColor(string accessibilityId)
+    {
+        var element = fixture.WaitForAccessibilityId(accessibilityId) as AppiumElement
+            ?? throw new InvalidOperationException("Row is not an Appium element.");
+        using var bitmap = SKBitmap.Decode(element.GetScreenshot().AsByteArray);
+        if (bitmap == null || bitmap.Width < 8 || bitmap.Height < 3)
+        {
+            throw new InvalidOperationException("Row screenshot was empty.");
+        }
+
+        var background = bitmap.GetPixel(bitmap.Width / 3, bitmap.Height / 2);
+        SKColor best = background;
+        var bestDistance = 0;
+        var startX = Math.Max(0, bitmap.Width - 80);
+        for (var y = 0; y < bitmap.Height; y += 2)
+        {
+            for (var x = startX; x < bitmap.Width; x += 2)
+            {
+                var pixel = bitmap.GetPixel(x, y);
+                var distance = Math.Abs(pixel.Red - background.Red)
+                    + Math.Abs(pixel.Green - background.Green)
+                    + Math.Abs(pixel.Blue - background.Blue);
+                if (distance > bestDistance)
+                {
+                    bestDistance = distance;
+                    best = pixel;
+                }
+            }
+        }
+
+        return new SKColor(
+            (byte)(best.Red / 16 * 16),
+            (byte)(best.Green / 16 * 16),
+            (byte)(best.Blue / 16 * 16));
+    }
+
+    public bool RowEndDiffers(string accessibilityId, SKColor baseline)
+    {
+        var color = RowEndColor(accessibilityId);
+        return Math.Abs(color.Red - baseline.Red) + Math.Abs(color.Green - baseline.Green) + Math.Abs(color.Blue - baseline.Blue) > 80;
+    }
+
     public void TapCategory() => fixture.WaitForAccessibilityId("CategoryRow").Click();
 
     public void TapSave() => fixture.WaitForAccessibilityId("SaveButton").Click();
