@@ -114,6 +114,50 @@ public sealed class AndroidAlarmFlowUiTests : IClassFixture<AndroidAppiumFixture
             }
         });
     }
+
+    [Fact]
+    [Trait("Category", "Visual")]
+    public void Dark_theme_covers_editor_modal_and_playback()
+    {
+        fixture.Run(nameof(Dark_theme_covers_editor_modal_and_playback), () =>
+        {
+            try
+            {
+                DeviceControl.AdbOrEmpty("shell cmd uimode night yes");
+                DeviceControl.AdbOrEmpty("shell settings put system accelerometer_rotation 0");
+                DeviceControl.AdbOrEmpty("shell settings put system user_rotation 0");
+                Environment.SetEnvironmentVariable("UI_THEME", "dark");
+                var home = new HomePage(fixture);
+                var schedule = new SchedulePage(fixture);
+                var playback = new PlaybackPage(fixture);
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                visual.CheckAsync(fixture.Driver!, "schedule-dark", UiFlow.DynamicMasks).GetAwaiter().GetResult();
+                schedule.TapCategory();
+                var modal = new SelectionModal(fixture);
+                modal.WaitUntilReady();
+                visual.CheckAsync(fixture.Driver!, "category-dark", UiFlow.DynamicMasks).GetAwaiter().GetResult();
+                modal.Close();
+                schedule.TapCancel();
+                home.WaitUntilReady();
+                home.TapFirstPlay();
+                playback.WaitUntilReady();
+                visual.CheckAsync(fixture.Driver!, "playback-dark", UiFlow.DynamicMasks).GetAwaiter().GetResult();
+                DeviceControl.AdbOrEmpty("shell settings put system user_rotation 1");
+                fixture.WaitForAccessibilityId("AlarmDismissButtonLandscape", TimeSpan.FromSeconds(20));
+                visual.CheckAsync(fixture.Driver!, "playback-landscape-dark", UiFlow.DynamicMasks).GetAwaiter().GetResult();
+                fixture.WaitForAccessibilityId("AlarmDismissButtonLandscape").Click();
+                home.WaitUntilReady();
+            }
+            finally
+            {
+                DeviceControl.AdbOrEmpty("shell settings put system user_rotation 0");
+                DeviceControl.AdbOrEmpty("shell cmd uimode night no");
+                Environment.SetEnvironmentVariable("UI_THEME", "light");
+            }
+        });
+    }
 }
 
 [Trait("UI", "Android")]
