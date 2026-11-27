@@ -44,17 +44,20 @@ echo "[ui-mac] appium --version: $(appium --version)"
 # ---------------------------------------------------------------------------
 # 1. Boot a simulator
 # ---------------------------------------------------------------------------
-udid=$(xcrun simctl list devices "$SIM_NAME" available 2>/dev/null \
-        | awk -F '[()]' '/Booted/{print $2; exit}')
+udid=$(xcrun simctl list devices available 2>/dev/null \
+        | grep -F "$SIM_NAME" | grep -v 'created by XHarness' | head -n 1 \
+        | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/' || true)
 if [[ -z "$udid" ]]; then
-    udid=$(xcrun simctl list devices "$SIM_NAME" available 2>/dev/null \
-            | awk -F '[()]' '/Shutdown/{print $2; exit}')
+    # This Mac may not have the named device (the Mini has iPhone 17, not iPhone 16).
+    udid=$(xcrun simctl list devices available 2>/dev/null \
+            | grep -E 'iPhone [0-9]+ \(' | grep -v 'created by XHarness' | head -n 1 \
+            | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/' || true)
 fi
 if [[ -z "$udid" ]]; then
-    echo "[ui-mac] FATAL: no simulator named '$SIM_NAME' is available. Install one via Xcode > Window > Devices and Simulators."
+    echo "[ui-mac] FATAL: no iPhone simulator is available. Install one via Xcode > Window > Devices and Simulators."
     exit 2
 fi
-echo "[ui-mac] Using simulator '$SIM_NAME' (UDID $udid)"
+echo "[ui-mac] Using simulator UDID $udid"
 xcrun simctl boot "$udid" 2>/dev/null || true
 xcrun simctl bootstatus "$udid" -b
 # Surface the simulator window so visual debugging is possible if a flake hits.
@@ -69,6 +72,10 @@ dotnet build src/Bible.Alarm/Bible.Alarm.csproj \
     -f net10.0-ios \
     -p:RuntimeIdentifier=iossimulator-arm64 \
     -p:BUILD_IOS_ONLY=true \
+    -p:UiTestHooks=true \
+    -p:CodesignKey=- \
+    -p:CodesignEntitlements= \
+    -p:CodesignRequireProvisioningProfile=false \
     --nologo \
     --verbosity minimal
 
@@ -122,8 +129,10 @@ echo "[ui-mac] Appium ready (pid ${appium_pid})"
 # ---------------------------------------------------------------------------
 export APPIUM_URL="${APPIUM_URL_LOCAL}"
 export BIBLE_ALARM_BUNDLE_ID="${BIBLE_ALARM_BUNDLE_ID:-com.jthomas.info.Bible.Alarm}"
+export BIBLE_ALARM_APP_PATH="${app_path}"
 export IOS_SIMULATOR_UDID="${udid}"
 export UI_SCREENSHOT_DIR="${TEST_RESULTS_DIR}"
+export CARPLAY_DISPLAY="${CARPLAY_DISPLAY:-0}"
 
 echo "[ui-mac] dotnet test --filter UI=iOS"
 dotnet test tests/Bible.Alarm.UITests/Bible.Alarm.UITests.csproj \
