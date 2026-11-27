@@ -676,9 +676,13 @@ public sealed class IosInterruptionUiTests : IClassFixture<IosAppiumFixture>
             home.TapFirstPlay();
             playback.WaitUntilReady();
             DeviceControl.DarwinNotify("com.jthomas.biblealarm.uitest.interruption.begin");
-            DeviceControl.DarwinNotify("com.jthomas.biblealarm.uitest.route.oldDeviceUnavailable");
+            Waits.Until(() => fixture.IsShown("PlaybackPlayButton"), TimeSpan.FromSeconds(15), "paused by interruption");
             DeviceControl.DarwinNotify("com.jthomas.biblealarm.uitest.interruption.end");
+            Waits.Until(() => fixture.IsShown("PlaybackPauseButton"), TimeSpan.FromSeconds(15), "resumed after interruption");
+            DeviceControl.DarwinNotify("com.jthomas.biblealarm.uitest.route.oldDeviceUnavailable");
+            Waits.Until(() => fixture.IsShown("PlaybackPlayButton"), TimeSpan.FromSeconds(15), "paused by route change");
             DeviceControl.DarwinNotify("com.jthomas.biblealarm.uitest.remote.pause");
+            Waits.Until(() => fixture.IsShown("PlaybackPlayButton"), TimeSpan.FromSeconds(15), "paused by remote command");
             playback.TapDismiss();
         });
     }

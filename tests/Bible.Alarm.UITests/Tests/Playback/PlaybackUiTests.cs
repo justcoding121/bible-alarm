@@ -73,6 +73,32 @@ public sealed class AndroidPlaybackUiTests : IClassFixture<AndroidAppiumFixture>
         });
     }
 
+    [Fact]
+    public void Forward_and_backward_skip_about_fifteen_seconds()
+    {
+        fixture.Run(nameof(Forward_and_backward_skip_about_fifteen_seconds), () =>
+        {
+            var home = new HomePage(fixture);
+            var playback = new PlaybackPage(fixture);
+            home.WaitUntilReady();
+            home.TapFirstPlay();
+            playback.WaitUntilReady();
+            var start = WaitForSeconds(playback, seconds => seconds >= 1, "playback clock");
+            playback.TapForward();
+            var afterForward = WaitForSeconds(
+                playback,
+                seconds => seconds >= start + 10 && seconds <= start + 25,
+                "forward skip");
+            playback.TapBackward();
+            WaitForSeconds(
+                playback,
+                seconds => Math.Abs(seconds - (afterForward - 15)) <= 8,
+                "backward skip");
+            playback.TapDismiss();
+            home.WaitUntilReady();
+        });
+    }
+
     private static int WaitForSeconds(PlaybackPage playback, Func<int, bool> match, string description)
     {
         var seen = -1;
