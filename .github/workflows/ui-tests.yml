@@ -51,6 +51,7 @@ jobs:
         uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         env:
           UI_TEST_FILTER: UI=Android
+          UI_REAL_ALARM: ${{ github.event_name == 'schedule' && '1' || '0' }}
         with:
           api-level: 34
           target: google_apis

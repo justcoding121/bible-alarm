@@ -81,7 +81,7 @@ public sealed class SchedulePage
 
     public void TapSave() => fixture.WaitForAccessibilityId("SaveButton").Click();
 
-    public void SetTime(int hour, int minute)
+    public void SetTime(int hour, int minute, bool afternoon = false)
     {
         fixture.Tap(fixture.WaitForAccessibilityId("AlarmTimePicker"));
         var driver = fixture.Driver as AndroidDriver
@@ -105,6 +105,12 @@ public sealed class SchedulePage
 
         Waits.Until(() => ClockValueShown(driver, minuteLabels), TimeSpan.FromSeconds(5), "minute dial");
         TapClockValue(driver, minuteLabels.First(label => ClockValueShown(driver, [label])));
+        if (afternoon)
+        {
+            var evening = driver.FindElements(By.Id("android:id/pm_label")).First(element => element.Displayed);
+            fixture.Tap(evening);
+        }
+
         driver.FindElements(By.Id("android:id/button1")).First(element => element.Displayed).Click();
         Waits.Until(
             () => !driver.FindElements(By.Id("android:id/radial_picker")).Any(element => element.Displayed),
@@ -121,6 +127,73 @@ public sealed class SchedulePage
         fixture.Tap(target);
     }
 
+    public void SetExactTime(DateTime time)
+    {
+        var hour12 = time.Hour % 12;
+        if (hour12 == 0)
+        {
+            hour12 = 12;
+        }
+
+        fixture.Tap(fixture.WaitForAccessibilityId("AlarmTimePicker"));
+        var driver = fixture.Driver as AndroidDriver
+            ?? throw new InvalidOperationException("Time entry is implemented for the Android driver.");
+        Waits.Until(
+            () => driver.FindElements(By.Id("android:id/toggle_mode")).Any(element => element.Displayed),
+            TimeSpan.FromSeconds(10),
+            "time dialog");
+        var toggle = driver.FindElements(By.Id("android:id/toggle_mode")).First(element => element.Displayed);
+        var description = toggle.GetAttribute("content-desc") ?? string.Empty;
+        if (description.Contains("text", StringComparison.OrdinalIgnoreCase))
+        {
+            fixture.Tap(toggle);
+        }
+
+        Waits.Until(
+            () => driver.FindElements(By.Id("android:id/input_hour")).Any(element => element.Displayed),
+            TimeSpan.FromSeconds(10),
+            "time text fields");
+        TypeTimeField(driver, "android:id/input_hour", hour12.ToString());
+        TypeTimeField(driver, "android:id/input_minute", time.Minute.ToString("00"));
+        var meridianId = time.Hour >= 12 ? "android:id/pm_label" : "android:id/am_label";
+        var meridian = driver.FindElements(By.Id(meridianId)).FirstOrDefault(element => element.Displayed);
+        if (meridian != null)
+        {
+            fixture.Tap(meridian);
+        }
+
+        try
+        {
+            driver.HideKeyboard();
+        }
+        catch (Exception)
+        {
+            // The time dialog can confirm without a keyboard.
+        }
+
+        fixture.Tap(driver.FindElements(By.Id("android:id/button1")).First(element => element.Displayed));
+        Waits.Until(
+            () => !driver.FindElements(By.Id("android:id/input_hour")).Any(element => element.Displayed),
+            TimeSpan.FromSeconds(5),
+            "time dialog closed");
+        var shown = fixture.WaitForAccessibilityId("AlarmTimePicker").Text ?? string.Empty;
+        var expected = time.ToString("h:mm");
+        if (!shown.Contains(expected, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException($"Time picker still shows '{shown}', expected {expected}.");
+        }
+    }
+
+    private static void TypeTimeField(AndroidDriver driver, string id, string text)
+    {
+        var field = driver.FindElements(By.Id(id)).First(element => element.Displayed);
+        driver.ExecuteScript("mobile: replaceElementValue", new Dictionary<string, object>
+        {
+            ["elementId"] = ((AppiumElement)field).Id,
+            ["text"] = text
+        });
+    }
+
     public void DismissTimeDialog()
     {
         if (fixture.Driver is not AndroidDriver driver)
@@ -129,7 +202,10 @@ public sealed class SchedulePage
         }
 
         var cancel = driver.FindElements(By.Id("android:id/button2")).FirstOrDefault(element => element.Displayed);
-        cancel?.Click();
+        if (cancel != null)
+        {
+            fixture.Tap(cancel);
+        }
     }
 
     public void TapCancel() => fixture.WaitForAccessibilityId("CancelButton").Click();

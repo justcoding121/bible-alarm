@@ -486,8 +486,7 @@ public sealed class AndroidAudioFocusUiTests : IClassFixture<AndroidAppiumFixtur
     [Trait("Category", "Smoke")]
     public void Scheduled_alarm_two_minutes_out_is_left_to_the_nightly_run()
     {
-        // The real-time fire is covered by the hook above. Waiting two minutes on every PR
-        // is reserved for the nightly job via UI_REAL_ALARM=1.
+        // Waiting for a real alarm on every pull request is reserved for the nightly job.
         if (!string.Equals(Environment.GetEnvironmentVariable("UI_REAL_ALARM"), "1", StringComparison.Ordinal))
         {
             return;
@@ -495,13 +494,45 @@ public sealed class AndroidAudioFocusUiTests : IClassFixture<AndroidAppiumFixtur
 
         fixture.Run(nameof(Scheduled_alarm_two_minutes_out_is_left_to_the_nightly_run), () =>
         {
-            new HomePage(fixture).WaitUntilReady();
-            var schedule = new SchedulePage(fixture);
-            new HomePage(fixture).TapFirstCard();
-            schedule.WaitUntilReady();
-            Assert.NotNull(fixture.WaitForAccessibilityId("AlarmTimePicker"));
-            schedule.TapCancel();
+            var packageName = AndroidAppiumFixture.DefaultPackageName;
+            DeviceControl.AdbOrEmpty($"shell appops set {packageName} SCHEDULE_EXACT_ALARM allow");
+            var fireAt = DeviceNow().AddMinutes(2);
+            try
+            {
+                var home = new HomePage(fixture);
+                var schedule = new SchedulePage(fixture);
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                var editor = new SelectionModal(fixture);
+                if (!editor.ShowsText("Require tap to start playback"))
+                {
+                    editor.TapText("Enable Alarm");
+                }
+
+                schedule.SetExactTime(fireAt);
+                schedule.TapSave();
+                home.WaitUntilReady();
+                Waits.Until(
+                    () => fixture.IsShown("PlaybackModal") || fixture.IsShown("AlarmDismissButton"),
+                    TimeSpan.FromSeconds(170),
+                    "scheduled alarm");
+                if (fixture.IsShown("AlarmDismissButton"))
+                {
+                    new PlaybackPage(fixture).TapDismiss();
+                }
+            }
+            finally
+            {
+                new SchedulePage(fixture).DismissTimeDialog();
+            }
         });
+    }
+
+    private static DateTime DeviceNow()
+    {
+        var raw = DeviceControl.Adb("shell date +%Y-%m-%dT%H:%M:%S").Trim();
+        return DateTime.ParseExact(raw, "yyyy-MM-ddTHH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
     }
 }
 
