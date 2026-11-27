@@ -84,6 +84,81 @@ public sealed class AndroidAlarmFlowUiTests : IClassFixture<AndroidAppiumFixture
     }
 
     [Fact]
+    public void Created_schedule_keeps_its_time_name_and_weekday()
+    {
+        fixture.Run(nameof(Created_schedule_keeps_its_time_name_and_weekday), () =>
+        {
+            var home = new HomePage(fixture);
+            var schedule = new SchedulePage(fixture);
+            try
+            {
+                home.WaitUntilReady();
+                var opened = DateTime.UtcNow.AddSeconds(30);
+                while (!fixture.IsShown("SchedulePage") && DateTime.UtcNow < opened)
+                {
+                    home.TapAdd();
+                    var pause = DateTime.UtcNow.AddSeconds(2);
+                    while (!fixture.IsShown("SchedulePage") && DateTime.UtcNow < pause)
+                    {
+                        Thread.Sleep(250);
+                    }
+                }
+
+                schedule.WaitUntilReady();
+                schedule.SetName("Evening reading");
+                if (fixture.Driver is OpenQA.Selenium.Appium.Android.AndroidDriver driver)
+                {
+                    try
+                    {
+                        driver.HideKeyboard();
+                    }
+                    catch (Exception)
+                    {
+                        // The name field can already be closed.
+                    }
+                }
+
+                schedule.SetTime(7, 30);
+                new SelectionModal(fixture).TapText("Enable Alarm");
+                schedule.TapDay("DayButton_Mon");
+                Waits.Until(
+                    () => schedule.DayLooksDifferent("DayButton_Mon", "DayButton_Sun"),
+                    TimeSpan.FromSeconds(10),
+                    "Monday cleared");
+                schedule.TapSave();
+                home.WaitUntilReady();
+                Waits.Until(
+                    () => home.TimeForCard("Evening").Contains("07:30", StringComparison.Ordinal),
+                    TimeSpan.FromSeconds(15),
+                    "created time");
+                Relaunch();
+                home.WaitUntilReady();
+                Waits.Until(
+                    () => home.TimeForCard("Evening").Contains("07:30", StringComparison.Ordinal),
+                    TimeSpan.FromSeconds(20),
+                    "created time after relaunch");
+                home.TapCardNamed("Evening");
+                schedule.WaitUntilReady();
+                Assert.True(schedule.DayLooksDifferent("DayButton_Mon", "DayButton_Sun"));
+                schedule.TapDelete();
+                home.WaitUntilReady();
+                Waits.Until(
+                    () => home.Names().All(name => !name.Contains("Evening", StringComparison.OrdinalIgnoreCase)),
+                    TimeSpan.FromSeconds(20),
+                    "deleted created schedule");
+            }
+            finally
+            {
+                schedule.DismissTimeDialog();
+                if (fixture.IsShown("SchedulePage"))
+                {
+                    schedule.TapCancel();
+                }
+            }
+        });
+    }
+
+    [Fact]
     public void Schedule_time_persists_after_relaunch()
     {
         fixture.Run(nameof(Schedule_time_persists_after_relaunch), () =>

@@ -41,6 +41,19 @@ public sealed class HomePage
 
     public string FirstTime() => fixture.WaitForAccessibilityId("ScheduleTimeText").Text ?? string.Empty;
 
+    public string TimeForCard(string namePart)
+    {
+        var driver = fixture.Driver ?? throw new InvalidOperationException("Driver not initialised; did InitializeAsync run?");
+        var name = driver.FindElements(By.Id("ScheduleName"))
+            .First(element => element.Text?.Contains(namePart, StringComparison.OrdinalIgnoreCase) == true);
+        var time = driver.FindElements(By.Id("ScheduleTimeText"))
+            .Where(element => element.Displayed && !string.IsNullOrWhiteSpace(element.Text))
+            .Select(element => (Text: element.Text!.Trim(), Distance: Math.Abs(element.Location.Y - name.Location.Y)))
+            .OrderBy(item => item.Distance)
+            .FirstOrDefault();
+        return time.Text ?? string.Empty;
+    }
+
     public IReadOnlyList<string> Names()
     {
         var driver = fixture.Driver ?? throw new InvalidOperationException("Driver not initialised; did InitializeAsync run?");
