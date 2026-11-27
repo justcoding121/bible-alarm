@@ -5,6 +5,7 @@ using Bible.Alarm.UITests.Infrastructure;
 using Bible.Alarm.UITests.Pages;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Appium.Android;
 
 namespace Bible.Alarm.UITests.Tests.Media;
 
@@ -35,6 +36,85 @@ public sealed class AndroidNotificationUiTests : IClassFixture<AndroidAppiumFixt
             DeviceControl.Adb("shell input keyevent KEYCODE_MEDIA_NEXT");
             playback.TapDismiss();
         });
+    }
+
+    [Fact]
+    public void Notification_shade_controls_change_playback()
+    {
+        fixture.Run(nameof(Notification_shade_controls_change_playback), () =>
+        {
+            var driver = (AndroidDriver)(fixture.Driver ?? throw new InvalidOperationException("Driver not initialised."));
+            var home = new HomePage(fixture);
+            var playback = new PlaybackPage(fixture);
+            DeviceControl.AdbOrEmpty("shell cmd statusbar collapse");
+            home.WaitUntilReady();
+            home.TapFirstPlay();
+            playback.WaitUntilReady();
+            try
+            {
+                driver.OpenNotifications();
+                TapShadeAction(driver, "Pause");
+                Waits.Until(
+                    () => DeviceControl.AndroidMediaSession(AndroidAppiumFixture.DefaultPackageName).PlaybackState is 2 or 1,
+                    TimeSpan.FromSeconds(20),
+                    "shade pause");
+                TapShadeAction(driver, "Play");
+                Waits.Until(
+                    () => DeviceControl.AndroidMediaSession(AndroidAppiumFixture.DefaultPackageName).PlaybackState == 3,
+                    TimeSpan.FromSeconds(20),
+                    "shade play");
+                TapShadeAction(driver, "Next track");
+                TapShadeAction(driver, "Previous track");
+                DeviceControl.AdbOrEmpty("shell cmd statusbar collapse");
+                driver.ActivateApp(AndroidAppiumFixture.DefaultPackageName);
+                Waits.Until(
+                    () => fixture.IsShown("PlaybackModal") || fixture.IsShown("MiniBar"),
+                    TimeSpan.FromSeconds(20),
+                    "player after the shade");
+                if (fixture.IsShown("AlarmDismissButton"))
+                {
+                    playback.TapDismiss();
+                }
+                else
+                {
+                    new MiniBarPage(fixture).TapStop();
+                }
+                Waits.Until(
+                    () => DeviceControl.AndroidMediaSession(AndroidAppiumFixture.DefaultPackageName).PlaybackState is not 3,
+                    TimeSpan.FromSeconds(20),
+                    "dismissed playback");
+            }
+            finally
+            {
+                DeviceControl.AdbOrEmpty("shell cmd statusbar collapse");
+                driver.ActivateApp(AndroidAppiumFixture.DefaultPackageName);
+            }
+        });
+    }
+
+    private static void TapShadeAction(AndroidDriver driver, params string[] descriptions)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(12);
+        while (DateTime.UtcNow < deadline)
+        {
+            foreach (var description in descriptions)
+            {
+                var match = driver.FindElements(MobileBy.AccessibilityId(description)).FirstOrDefault()
+                    ?? driver.FindElements(MobileBy.AndroidUIAutomator(
+                        "new UiSelector().descriptionContains(\"" + description + "\")")).FirstOrDefault();
+                if (match == null)
+                {
+                    continue;
+                }
+
+                match.Click();
+                return;
+            }
+
+            Thread.Sleep(500);
+        }
+
+        throw new TimeoutException("Missing shade action " + string.Join('/', descriptions));
     }
 }
 
