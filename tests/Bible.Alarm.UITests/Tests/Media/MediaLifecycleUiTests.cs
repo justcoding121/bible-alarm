@@ -107,8 +107,15 @@ public sealed class AndroidNotificationUiTests : IClassFixture<AndroidAppiumFixt
                     continue;
                 }
 
-                match.Click();
-                return;
+                try
+                {
+                    match.Click();
+                    return;
+                }
+                catch (StaleElementReferenceException)
+                {
+                    // The shade redraws the transport row between the find and the click.
+                }
             }
 
             Thread.Sleep(500);
@@ -532,25 +539,27 @@ public sealed class IosSpringboardNotificationUiTests : IClassFixture<IosAppiumF
                 DeviceControl.DarwinNotify("com.jthomas.biblealarm.uitest.fireAlarm.1");
                 ActivateSpringboard(driver);
                 var started = DateTime.UtcNow;
-                var nextOpen = started.AddSeconds(2);
+                var opened = false;
                 Waits.Until(() =>
                 {
                     // The permission alert is a Springboard dialog. A swipe before it is
                     // accepted dismisses it. When it never appears, permission is already granted.
                     if (TryTapAllow(driver))
                     {
-                        nextOpen = DateTime.UtcNow.AddSeconds(2);
+                        opened = false;
                         return false;
                     }
 
-                    if (DateTime.UtcNow >= nextOpen)
+                    // The notification is scheduled 8s out. Open the center once, after it
+                    // can have been delivered. Further swipes dismiss the banner.
+                    if (!opened && DateTime.UtcNow - started > TimeSpan.FromSeconds(10))
                     {
                         OpenNotificationCenter(driver);
-                        nextOpen = DateTime.UtcNow.AddSeconds(4);
+                        opened = true;
                     }
 
                     return SpringboardShowsAlarm(driver);
-                }, TimeSpan.FromSeconds(40), "Springboard alarm notification");
+                }, TimeSpan.FromSeconds(35), "Springboard alarm notification");
             }
             finally
             {
@@ -617,8 +626,20 @@ public sealed class IosSpringboardNotificationUiTests : IClassFixture<IosAppiumF
     private static bool SpringboardShowsAlarm(AppiumDriver driver)
     {
         const string body = "Alarm is ringing";
-        return driver.FindElements(MobileBy.IosNSPredicate(
-            $"label CONTAINS '{body}' OR name CONTAINS '{body}' OR value CONTAINS '{body}'")).Count > 0;
+        if (driver.FindElements(MobileBy.IosNSPredicate(
+            $"label CONTAINS '{body}' OR name CONTAINS '{body}' OR value CONTAINS '{body}'")).Count > 0)
+        {
+            return true;
+        }
+
+        try
+        {
+            return driver.PageSource.Contains(body, StringComparison.Ordinal);
+        }
+        catch (WebDriverException)
+        {
+            return false;
+        }
     }
 }
 
