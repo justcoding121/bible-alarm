@@ -39,6 +39,11 @@ for _ in $(seq 1 60); do
   sleep 2
 done
 
+# Appium spends several minutes building WebDriverAgent. Re-check the simulator
+# afterwards so the first session is not waiting on a boot that already died.
+xcrun simctl boot "${DEVICE}" || true
+xcrun simctl bootstatus "${DEVICE}" -b
+
 set +e
 dotnet test tests/Bible.Alarm.UITests/Bible.Alarm.UITests.csproj \
   -c Release \
