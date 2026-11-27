@@ -3,6 +3,8 @@
 using Bible.Alarm.UITests.Fixtures;
 using Bible.Alarm.UITests.Infrastructure;
 using Bible.Alarm.UITests.Pages;
+using OpenQA.Selenium;
+using OpenQA.Selenium.Appium;
 
 namespace Bible.Alarm.UITests.Tests.Media;
 
@@ -225,6 +227,121 @@ public sealed class IosCarPlayHookUiTests : IClassFixture<IosAppiumFixture>
             Assert.True(info.Exists && info.Length > 12_000,
                 $"CarPlay display capture was missing or blank ({(info.Exists ? info.Length : 0)} bytes).");
         });
+    }
+}
+
+[Trait("UI", "iOS")]
+[Trait("Category", "Notification")]
+public sealed class IosSpringboardNotificationUiTests : IClassFixture<IosAppiumFixture>
+{
+    private readonly IosAppiumFixture fixture;
+
+    public IosSpringboardNotificationUiTests(IosAppiumFixture fixture) => this.fixture = fixture;
+
+    [Fact]
+    public void Fire_alarm_notification_appears_in_springboard()
+    {
+        fixture.Run(nameof(Fire_alarm_notification_appears_in_springboard), () =>
+        {
+            var driver = fixture.Driver ?? throw new InvalidOperationException("Driver not initialised.");
+            new HomePage(fixture).WaitUntilReady();
+            try
+            {
+                // simctl privacy has no notifications service on this Xcode, so the system
+                // prompt is the grant. Schedule the notification while the app can receive
+                // the Darwin hook, accept the prompt, then look for it on Springboard.
+                DeviceControl.DarwinNotify("com.jthomas.biblealarm.uitest.notification.clear");
+                DeviceControl.DarwinNotify("com.jthomas.biblealarm.uitest.fireAlarm.1");
+                ActivateSpringboard(driver);
+                var started = DateTime.UtcNow;
+                var opened = false;
+                Waits.Until(() =>
+                {
+                    // The permission alert is a Springboard dialog. A swipe before it is
+                    // accepted dismisses it. When it never appears, permission is already granted.
+                    var tapped = TryTapAllow(driver);
+                    if (tapped)
+                    {
+                        opened = false;
+                    }
+
+                    var promptSettled = tapped || DateTime.UtcNow - started > TimeSpan.FromSeconds(6);
+                    if (promptSettled && !opened)
+                    {
+                        OpenNotificationCenter(driver);
+                        opened = true;
+                    }
+
+                    return SpringboardShowsAlarm(driver);
+                }, TimeSpan.FromSeconds(25), "Springboard alarm notification");
+            }
+            finally
+            {
+                driver.ExecuteScript("mobile: activateApp", new Dictionary<string, object>
+                {
+                    ["bundleId"] = IosAppiumFixture.DefaultBundleId
+                });
+            }
+        });
+    }
+
+    private static void ActivateSpringboard(AppiumDriver driver)
+    {
+        driver.ExecuteScript("mobile: backgroundApp", new Dictionary<string, object>
+        {
+            ["seconds"] = -1
+        });
+        driver.ExecuteScript("mobile: activateApp", new Dictionary<string, object>
+        {
+            ["bundleId"] = "com.apple.springboard"
+        });
+    }
+
+    private static void OpenNotificationCenter(AppiumDriver driver)
+    {
+        var size = driver.Manage().Window.Size;
+        driver.ExecuteScript("mobile: dragFromToForDuration", new Dictionary<string, object>
+        {
+            ["duration"] = 0.4,
+            ["fromX"] = 20,
+            ["fromY"] = 1,
+            ["toX"] = 20,
+            ["toY"] = size.Height / 2
+        });
+    }
+
+    private static bool TryTapAllow(AppiumDriver driver)
+    {
+        try
+        {
+            var allow = driver.FindElements(MobileBy.AccessibilityId("Allow"))
+                .Concat(driver.FindElements(MobileBy.IosNSPredicate("label == 'Allow' OR name == 'Allow'")))
+                .FirstOrDefault();
+            if (allow == null)
+            {
+                return false;
+            }
+
+            var location = allow.Location;
+            var size = allow.Size;
+            driver.ExecuteScript("mobile: tap", new Dictionary<string, object>
+            {
+                ["x"] = location.X + (size.Width / 2),
+                ["y"] = location.Y + (size.Height / 2)
+            });
+            return true;
+        }
+        catch (WebDriverException)
+        {
+            return false;
+        }
+    }
+
+    private static bool SpringboardShowsAlarm(AppiumDriver driver)
+    {
+        const string body = "Alarm is ringing";
+        return driver.FindElements(MobileBy.IosNSPredicate(
+            $"label CONTAINS '{body}' OR name CONTAINS '{body}' OR value CONTAINS '{body}'")).Count > 0;
     }
 }
 

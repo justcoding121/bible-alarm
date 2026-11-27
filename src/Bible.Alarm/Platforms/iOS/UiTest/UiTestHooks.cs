@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using CoreFoundation;
 using Foundation;
 using Serilog;
+using UserNotifications;
 
 namespace Bible.Alarm.Platforms.iOS.UiTest;
 
@@ -40,7 +41,7 @@ public static class UiTestHooks
             {
                 "remote.play", "remote.pause", "remote.next", "remote.previous",
                 "interruption.begin", "interruption.end", "route.oldDeviceUnavailable",
-                "carplay.connect", "carplay.disconnect", "dumpState"
+                "carplay.connect", "carplay.disconnect", "dumpState", "notification.clear"
             })
             {
                 Watch(center, command);
@@ -89,6 +90,7 @@ public static class UiTestHooks
     {
         if (command.StartsWith("fireAlarm.", StringComparison.Ordinal) && int.TryParse(command["fireAlarm.".Length..], out var alarmId))
         {
+            DeliverFireAlarmNotification(alarmId);
             CarPlayPlaybackHandler.HandleScheduleItemClicked(alarmId, static () => { });
             return;
         }
@@ -132,6 +134,9 @@ public static class UiTestHooks
             case "carplay.disconnect":
                 logger.Information("BibleAlarmUiTest carplay-disconnected");
                 break;
+            case "notification.clear":
+                ClearFireAlarmNotifications();
+                break;
             case "dumpState":
                 var json = UiTestStateDump.ToJson();
                 logger.Information("BibleAlarmUiTest {Json}", json);
@@ -140,6 +145,51 @@ public static class UiTestHooks
                 logger.Warning("Ignored UI test Darwin notification {Command}", command);
                 break;
         }
+    }
+
+    public const string FireAlarmNotificationBody = "Alarm is ringing";
+
+    private static void DeliverFireAlarmNotification(int scheduleId)
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            var center = UNUserNotificationCenter.Current;
+            center.RequestAuthorization(UNAuthorizationOptions.Alert | UNAuthorizationOptions.Sound, (granted, error) =>
+            {
+                if (!granted)
+                {
+                    logger.Warning("UI test fire alarm notification was not authorized. {Error}", error?.LocalizedDescription);
+                    return;
+                }
+
+                var content = new UNMutableNotificationContent
+                {
+                    Title = "Bible Alarm",
+                    Body = FireAlarmNotificationBody,
+                    Sound = UNNotificationSound.Default
+                };
+                content.UserInfo = new NSDictionary(new NSString("ScheduleId"), new NSString(scheduleId.ToString()));
+                var trigger = UNTimeIntervalNotificationTrigger.CreateTrigger(3, false);
+                var request = UNNotificationRequest.FromIdentifier($"uitest-fire-{scheduleId}", content, trigger);
+                center.AddNotificationRequest(request, err =>
+                {
+                    if (err != null)
+                    {
+                        logger.Error("UI test fire alarm notification failed: {Code}", err.Code);
+                    }
+                });
+            });
+        });
+    }
+
+    private static void ClearFireAlarmNotifications()
+    {
+        MainThread.BeginInvokeOnMainThread(() =>
+        {
+            var center = UNUserNotificationCenter.Current;
+            center.RemoveAllDeliveredNotifications();
+            center.RemoveAllPendingNotificationRequests();
+        });
     }
 
     private static void PostInterruption(AVAudioSessionInterruptionType type)
