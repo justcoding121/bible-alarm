@@ -204,6 +204,51 @@ public sealed class AndroidScheduleEditorUiTests : IClassFixture<AndroidAppiumFi
     }
 
     [Fact]
+    public void Cleared_weekday_stays_cleared_after_relaunch()
+    {
+        Run(nameof(Cleared_weekday_stays_cleared_after_relaunch), () =>
+        {
+            var home = new HomePage(fixture);
+            var schedule = new SchedulePage(fixture);
+            try
+            {
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                SetAlarmEnabled(enabled: true);
+                Assert.False(schedule.DayLooksDifferent("DayButton_Mon", "DayButton_Sun"));
+                schedule.TapDay("DayButton_Mon");
+                Waits.Until(
+                    () => schedule.DayLooksDifferent("DayButton_Mon", "DayButton_Sun"),
+                    TimeSpan.FromSeconds(10),
+                    "Monday cleared");
+                schedule.TapSave();
+                home.WaitUntilReady();
+                Relaunch();
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                Assert.True(schedule.DayLooksDifferent("DayButton_Mon", "DayButton_Sun"));
+                schedule.TapDay("DayButton_Mon");
+                Waits.Until(
+                    () => !schedule.DayLooksDifferent("DayButton_Mon", "DayButton_Sun"),
+                    TimeSpan.FromSeconds(10),
+                    "Monday restored");
+                SetAlarmEnabled(enabled: false);
+                schedule.TapSave();
+                home.WaitUntilReady();
+            }
+            finally
+            {
+                if (fixture.IsShown("SchedulePage"))
+                {
+                    schedule.TapCancel();
+                }
+            }
+        });
+    }
+
+    [Fact]
     public void Language_search_filters_the_list()
     {
         Run(nameof(Language_search_filters_the_list), () =>
@@ -388,6 +433,21 @@ public sealed class AndroidScheduleEditorUiTests : IClassFixture<AndroidAppiumFi
         }
 
         return fixture.IsShown("NumberOfTracksRow");
+    }
+
+    private void SetAlarmEnabled(bool enabled)
+    {
+        var editor = new SelectionModal(fixture);
+        if (editor.ShowsText("Require tap to start playback") == enabled)
+        {
+            return;
+        }
+
+        editor.TapText("Enable Alarm");
+        Waits.Until(
+            () => editor.ShowsText("Require tap to start playback") == enabled,
+            TimeSpan.FromSeconds(10),
+            enabled ? "alarm enabled" : "alarm disabled");
     }
 
     private void SetFiniteTrackCount(SchedulePage schedule, bool finite)

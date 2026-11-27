@@ -6,6 +6,7 @@ using Bible.Alarm.UITests.Infrastructure;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
 using OpenQA.Selenium.Appium.Android;
+using SkiaSharp;
 
 namespace Bible.Alarm.UITests.Pages;
 
@@ -76,6 +77,38 @@ public sealed class SchedulePage
     }
 
     public void TapDay(string id) => fixture.WaitForAccessibilityId(id).Click();
+
+    public bool DayLooksDifferent(string dayId, string otherDayId)
+    {
+        var day = DayColor(dayId);
+        var other = DayColor(otherDayId);
+        return Math.Abs(day.Red - other.Red) + Math.Abs(day.Green - other.Green) + Math.Abs(day.Blue - other.Blue) > 80;
+    }
+
+    private SKColor DayColor(string dayId)
+    {
+        var element = fixture.WaitForAccessibilityId(dayId) as AppiumElement
+            ?? throw new InvalidOperationException("Day button is not an Appium element.");
+        using var bitmap = SKBitmap.Decode(element.GetScreenshot().AsByteArray);
+        if (bitmap == null || bitmap.Width < 3 || bitmap.Height < 3)
+        {
+            throw new InvalidOperationException("Day button screenshot was empty.");
+        }
+
+        var counts = new Dictionary<(byte R, byte G, byte B), int>();
+        for (var y = 0; y < bitmap.Height; y += 2)
+        {
+            for (var x = 0; x < bitmap.Width; x += 2)
+            {
+                var pixel = bitmap.GetPixel(x, y);
+                var bucket = ((byte)(pixel.Red / 16 * 16), (byte)(pixel.Green / 16 * 16), (byte)(pixel.Blue / 16 * 16));
+                counts[bucket] = counts.GetValueOrDefault(bucket) + 1;
+            }
+        }
+
+        var dominant = counts.OrderByDescending(pair => pair.Value).First().Key;
+        return new SKColor(dominant.R, dominant.G, dominant.B);
+    }
 
     public void TapCategory() => fixture.WaitForAccessibilityId("CategoryRow").Click();
 
