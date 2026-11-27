@@ -23,6 +23,8 @@ public static class UiTestHooks
     private static readonly ILogger logger = Log.ForContext(typeof(UiTestHooks));
     private static bool registered;
 
+    private static readonly NSObject notificationObserver = new();
+
     public static void Register()
     {
         if (registered)
@@ -33,7 +35,7 @@ public static class UiTestHooks
         registered = true;
         try
         {
-            var center = CFNotificationCenter.GetDarwinNotifyCenter();
+            var center = CFNotificationCenter.Darwin;
             foreach (var command in new[]
             {
                 "remote.play", "remote.pause", "remote.next", "remote.previous",
@@ -60,10 +62,11 @@ public static class UiTestHooks
 
     private static void Watch(CFNotificationCenter center, string command)
     {
-        center.AddObserver(Prefix + command, Observe, CFNotificationSuspensionBehavior.DeliverImmediately);
+        // The Darwin center requires an object to observe. The callback is the third argument.
+        center.AddObserver(Prefix + command, notificationObserver, Observe);
     }
 
-    private static void Observe(string? name, NSDictionary? userInfo)
+    private static void Observe(string name, NSDictionary? userInfo)
     {
         _ = userInfo;
         if (string.IsNullOrEmpty(name) || !name.StartsWith(Prefix, StringComparison.Ordinal))
@@ -141,7 +144,8 @@ public static class UiTestHooks
 
     private static void PostInterruption(AVAudioSessionInterruptionType type)
     {
-        var info = new NSDictionary(AVAudioSession.InterruptionTypeKey, NSNumber.FromInt32((int)type));
+        // The binding no longer exposes AVAudioSession.InterruptionTypeKey. The native name is stable.
+        var info = new NSDictionary(new NSString("AVAudioSessionInterruptionTypeKey"), NSNumber.FromInt32((int)type));
         NSNotificationCenter.DefaultCenter.PostNotificationName(AVAudioSession.InterruptionNotification, AVAudioSession.SharedInstance(), info);
     }
 }
