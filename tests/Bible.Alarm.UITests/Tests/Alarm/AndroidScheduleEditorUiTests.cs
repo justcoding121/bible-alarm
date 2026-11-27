@@ -37,6 +37,64 @@ public sealed class AndroidScheduleEditorUiTests : IClassFixture<AndroidAppiumFi
     }
 
     [Fact]
+    public void Music_category_stays_without_start_music_after_relaunch()
+    {
+        Run(nameof(Music_category_stays_without_start_music_after_relaunch), () =>
+        {
+            var home = new HomePage(fixture);
+            var schedule = new SchedulePage(fixture);
+            var modal = new SelectionModal(fixture);
+            try
+            {
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                var original = schedule.RowLabel("CategoryRow");
+                Assert.False(string.IsNullOrWhiteSpace(original));
+                Assert.NotEqual("Music", original);
+                Assert.True(StartWithMusicShown(schedule), "A Bible schedule shows Start with music.");
+                schedule.TapCategory();
+                modal.WaitUntilReady();
+                modal.TapExactInList("Music");
+                Waits.Until(
+                    () => !fixture.IsShown("SelectionList") && schedule.RowLabel("CategoryRow") == "Music",
+                    TimeSpan.FromSeconds(90),
+                    "music category");
+                Assert.False(StartWithMusicShown(schedule));
+                schedule.TapSave();
+                home.WaitUntilReady();
+                Relaunch();
+                home.WaitUntilReady();
+                home.TapFirstCard();
+                schedule.WaitUntilReady();
+                Assert.Equal("Music", schedule.RowLabel("CategoryRow"));
+                Assert.False(StartWithMusicShown(schedule));
+                schedule.TapCategory();
+                modal.WaitUntilReady();
+                modal.TapExactInList(original);
+                Waits.Until(
+                    () => fixture.IsShown("SchedulePage") && schedule.RowLabel("CategoryRow") == original,
+                    TimeSpan.FromSeconds(45),
+                    "restored category");
+                schedule.TapSave();
+                home.WaitUntilReady();
+            }
+            finally
+            {
+                if (fixture.IsShown("SelectionList"))
+                {
+                    modal.Close();
+                }
+
+                if (fixture.IsShown("SchedulePage"))
+                {
+                    schedule.TapCancel();
+                }
+            }
+        });
+    }
+
+    [Fact]
     public void Indefinite_track_count_hides_the_finite_row()
     {
         Run(nameof(Indefinite_track_count_hides_the_finite_row), () =>
@@ -234,6 +292,30 @@ public sealed class AndroidScheduleEditorUiTests : IClassFixture<AndroidAppiumFi
         }
 
         new HomePage(fixture).WaitUntilReady();
+    }
+
+    private bool StartWithMusicShown(SchedulePage schedule)
+    {
+        schedule.ScrollTo("AlwaysFromStartRow");
+        if (fixture.IsShown("MusicEnabledRow"))
+        {
+            return true;
+        }
+
+        if (fixture.Driver is AndroidDriver driver)
+        {
+            driver.ExecuteScript("mobile: swipeGesture", new Dictionary<string, object>
+            {
+                ["left"] = 100,
+                ["top"] = 700,
+                ["width"] = 800,
+                ["height"] = 900,
+                ["direction"] = "up",
+                ["percent"] = 0.35
+            });
+        }
+
+        return fixture.IsShown("MusicEnabledRow");
     }
 
     private bool FiniteTrackRowShown(SchedulePage schedule)
