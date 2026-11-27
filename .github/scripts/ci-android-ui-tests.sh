@@ -14,6 +14,8 @@ adb shell settings put global animator_duration_scale 1 || true
 adb shell settings put global transition_animation_scale 1 || true
 adb shell settings put global window_animation_scale 1 || true
 adb shell settings put global hide_error_dialogs 1 || true
+sudo apt-get update -qq
+sudo apt-get install -y libfontconfig1
 
 APP_APK="$(find src/Bible.Alarm/bin -name '*Signed*.apk' -o -name '*.apk' | head -n 1 || true)"
 if [[ -z "${APP_APK}" ]]; then

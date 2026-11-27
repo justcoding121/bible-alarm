@@ -133,7 +133,7 @@ jobs:
             --results-directory TestResults `
             --logger "trx;LogFileName=test-results.trx" `
             --collect:"XPlat Code Coverage;Format=opencover,cobertura" `
-            --filter "Platform!=Android&Platform!=iOS&UI!=Windows&UI!=Android&UI!=iOS"
+            --filter "Platform!=Android&Platform!=iOS&UI!=Windows&UI!=Android&UI!=iOS&UI!=AndroidAuto"
         shell: pwsh
 
       # Copy EVERY per-project OpenCover XML into the staging dir under a unique name. Previously

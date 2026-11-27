@@ -58,7 +58,7 @@ jobs:
           profile: pixel_6
           emulator-boot-timeout: 900
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          disable-animations: true
+          disable-animations: false
           script: bash "${GITHUB_WORKSPACE}/.github/scripts/ci-android-ui-tests.sh"
       - name: Upload Android UI artifacts
         if: always()
@@ -105,12 +105,13 @@ jobs:
         env:
           UI_TEST_FILTER: UI=AndroidAuto
         with:
-          api-level: 34
+          api-level: 34-ext9
           target: android-automotive
           arch: x86_64
+          profile: automotive_1024p_landscape
           emulator-boot-timeout: 900
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          disable-animations: true
+          disable-animations: false
           script: bash "${GITHUB_WORKSPACE}/.github/scripts/ci-android-ui-tests.sh"
       - name: Upload Android Automotive UI artifacts
         if: always()

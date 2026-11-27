@@ -25,7 +25,7 @@ if [[ -n "${APP}" ]]; then
 fi
 
 npm install -g appium@2
-appium driver install xcuitest || true
+appium driver install xcuitest@9.10.5
 appium --port 4723 --log artifacts/ui-ios/appium.log &
 APPIUM_PID=$!
 for _ in $(seq 1 60); do
