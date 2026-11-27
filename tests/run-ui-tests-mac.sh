@@ -44,17 +44,20 @@ echo "[ui-mac] appium --version: $(appium --version)"
 # ---------------------------------------------------------------------------
 # 1. Boot a simulator
 # ---------------------------------------------------------------------------
-udid=$(xcrun simctl list devices "$SIM_NAME" available 2>/dev/null \
-        | awk -F '[()]' '/Booted/{print $2; exit}')
+udid=$(xcrun simctl list devices available 2>/dev/null \
+        | grep -F "$SIM_NAME" | grep -v 'created by XHarness' | head -n 1 \
+        | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/' || true)
 if [[ -z "$udid" ]]; then
-    udid=$(xcrun simctl list devices "$SIM_NAME" available 2>/dev/null \
-            | awk -F '[()]' '/Shutdown/{print $2; exit}')
+    # This Mac may not have the named device (the Mini has iPhone 17, not iPhone 16).
+    udid=$(xcrun simctl list devices available 2>/dev/null \
+            | grep -E 'iPhone [0-9]+ \(' | grep -v 'created by XHarness' | head -n 1 \
+            | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/' || true)
 fi
 if [[ -z "$udid" ]]; then
-    echo "[ui-mac] FATAL: no simulator named '$SIM_NAME' is available. Install one via Xcode > Window > Devices and Simulators."
+    echo "[ui-mac] FATAL: no iPhone simulator is available. Install one via Xcode > Window > Devices and Simulators."
     exit 2
 fi
-echo "[ui-mac] Using simulator '$SIM_NAME' (UDID $udid)"
+echo "[ui-mac] Using simulator UDID $udid"
 xcrun simctl boot "$udid" 2>/dev/null || true
 xcrun simctl bootstatus "$udid" -b
 # Surface the simulator window so visual debugging is possible if a flake hits.
@@ -69,6 +72,10 @@ dotnet build src/Bible.Alarm/Bible.Alarm.csproj \
     -f net10.0-ios \
     -p:RuntimeIdentifier=iossimulator-arm64 \
     -p:BUILD_IOS_ONLY=true \
+    -p:UiTestHooks=true \
+    -p:CodesignKey=- \
+    -p:CodesignEntitlements= \
+    -p:CodesignRequireProvisioningProfile=false \
     --nologo \
     --verbosity minimal
 
@@ -122,8 +129,44 @@ echo "[ui-mac] Appium ready (pid ${appium_pid})"
 # ---------------------------------------------------------------------------
 export APPIUM_URL="${APPIUM_URL_LOCAL}"
 export BIBLE_ALARM_BUNDLE_ID="${BIBLE_ALARM_BUNDLE_ID:-com.jthomas.info.Bible.Alarm}"
+export BIBLE_ALARM_APP_PATH="${app_path}"
 export IOS_SIMULATOR_UDID="${udid}"
 export UI_SCREENSHOT_DIR="${TEST_RESULTS_DIR}"
+export CARPLAY_DISPLAY="${CARPLAY_DISPLAY:-0}"
+
+if [[ "$CARPLAY_DISPLAY" == "1" ]]; then
+    echo "[ui-mac] Turning the external display into a CarPlay screen"
+    plist_dir="$HOME/Library/Developer/CoreSimulator/Devices/$udid/data/Library/Application Support/Simulator"
+    mkdir -p "$plist_dir"
+    cat > "$plist_dir/extended_display.plist" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>hasTouchScreen</key>
+	<true/>
+	<key>height</key>
+	<integer>480</integer>
+	<key>scale</key>
+	<integer>2</integer>
+	<key>stark</key>
+	<integer>1</integer>
+	<key>width</key>
+	<integer>800</integer>
+</dict>
+</plist>
+EOF
+    xcrun -sdk iphonesimulator clang -arch arm64 -fobjc-arc \
+        -framework Foundation -framework IOSurface -framework ImageIO -framework CoreGraphics -framework QuartzCore \
+        "$repo_root/tests/Bible.Alarm.UITests/Tools/carplay-capture.m" \
+        -o /tmp/bible-alarm-carplay-capture
+    codesign -s - --force /tmp/bible-alarm-carplay-capture
+    export CARPLAY_CAPTURE_BIN=/tmp/bible-alarm-carplay-capture
+    xcrun simctl spawn "$udid" launchctl kickstart -k user/foreground/com.apple.backboardd
+    sleep 3
+    xcrun simctl spawn "$udid" launchctl kickstart -p user/foreground/com.apple.CarPlayApp
+    sleep 3
+fi
 
 echo "[ui-mac] dotnet test --filter UI=iOS"
 dotnet test tests/Bible.Alarm.UITests/Bible.Alarm.UITests.csproj \

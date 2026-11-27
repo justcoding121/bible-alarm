@@ -53,7 +53,7 @@ public partial class AnimatedProgressBar : ContentView
 
     private void StartAnimation()
     {
-        if (isAnimating)
+        if (isAnimating || !PlatformAnimationsEnabled())
         {
             return;
         }
@@ -119,6 +119,19 @@ public partial class AnimatedProgressBar : ContentView
         {
             Log.Logger.Debug(ex, "AnimatedProgressBar: Animation error (non-critical)");
         }
+    }
+
+    private static bool PlatformAnimationsEnabled()
+    {
+#if ANDROID
+        // When the animator duration scale is 0, MAUI's infinite ValueAnimator restarts
+        // immediately and never returns to the looper. Home then stays on the bootstrap spinner.
+        if (OperatingSystem.IsAndroidVersionAtLeast(26))
+        {
+            return Android.Animation.ValueAnimator.AreAnimatorsEnabled();
+        }
+#endif
+        return true;
     }
 
     private Task<double> GetTrackWidthAsync()

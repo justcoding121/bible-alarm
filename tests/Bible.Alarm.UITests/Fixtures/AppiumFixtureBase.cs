@@ -2,6 +2,7 @@
 
 using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
+using OpenQA.Selenium.Appium.Android;
 using OpenQA.Selenium.Support.UI;
 
 namespace Bible.Alarm.UITests.Fixtures;
@@ -42,7 +43,7 @@ public abstract class AppiumFixtureBase : IAsyncLifetime
     /// <summary>Constructs the platform-specific driver instance. Default overrides are sufficient for most cases.</summary>
     protected abstract AppiumDriver CreateDriver(Uri serverUrl, AppiumOptions options);
 
-    public Task InitializeAsync()
+    public virtual Task InitializeAsync()
     {
         Directory.CreateDirectory(ScreenshotDirectory);
         var options = BuildOptions();
@@ -77,15 +78,7 @@ public abstract class AppiumFixtureBase : IAsyncLifetime
 
         try
         {
-            return wait.Until(d =>
-            {
-                // MobileBy.AccessibilityId / Appium "accessibility id" maps to:
-                //   - Android: content-description -> set by MAUI from AutomationId
-                //   - iOS:     accessibilityIdentifier -> set by MAUI from AutomationId
-                //   - Windows: AutomationProperties.AutomationId -> set by MAUI from AutomationId
-                var element = d.FindElement(MobileBy.AccessibilityId(accessibilityId));
-                return element.Displayed ? element : null!;
-            });
+            return wait.Until(d => FindDisplayed(d, accessibilityId)!);
         }
         catch (WebDriverTimeoutException)
         {
@@ -93,6 +86,106 @@ public abstract class AppiumFixtureBase : IAsyncLifetime
             throw;
         }
     }
+
+    private static IWebElement? FindDisplayed(IWebDriver driver, string accessibilityId)
+    {
+        if (driver is AndroidDriver)
+        {
+            // Labels and pages get a resource id. Syncfusion buttons keep the AutomationId
+            // on content-description and never receive package:id/AutomationId.
+            foreach (var candidate in driver.FindElements(By.Id(accessibilityId)))
+            {
+                if (candidate.Displayed)
+                {
+                    return candidate;
+                }
+            }
+
+            foreach (var candidate in driver.FindElements(MobileBy.AccessibilityId(accessibilityId)))
+            {
+                if (candidate.Displayed)
+                {
+                    return candidate;
+                }
+            }
+
+            return null;
+        }
+
+        var element = driver.FindElement(MobileBy.AccessibilityId(accessibilityId));
+        return element.Displayed ? element : null;
+    }
+
+    public void Tap(IWebElement element)
+    {
+        if (Driver is AndroidDriver driver)
+        {
+            // MAUI gesture recognizers often sit on a view that is not accessibility-clickable.
+            // element.Click() then does nothing, while a coordinate tap hits the recognizer.
+            var location = element.Location;
+            var size = element.Size;
+            driver.ExecuteScript("mobile: clickGesture", new Dictionary<string, object>
+            {
+                ["x"] = location.X + (size.Width / 2),
+                ["y"] = location.Y + (size.Height / 2)
+            });
+            return;
+        }
+
+        element.Click();
+    }
+
+    public bool IsShown(string accessibilityId)
+    {
+        var driver = Driver;
+        if (driver == null)
+        {
+            return false;
+        }
+
+        try
+        {
+            return FindDisplayed(driver, accessibilityId) != null;
+        }
+        catch (StaleElementReferenceException)
+        {
+            return false;
+        }
+        catch (NoSuchElementException)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>Runs a test body and keeps a screenshot plus device logs when it fails.</summary>
+    public void Run(string name, Action body)
+    {
+        try
+        {
+            body();
+        }
+        catch
+        {
+            DumpScreenshot(name);
+            DumpDiagnostics(name);
+            throw;
+        }
+    }
+
+    public void DumpDiagnostics(string label)
+    {
+        try
+        {
+            var path = Path.Combine(ScreenshotDirectory, $"{label}-diagnostics.txt");
+            File.WriteAllText(path, CollectDiagnostics());
+        }
+        catch
+        {
+            // Diagnostics must not hide the original failure.
+        }
+    }
+
+    protected virtual string CollectDiagnostics() => string.Empty;
 
     /// <summary>Dumps the current viewport to <see cref="ScreenshotDirectory"/>; safe to call from cleanup.</summary>
     public void DumpScreenshot(string label)

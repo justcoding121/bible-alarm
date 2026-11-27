@@ -90,7 +90,7 @@
 
                             <!-- Got it button -->
                             <Border Grid.Row="0"
-                                x:Name="GotItButton"
+                                x:Name="GotItButton" AutomationId="FocusSettingsGotIt"
                                 BackgroundColor="{StaticResource PrimaryColor}"
                                 HorizontalOptions="Fill"
                                 Padding="12,12"

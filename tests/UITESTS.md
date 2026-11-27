@@ -1,5 +1,11 @@
 # UI integration tests (Appium)
 
+Snooze has no screen, so the suite does not cover snooze. Visual checks use a local ImageSharp baseline (`VISUAL_PROVIDER=local`). Set `UPDATE_BASELINES=1` to record, `VISUAL_CHECKS=off` to skip, and `UI_DEVICE_PROFILE` / `UI_THEME` to choose the baseline folder. Another provider can implement `IVisualCheck` later without changing the tests.
+
+Android Automotive and the phone emulator can run headless on LinuxMini: `bash tests/run-ui-tests-linux.sh auto`. iOS and the CarPlay external display run on the Mac Mini through `tests/run-ui-tests-mac.sh`. `CARPLAY_DISPLAY=1` enables the external-display test. Store builds omit the UITEST hooks (`-p:UiTestHooks=true` is required for alarm, route, and CarPlay hooks).
+
+CarHostSim (`tests/Bible.Alarm.CarHostSim`) uses the Android Auto package id and is for emulators only.
+
 This folder ships **Appium-driven UI integration tests** as a separate concern from the host /
 device unit tests covered by `run-tests.ps1` and `tests/README.md`. UI tests exercise the
 **production app**, not the test bundle, and need a running Appium 2 server plus a deployed app.

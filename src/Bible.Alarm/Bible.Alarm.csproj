@@ -97,6 +97,8 @@
 		<!-- Use CoreCLR runtime for Windows (not Mono) -->
 		<UseMonoRuntime Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">false</UseMonoRuntime>
 		<DefineConstants Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">$(DefineConstants);WINDOWS</DefineConstants>
+		<!-- UITEST hooks (alarm fire, audio route, CarPlay) are compiled out of store builds. -->
+		<DefineConstants Condition="'$(UiTestHooks)' == 'true'">$(DefineConstants);UITEST</DefineConstants>
 		<!-- Disable Windows App SDK Deployment Manager auto-initializer on Windows (Debug and Release). -->
 		<!-- Property name must be WindowsAppSdkDeploymentManagerInitialize (lowercase 'dk') - this is what the SDK targets check. -->
 		<!-- When true, SDK compiles DeploymentManagerAutoInitializer.cs which uses DeploymentInitializeOptions COM - not registered when exe runs outside MSIX (e.g. F5 from bin\Release). -->
@@ -331,6 +333,12 @@
 		<BundleResource Include="Platforms\iOS\Resources\**" />
 		<BundleResource Include="Platforms\iOS\Assets.xcassets\**" />
 		<!-- Fonts are automatically handled by MAUI SDK from Resources/Fonts/ -->
+		<!--
+		  Syncfusion.Maui.Core and Syncfusion.Maui.Buttons are IsTrimmable, so the CI
+		  SdkOnly linker removes constructors that XAML reaches only by reflection.
+		  Home then fails to inflate and the scene never gets a window.
+		-->
+		<LinkDescription Include="Platforms\iOS\Linker.xml" />
 	</ItemGroup>
 
 	<ItemGroup Condition="$(TargetFramework.StartsWith('net10.0-windows'))">

@@ -42,21 +42,23 @@ public sealed partial class MessageHandlingService(
     {
         logger.Information("Received InitializedMessage - beginning post-initialization navigation");
 
-        _ = MainThread.InvokeOnMainThreadAsync(async () =>
-        {
-            try
-            {
-                await navigationService.NavigateToHomeAsync();
-                await Task.Delay(100);
+        // BeginInvoke does not wait. InvokeOnMainThreadAsync from the main thread waits for the
+        // rest of this method, and the delay continuation also needs the main thread, so startup never finishes.
+        MainThread.BeginInvokeOnMainThread(() => _ = ContinueAfterInitializedAsync());
+    }
 
-                var modalWasShown = await playbackModalService.ShowPlaybackModalIfNeededOnWindowCreationAsync();
-                logger.Information("Post-initialization: modalWasShown={ModalWasShown}", modalWasShown);
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "An error happened while showing HomePage after initialization.");
-            }
-        });
+    private async Task ContinueAfterInitializedAsync()
+    {
+        try
+        {
+            await navigationService.NavigateToHomeAsync();
+            var modalWasShown = await playbackModalService.ShowPlaybackModalIfNeededOnWindowCreationAsync();
+            logger.Information("Post-initialization: modalWasShown={ModalWasShown}", modalWasShown);
+        }
+        catch (Exception e)
+        {
+            logger.Error(e, "An error happened while showing HomePage after initialization.");
+        }
     }
 
     public void Dispose()

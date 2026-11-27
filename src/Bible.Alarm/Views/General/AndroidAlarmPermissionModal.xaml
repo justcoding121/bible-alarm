@@ -103,6 +103,7 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <Button Grid.Row="0"
+                            AutomationId="BatteryOptimizationButton"
                             IsVisible="{Binding IsBatteryOptimizationButtonVisible}"
                             BackgroundColor="{StaticResource PrimaryColor}"
                             BorderWidth="0"
@@ -125,6 +126,7 @@
                         </Button>
                         
                         <Button Grid.Row="1"
+                            AutomationId="DndPermissionButton"
                             IsVisible="{Binding IsDndButtonVisible}"
                             BackgroundColor="{StaticResource PrimaryColor}"
                             BorderWidth="0"

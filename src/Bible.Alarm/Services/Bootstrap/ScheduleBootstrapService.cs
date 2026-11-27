@@ -255,30 +255,21 @@ public class ScheduleBootstrapService : IScheduleBootstrapService
         return alarmSchedules;
     }
 
-    private async Task DispatchInitializeActionAsync(ObservableHashSet<ScheduleStateItem> initialSchedules)
+    private Task DispatchInitializeActionAsync(ObservableHashSet<ScheduleStateItem> initialSchedules)
     {
         try
         {
-            await MainThread.InvokeOnMainThreadAsync(() =>
-            {
-                try
-                {
-                    dispatcher.Dispatch(new InitializeAction(initialSchedules));
-                    Log.Logger.Information("Dispatched InitializeAction with {Count} schedules", initialSchedules.Count);
-                }
-                catch (Exception dispatchEx)
-                {
-                    throw new InvalidOperationException(
-                        "Error dispatching InitializeAction.",
-                        dispatchEx);
-                }
-            });
+            // Do not wait for the main thread here. During startup the UI thread is already
+            // inside its own main-thread wait, so a nested wait never runs and the overlay stays up.
+            dispatcher.Dispatch(new InitializeAction(initialSchedules));
+            Log.Logger.Information("Dispatched InitializeAction with {Count} schedules", initialSchedules.Count);
+            return Task.CompletedTask;
         }
-        catch (Exception mainThreadEx)
+        catch (Exception dispatchEx)
         {
             throw new InvalidOperationException(
-                "Error invoking MainThread for InitializeAction dispatch.",
-                mainThreadEx);
+                "Error dispatching InitializeAction.",
+                dispatchEx);
         }
     }
 }

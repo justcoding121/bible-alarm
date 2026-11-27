@@ -98,7 +98,7 @@ public sealed partial class MusicLanguageModal : BaseContentPage, IDisposable
         isSelectingLanguage = true;
 
         languageItem.IsNavigating = true;
-        await Task.Delay(50, cancellationTokenSource.Token);
+        await Task.Delay(50);
 
         try
         {

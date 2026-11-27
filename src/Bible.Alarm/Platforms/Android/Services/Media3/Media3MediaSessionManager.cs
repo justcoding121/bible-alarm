@@ -2,6 +2,7 @@
 
 using Android.Graphics;
 using Bible.Alarm.Common;
+using Bible.Alarm.Platforms.Android.Services.Media;
 using Bible.Alarm.Platforms.Android.Services.Media.Interfaces;
 using Bible.Alarm.Platforms.Android.Services.Media.Session;
 using Bible.Alarm.Services.Media.Models;
@@ -145,9 +146,25 @@ public sealed class Media3MediaSessionManager : IMediaSessionManager
     {
         if (status is PlayStatus.Stopped or PlayStatus.Ended)
         {
-            UpdatePlaybackStateForStop();
-            SetActive(true);
             lastDurationMs = null;
+            // Android Auto keeps a paused, ready session. On the phone, dismiss must
+            // drop the player to idle so notification 3 is removed with the session.
+            if (CarConnectionHelper.IsCarConnected())
+            {
+                UpdatePlaybackStateForStop();
+                SetActive(true);
+                return;
+            }
+
+            SetActive(false);
+            SessionStatePlayer.Instance.Apply(current => current with
+            {
+                Kind = ProxyPlaybackKind.None,
+                PositionMs = 0,
+                IsActive = false,
+            });
+            lastKind = ProxyPlaybackKind.None;
+            lastPositionMs = 0;
             return;
         }
 

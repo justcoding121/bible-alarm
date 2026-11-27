@@ -2,6 +2,9 @@
 using Android.Media;
 using Bible.Alarm.Platforms.Android.Services.Audio.Interfaces;
 using Bible.Alarm.Services.Media.Interfaces;
+using Bible.Alarm.Services.Media.Models;
+using Bible.Alarm.Stores;
+using Fluxor;
 using Serilog;
 using Object = Java.Lang.Object;
 
@@ -15,13 +18,16 @@ public sealed class AudioFocusListener : Object, IAudioFocusListener, AudioManag
 {
     private static readonly ILogger logger = Log.ForContext<AudioFocusListener>();
     private readonly IPlaybackService playbackService;
+    private readonly IState<PlaybackState> playbackState;
+    private bool resumeAfterTransientLoss;
 
     /// <summary>
     /// Initializes the audio focus listener with playback service injection.
     /// </summary>
-    public AudioFocusListener(IPlaybackService playbackService)
+    public AudioFocusListener(IPlaybackService playbackService, IState<PlaybackState> playbackState)
     {
         this.playbackService = playbackService ?? throw new ArgumentNullException(nameof(playbackService));
+        this.playbackState = playbackState ?? throw new ArgumentNullException(nameof(playbackState));
         logger.Information("AudioFocusListener initialized");
     }
 
@@ -39,17 +45,30 @@ public sealed class AudioFocusListener : Object, IAudioFocusListener, AudioManag
             {
                 case AudioFocus.LossTransientCanDuck:
                 case AudioFocus.LossTransient:
-                case AudioFocus.Loss:
-                    // Permanent loss of audio focus - pause playback
-                    logger.Information("Audio focus lost - pausing playback");
-
+                    // A call or a duckable interruption pauses. Resume when focus returns,
+                    // unless the listener was already paused by the user.
+                    resumeAfterTransientLoss = playbackState.Value.Status is PlayStatus.Playing or PlayStatus.Loading;
+                    logger.Information("Audio focus lost temporarily - pausing playback");
                     _ = Task.Run(async () => await playbackService.PauseAsync());
                     break;
 
+                case AudioFocus.Loss:
+                    resumeAfterTransientLoss = false;
+                    logger.Information("Audio focus lost - pausing playback");
+                    _ = Task.Run(async () => await playbackService.PauseAsync());
+                    break;
 
                 case AudioFocus.Gain:
-                    // Audio focus regained - don't auto-resume, let user control playback
-                    logger.Debug("Audio focus regained");
+                    if (resumeAfterTransientLoss)
+                    {
+                        resumeAfterTransientLoss = false;
+                        logger.Information("Audio focus regained - resuming playback");
+                        _ = Task.Run(async () => await playbackService.PlayAsync());
+                    }
+                    else
+                    {
+                        logger.Debug("Audio focus regained");
+                    }
                     break;
 
                 default:

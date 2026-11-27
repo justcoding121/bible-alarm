@@ -111,7 +111,7 @@
             </Border>
             
             <!-- Enhanced Collection View - hidden on Android until helper reveals after list is rendered (avoids empty-list flash) -->
-            <CollectionView
+            <CollectionView AutomationId="SelectionList"
                 x:Name="LanguageCollectionView"
                 Grid.Row="2"
                 Margin="{OnPlatform WinUI='0,4,0,20', Default='0,8,0,20'}"
@@ -253,7 +253,7 @@
             </core:SfEffectsView>
             <!-- Regular button for Android/iOS -->
             <Border Grid.Row="3"
-                x:Name="CloseButtonNoEffects"
+                x:Name="CloseButtonNoEffects" AutomationId="ModalCloseButton"
                 Margin="{DynamicResource MarginThicknessModalClose}"
                 BackgroundColor="{DynamicResource CardBackgroundColor}"
                 HorizontalOptions="Fill"

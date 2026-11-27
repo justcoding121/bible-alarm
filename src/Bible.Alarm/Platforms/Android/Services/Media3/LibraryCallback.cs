@@ -8,8 +8,10 @@ using Android.Runtime;
 using AndroidX.Media3.Common;
 using AndroidX.Media3.Session;
 using Bible.Alarm.Platforms.Android.Services.AndroidAuto;
+using Bible.Alarm.Services.Media.BrowseHelpers;
 using Google.Common.Util.Concurrent;
 using Java.Util;
+using Serilog;
 
 namespace Bible.Alarm.Platforms.Android.Services.Media3;
 
@@ -22,6 +24,7 @@ namespace Bible.Alarm.Platforms.Android.Services.Media3;
 #pragma warning restore CS0618
 public sealed class LibraryCallback : Java.Lang.Object, MediaLibraryService.MediaLibrarySession.ICallback
 {
+    private static readonly ILogger logger = Log.ForContext<LibraryCallback>();
     public IListenableFuture? OnConnectAsync(MediaSession? session, MediaSession.ControllerInfo? controller)
     {
         _ = session;
@@ -69,8 +72,13 @@ public sealed class LibraryCallback : Java.Lang.Object, MediaLibraryService.Medi
         return GuavaFutures.Immediate(MediaSession.ConnectionResult.Accept(sessionCommands, playerCommands)!);
     }
 
-    public void OnPostConnect(MediaSession? session, MediaSession.ControllerInfo? controller) =>
-        OnDisconnected(session, controller);
+    public void OnPostConnect(MediaSession? session, MediaSession.ControllerInfo? controller)
+    {
+        // A controller finishing connect is still attached. Treating that as a disconnect
+        // dropped the car host before it could browse.
+        _ = session;
+        _ = controller;
+    }
 
     public void OnDisconnected(MediaSession? session, MediaSession.ControllerInfo? controller)
     {
@@ -84,17 +92,31 @@ public sealed class LibraryCallback : Java.Lang.Object, MediaLibraryService.Medi
         MediaLibraryService.LibraryParams? libraryParams)
     {
         _ = session;
-        _ = libraryParams;
-        if (!AndroidAutoHostValidator.IsCarHostPackage(browser?.PackageName))
+        try
         {
-            return GuavaFutures.Immediate(LibraryResult.OfError(LibraryResult.ResultErrorPermissionDenied)!);
-        }
+            if (!AndroidAutoHostValidator.IsCarHostPackage(browser?.PackageName))
+            {
+                return GuavaFutures.Immediate(LibraryResult.OfError(LibraryResult.ResultErrorPermissionDenied)!);
+            }
 
-        var root = new MediaItem.Builder()
-            .SetMediaId(Media3LibraryCatalog.RootId)!
-            .SetMediaMetadata(new MediaMetadata.Builder().SetTitle("Bible Alarm")!.SetIsBrowsable(Java.Lang.Boolean.True)!.Build())!
-            .Build();
-        return GuavaFutures.Immediate(LibraryResult.OfItem(root, libraryParams)!);
+            // LibraryResult.ofItem rejects metadata that leaves isPlayable unset, and an
+            // exception here leaves the JNI callback and kills the process. The car host
+            // then reports RESULT_INFO_SKIPPED after its session times out.
+            var root = new MediaItem.Builder()
+                .SetMediaId(Media3LibraryCatalog.RootId)!
+                .SetMediaMetadata(new MediaMetadata.Builder()
+                    .SetTitle("Bible Alarm")!
+                    .SetIsBrowsable(Java.Lang.Boolean.True)!
+                    .SetIsPlayable(Java.Lang.Boolean.False)!
+                    .Build())!
+                .Build();
+            return GuavaFutures.Immediate(LibraryResult.OfItem(root, libraryParams)!);
+        }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Android Auto library root failed");
+            return GuavaFutures.Immediate(LibraryResult.OfError(LibraryResult.ResultErrorBadValue)!);
+        }
     }
 
     public IListenableFuture? OnGetChildren(
@@ -264,15 +286,34 @@ public sealed class LibraryCallback : Java.Lang.Object, MediaLibraryService.Medi
         var future = GuavaFutures.CreateSettable();
         _ = Task.Run(async () =>
         {
+            LibraryResult result;
             try
             {
-                await MauiProgram.WaitForBootstrapAsync();
-                GuavaFutures.SetResult(future, load());
+                await MauiProgram.WaitForBootstrapAsync(FutureCompletion.BrowseBootstrapWaitMs);
+                result = load();
             }
-            catch (System.Exception)
+            catch (System.Exception ex)
             {
                 _ = session;
-                GuavaFutures.SetResult(future, LibraryResult.OfItemList(new System.Collections.Generic.List<MediaItem>(), null)!);
+                logger.Error(ex, "Android Auto browse failed; returning an empty list so the car host does not spin");
+                result = LibraryResult.OfItemList(new System.Collections.Generic.List<MediaItem>(), null)!;
+            }
+
+            var completed = FutureCompletion.TryComplete(
+                () => GuavaFutures.SetResult(future, result),
+                failure =>
+                {
+                    if (failure == null)
+                    {
+                        logger.Error("Android Auto browse future was not completed");
+                        return;
+                    }
+
+                    logger.Error(failure, "Android Auto browse future was not completed");
+                });
+            if (!completed)
+            {
+                logger.Error("Android Auto browse future was not completed. The car host would spin forever.");
             }
         });
         return future;

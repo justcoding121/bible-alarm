@@ -1,5 +1,6 @@
 #nullable enable
 
+using OpenQA.Selenium;
 using OpenQA.Selenium.Appium;
 using OpenQA.Selenium.Appium.iOS;
 
@@ -11,9 +12,11 @@ namespace Bible.Alarm.UITests.Fixtures;
 /// team id; for now this fixture only targets the simulator (set <c>BIBLE_ALARM_APP_PATH</c>
 /// to the .app bundle path).
 /// </summary>
-public sealed class IosAppiumFixture : AppiumFixtureBase
+public class IosAppiumFixture : AppiumFixtureBase
 {
     public const string DefaultBundleId = "com.jthomas.info.Bible.Alarm";
+
+    protected override string CollectDiagnostics() => Bible.Alarm.UITests.Infrastructure.DeviceControl.TryIosDiagnostics();
 
     protected override AppiumOptions BuildOptions()
     {
@@ -42,11 +45,30 @@ public sealed class IosAppiumFixture : AppiumFixtureBase
 
         // MAUI iOS cold-start on a freshly booted simulator runs ~20-40s; XCUITest is patient by
         // default but we still bump it to keep the smoke test from flaking on slow runners.
-        options.AddAdditionalAppiumOption("wdaLaunchTimeout", 90_000);
+        // A hosted iOS 26 simulator often needs more than the 120s boot budget. The first
+        // session otherwise dies with "failed to finish booting" and the rest of the class never runs.
+        options.AddAdditionalAppiumOption("wdaLaunchTimeout", 180_000);
+        options.AddAdditionalAppiumOption("simulatorStartupTimeout", 360_000);
         options.AddAdditionalAppiumOption("appLaunchStateTimeoutSec", 90);
-        options.AddAdditionalAppiumOption("newCommandTimeout", 120);
+        options.AddAdditionalAppiumOption("newCommandTimeout", 180);
+        // Xcode 27 removed Simulator.app. A headless session boots through simctl
+        // and does not try to open that missing app.
+        options.AddAdditionalAppiumOption("isHeadless", true);
 
         return options;
+    }
+
+    public override async Task InitializeAsync()
+    {
+        try
+        {
+            await base.InitializeAsync();
+        }
+        catch (WebDriverException ex) when (ex.Message.Contains("failed to finish booting", StringComparison.OrdinalIgnoreCase))
+        {
+            await Task.Delay(TimeSpan.FromSeconds(10));
+            await base.InitializeAsync();
+        }
     }
 
     protected override AppiumDriver CreateDriver(Uri serverUrl, AppiumOptions options)

@@ -316,7 +316,7 @@
                       VerticalOptions="End"
                       HorizontalOptions="Fill"
                       HeightRequest="{StaticResource IconStandardContainerSize}">
-                    <Border x:Name="DeleteButtonNoEffectsBorder"
+                    <Border x:Name="DeleteButtonNoEffectsBorder" AutomationId="DeleteScheduleButton"
                             Margin="0"
                             BackgroundColor="{StaticResource ErrorColor}"
                             HorizontalOptions="Fill"

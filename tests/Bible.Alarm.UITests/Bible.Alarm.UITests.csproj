@@ -37,6 +37,8 @@
       4.36.0. Compatible with Appium server 2.x and the windows / uiautomator2 / xcuitest drivers.
     -->
     <PackageReference Include="Appium.WebDriver" Version="9.0.0" />
+    <PackageReference Include="SkiaSharp" Version="3.119.2" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="3.119.2" />
   </ItemGroup>
 
   <ItemGroup>

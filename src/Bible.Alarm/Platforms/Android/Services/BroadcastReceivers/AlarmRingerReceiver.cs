@@ -121,7 +121,15 @@ public class AlarmRingerReceiver : BroadcastReceiver
         {
             AppDomain.CurrentDomain.UnhandledException -= UnhandledExceptionHandler;
             TaskScheduler.UnobservedTaskException -= UnobservedTaskExceptionHandler;
-            pendingIntent.Finish();
+            // A direct OnReceive from the UI-test hook is not a system broadcast, so GoAsync() is null.
+            try
+            {
+                pendingIntent?.Finish();
+            }
+            catch (Exception ex)
+            {
+                logger.Warning(ex, "Alarm receiver could not finish the broadcast");
+            }
         }
     }
 }

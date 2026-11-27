@@ -52,7 +52,7 @@
                     <TapGestureRecognizer Command="{Binding ToggleMusicEnabledCommand}"
                                           NumberOfTapsRequired="1" />
                 </core:SfEffectsView.GestureRecognizers>
-                <Grid x:Name="MusicButton"
+                <Grid x:Name="MusicButton" AutomationId="MusicEnabledRow"
                       Margin="0"
                       Padding="16,16"
                       BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -124,7 +124,7 @@
                         <TapGestureRecognizer Command="{Binding SelectMusicLanguageCommand}"
                                               NumberOfTapsRequired="1" />
                     </core:SfEffectsView.GestureRecognizers>
-                    <Grid x:Name="MusicLanguageButton"
+                    <Grid x:Name="MusicLanguageButton" AutomationId="MusicLanguageRow"
                           Margin="0"
                           Padding="16,16"
                           BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -189,7 +189,7 @@
                         <TapGestureRecognizer Command="{Binding SelectSongPublicationCommand}"
                                               NumberOfTapsRequired="1" />
                     </core:SfEffectsView.GestureRecognizers>
-                    <Grid x:Name="SongPublicationButton"
+                    <Grid x:Name="SongPublicationButton" AutomationId="MusicPublicationRow"
                           Margin="0"
                           Padding="16,16"
                           BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -253,7 +253,7 @@
                         <TapGestureRecognizer Command="{Binding SelectMusicSectionCommand}"
                                               NumberOfTapsRequired="1" />
                     </core:SfEffectsView.GestureRecognizers>
-                    <Grid x:Name="MusicSectionButton"
+                    <Grid x:Name="MusicSectionButton" AutomationId="MusicSectionRow"
                           Margin="0"
                           Padding="16,16"
                           BackgroundColor="{DynamicResource ControlBackgroundColor}"
@@ -315,7 +315,7 @@
                         <TapGestureRecognizer Command="{Binding SelectTrackCommand}"
                                               NumberOfTapsRequired="1" />
                     </core:SfEffectsView.GestureRecognizers>
-                    <Grid x:Name="TrackButton"
+                    <Grid x:Name="TrackButton" AutomationId="MusicTrackRow"
                           Margin="0"
                           Padding="16,16"
                           BackgroundColor="{DynamicResource ControlBackgroundColor}"

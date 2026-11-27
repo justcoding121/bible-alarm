@@ -32,7 +32,7 @@
                 IsVisible="{Binding IsBusy, Converter={StaticResource negateBooleanConverter}}"
                 RowSpacing="0">
                 <!-- Enhanced Collection View -->
-                <CollectionView
+                <CollectionView AutomationId="SelectionList"
                     x:Name="sectionCollectionView"
                     Margin="0,8,0,0"
                     BackgroundColor="Transparent"

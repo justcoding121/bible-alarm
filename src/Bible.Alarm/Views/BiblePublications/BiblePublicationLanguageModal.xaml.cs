@@ -150,7 +150,7 @@ public sealed partial class BiblePublicationLanguageModal : BaseContentPage, IDi
         isSelectingLanguage = true;
 
         languageItem.IsNavigating = true;
-        await Task.Delay(50, cancellationTokenSource.Token);
+        await Task.Delay(50);
 
         try
         {
