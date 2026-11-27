@@ -136,10 +136,14 @@ public sealed class AndroidAudioFocusUiTests : IClassFixture<AndroidAppiumFixtur
                 TimeSpan.FromSeconds(60),
                 "home or playback");
             DeviceControl.AndroidBroadcast("com.jthomas.info.Bible.Alarm.UITEST_DUMP_STATE");
+            var before = DeviceControl.AndroidMediaSession(AndroidAppiumFixture.DefaultPackageName).PlaybackState;
             DeviceControl.AndroidBroadcast("com.jthomas.info.Bible.Alarm.UITEST_FIRE_ALARM", "--es ScheduleId 1");
-            // The alarm can land on the full player or only the mini bar. Either one means playback started.
+            // The alarm can open the full player, leave only the mini bar, or keep playing
+            // with neither on screen. Any of those means the hook started playback.
             Waits.Until(
-                () => fixture.IsShown("PlaybackModal") || fixture.IsShown("MiniBar"),
+                () => fixture.IsShown("PlaybackModal")
+                    || fixture.IsShown("MiniBar")
+                    || (before is not 3 && DeviceControl.AndroidMediaSession(AndroidAppiumFixture.DefaultPackageName).PlaybackState == 3),
                 TimeSpan.FromSeconds(90),
                 "playback");
             if (fixture.IsShown("PlaybackModal"))
